@@ -9,8 +9,9 @@ qxp is a cross-platform client for the delta chat protocol.
 - **Dependencies:** only `libdeltachat.a` (compiled from deltachat-core-rust). Zero Swift/ObjC package deps.
 - **MVP scope:** email+password login (IMAP/SMTP), chat list, chat view, send/receive text. No groups/media/settings yet.
 - **Reference implementation:** `resources/deltachat-ios/` — the official UIKit client. Use for inspiration only; do not import.
-- **Implementation plan:** see `PLAN.md` at repo root (6 phases, 17 new files).
-- **Current status:** plan approved 2026-04-12; Phase 0 (Rust core build + Xcode wiring) not yet started.
+- **MVP:** feature-complete in source (2026-04-13). All 6 phases landed; see `plans/MVP.md` for the retrospective. Pending: on-device verification (real email login, send/receive, background/foreground, dark mode).
+- **Project layout:** `qxp/Core/` Swift wrappers over `libdeltachat.a`; `qxp/State/` `@Observable @MainActor` view models (`AppState`, `ChatListViewModel`, `ChatViewModel`); `qxp/Views/` SwiftUI. Entry in `qxpApp.swift` routes `ProgressView → LoginView → ChatListView` via `AppState.isReady`/`isLoggedIn`. Events fan out via Combine `PassthroughSubject` on `AppState.events`.
+- **Active plan:** `PLAN.md` at repo root (empty until the next effort starts). Completed plans archive under `plans/`.
 
 ## Approach
 
