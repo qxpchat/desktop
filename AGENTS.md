@@ -4,8 +4,8 @@ qxp is a cross-platform client for the delta chat protocol.
 
 ## Project state
 
-- **Platform scope (current milestone):** iOS 18+ only. macOS/other platforms deferred.
-- **UI:** SwiftUI, Signal-like minimalism, latest Apple HIG.
+- **Platform scope (current milestone):** iOS 26+ only. macOS/other platforms deferred.
+- **UI:** SwiftUI, Signal-like minimalism, latest Apple HIG, Liquid Glass design only. Use iOS 26 native materials and modifiers — no custom blurs, no legacy bar tinting, no pre-Liquid-Glass variants when a newer one exists.
 - **Dependencies:** only `libdeltachat.a` (compiled from deltachat-core-rust). Zero Swift/ObjC package deps.
 - **MVP scope:** email+password login (IMAP/SMTP), chat list, chat view, send/receive text. No groups/media/settings yet.
 - **Reference implementation:** `resources/deltachat-ios/` — the official UIKit client. Use for inspiration only; do not import.
