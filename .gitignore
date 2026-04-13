@@ -1,1 +1,5 @@
 resources
+
+# Compiled core (built locally by scripts/build-core.sh)
+libs/libdeltachat.xcframework/
+.DS_Store
