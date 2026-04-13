@@ -15,6 +15,7 @@ qxp is a cross-platform client for the delta chat protocol.
 
 ## Approach
 
+-   Minimalism: do not invent ANYTHING, do everything max idiomatic way with no dependencies or custom code whenever possible.
 -   Think before acting. Read existing files before writing code.
 -   Be very concise in output but thorough in reasoning.
 -   Do not re-read files you have already read unless the file may have changed.
