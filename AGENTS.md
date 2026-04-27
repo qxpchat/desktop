@@ -10,7 +10,7 @@ qxp is a cross-platform client for the delta chat protocol.
 - **Reference implementation:** `resources/deltachat-ios/` — the official UIKit client. Use for inspiration only; do not import.
 - **Hardening:** strict concurrency complete, warnings-as-errors, TSan/ASan clean, 71 tests (28 pure logic + 41 integration).
 - **Project layout:** `qxp/Core/` Swift wrappers over `libdeltachat.a`; `qxp/State/` `@Observable @MainActor` view models (`AppState`, `ChatListViewModel`, `ChatViewModel`); `qxp/Views/` SwiftUI. Entry in `qxpApp.swift` routes `ProgressView → LoginView → ChatListView` via `AppState.isReady`/`isLoggedIn`. Events fan out via Combine `PassthroughSubject` on `AppState.events`.
-- **Active plan:** none. Latest completed: `plans/chatview-uikit-rewrite.md` — ChatView surface (bubbles, input bar, attachment pane, title, banners) is now pure UIKit cells/views; SwiftUI remains only for sheets/modals (Emoji, Reaction detail, Chat picker, Contact, Location, Camera, Image preview) and wallpaper rendering. Completed plans archive under `plans/`.
+- **Active plan:** none. Latest completed: `plans/chatview-bugfix-pass.md` — fixed reaction-overlap, opaque self-reaction pills, live reaction rendering via `snapshot.reconfigureItems`, initial-scroll FSM driven by `viewSafeAreaInsetsDidChange`, always-glass nav bar via `scrollEdgeAppearance == standardAppearance`, and `ChatInputBar` `UIBlurEffect` → `UIGlassEffect`. Prior: `plans/chatview-uikit-rewrite.md`. Completed plans archive under `plans/`.
 
 ## Approach
 
