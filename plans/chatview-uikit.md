@@ -10,7 +10,7 @@
 - **Scroll perf.** `LazyVStack` recreates heavy bubble subviews (image + voice waveform) on small offset changes; UITableView's reuse pool fixes this for free.
 - **Mark-as-seen.** No visible-rect hook in SwiftUI's scroll APIs that's stable across animations.
 
-The chat list already runs on the UIKit shell pattern (`ChatListTableViewController` — UITableView with `UIHostingConfiguration` cells). The chat view should follow suit. Reference implementation is `resources/deltachat-ios/deltachat-ios/Chat/ChatViewController.swift` (~2900 lines, pure UIKit cells).
+The chat list already runs on the UIKit shell pattern (`ChatListTableViewController` — UITableView with `UIHostingConfiguration` cells). The chat view should follow suit. Reference implementation is `references/deltachat-ios/deltachat-ios/Chat/ChatViewController.swift` (~2900 lines, pure UIKit cells).
 
 ### Scope
 

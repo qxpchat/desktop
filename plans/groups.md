@@ -11,7 +11,7 @@ The MVP shipped 1:1 chat only. This plan adds:
 
 **Not in scope:** mailing-list joining, media in groups, advanced group settings (disappearing messages, mute per-group). These can be layered later.
 
-**Reference behaviour** (from `resources/deltachat-ios/`):
+**Reference behaviour** (from `references/deltachat-ios/`):
 - `NewChatViewController` shows a table: [Scan QR, New Group, New Broadcast] then a searchable contacts section. Tapping a contact creates a 1:1 chat via `dc_create_chat_by_contact_id`.
 - `NewGroupController` collects a group name (required), then lets the user pick members via `AddGroupMembersViewController` (multi-select with checkmarks + search). On "Done": calls `dc_create_group_chat(verified, name)` → loops `dc_add_contact_to_chat` for each member. For broadcasts: `dc_create_broadcast_list(name)` instead, self not included.
 - `EditGroupViewController` lets users rename and manage members of an existing group.

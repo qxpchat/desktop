@@ -75,7 +75,7 @@ between phases.
 
 ## Reference behaviour
 
-`resources/deltachat-ios/`:
+`references/deltachat-ios/`:
 
 - `Chat/Views/Cells/BaseMessageCell.swift` — reactions are added to
   `contentView` and constrained

@@ -14,7 +14,7 @@ This plan adds a third tab ("QR") to `MainTabView` with a segmented **Show** / *
 
 ## Reference behaviour (observed, not copied)
 
-Read from `resources/deltachat-ios/deltachat-ios/Controller/{QrPageController,QrViewController,QrCodeReaderController}.swift`:
+Read from `references/deltachat-ios/deltachat-ios/Controller/{QrPageController,QrViewController,QrCodeReaderController}.swift`:
 
 - **`QrPageController`** — `UIPageViewController` in the title segmented control swap between `QrViewController` (show) and `QrCodeReaderController` (scan). Toolbar `ellipsis.circle` menu: **Share**, **Copy**, **Paste** (paste is present in both tabs and routes through the scan coordinator), **Withdraw QR** (only in Show). Share / copy both call `Utils.getInviteLink(context:chatId:)`, which is literally `context.getSecurejoinQr(chatId:)` — so the QR payload *is* the invite link.
 - **`QrViewController`** — renders the securejoin QR (SVG via `dc_get_securejoin_qr_svg`, deprecated), a caption `qrshow_join_contact_hint` formatted with the user's display name / email, a "Share invite link" text button below.
@@ -129,7 +129,7 @@ All five screens rely on `Localizable.xcstrings` keys that don't exist yet. We'v
 
 **Steps:**
 - Walk M1–M3 and inventory every `String(localized:)` / `Text("…")` key.
-- Copy the English values from `resources/deltachat-ios/deltachat-ios/en.lproj/Localizable.strings` into `qxp/Localizable.xcstrings`. Source of truth: the reference file; semantics stay identical.
+- Copy the English values from `references/deltachat-ios/deltachat-ios/en.lproj/Localizable.strings` into `qxp/Localizable.xcstrings`. Source of truth: the reference file; semantics stay identical.
 - Specific new keys this plan introduces on top of the onboarding inventory: `qrshow_title`, `qrscan_title`, `qrshow_join_contact_hint`, `share_invite_link`, `menu_share`, `menu_copy_to_clipboard`, `paste_from_clipboard`, `withdraw_qr_code`, `withdraw_verifycontact_explain`, `contact_verified`, `ok`.
 
 **Exit:** every QR-tab screen renders with proper strings in English; keys resolve rather than showing the literal key name.

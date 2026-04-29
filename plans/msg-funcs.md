@@ -25,8 +25,8 @@ This plan adds a full message context menu (matching the official Delta Chat cli
 
 **Reference clients (read, do not import)**
 
-- Delta Chat iOS: `resources/deltachat-ios/deltachat-ios/Chat/ChatViewController.swift` — `tableView(_:contextMenuConfigurationForRowAt:)` at ~L1964, `appendReactionItems` at ~L1897. Uses `UIContextMenuConfiguration` with inline reactions (iOS 16+), reply/forward/copy/delete actions, and MCEmojiPicker library for full picker.
-- Signal iOS: `resources/Signal-iOS/Signal/src/ViewControllers/MessageReactionPicker.swift` — 6-emoji reaction bar + "more" button. `resources/Signal-iOS/Signal/Emoji/EmojiPickerSheet.swift` — custom sheet with search, categories, recents, skin tones. Fully custom, ~15 files, code-generated emoji database.
+- Delta Chat iOS: `references/deltachat-ios/deltachat-ios/Chat/ChatViewController.swift` — `tableView(_:contextMenuConfigurationForRowAt:)` at ~L1964, `appendReactionItems` at ~L1897. Uses `UIContextMenuConfiguration` with inline reactions (iOS 16+), reply/forward/copy/delete actions, and MCEmojiPicker library for full picker.
+- Signal iOS: `references/Signal-iOS/Signal/src/ViewControllers/MessageReactionPicker.swift` — 6-emoji reaction bar + "more" button. `references/Signal-iOS/Signal/Emoji/EmojiPickerSheet.swift` — custom sheet with search, categories, recents, skin tones. Fully custom, ~15 files, code-generated emoji database.
 
 ---
 

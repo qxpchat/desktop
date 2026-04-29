@@ -2,7 +2,7 @@
 
 ## Context
 
-Port the "Chats and Media" settings section from the Delta Chat iOS reference client (`resources/deltachat-ios/`) into qxp. Every setting must be wired to deltachat-core so it actually takes effect — no dead toggles.
+Port the "Chats and Media" settings section from the Delta Chat iOS reference client (`references/deltachat-ios/`) into qxp. Every setting must be wired to deltachat-core so it actually takes effect — no dead toggles.
 
 **In scope:** Blocked contacts list, outgoing media quality, auto-download limit, read receipts, auto-delete (device + server). All effective via `dc_set_config` / `dc_get_config`.
 

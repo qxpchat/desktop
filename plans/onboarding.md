@@ -8,7 +8,7 @@ We replicate the same UX in SwiftUI, feature-parity not UI-parity: three onboard
 
 ## Reference behaviour (observed, not copied)
 
-Read from `resources/deltachat-ios/deltachat-ios/Controller/ProfileSetup/{WelcomeViewController,InstantOnboardingViewController,InstantOnboardingView}.swift`:
+Read from `references/deltachat-ios/deltachat-ios/Controller/ProfileSetup/{WelcomeViewController,InstantOnboardingViewController,InstantOnboardingView}.swift`:
 
 **Welcome splash** (`WelcomeContentView`)
 - Logo (top half, sized to 50 % of screen width on phone) + "Chat over Email" tagline below.
@@ -38,7 +38,7 @@ Read from `resources/deltachat-ios/deltachat-ios/Controller/ProfileSetup/{Welcom
 
 ## qxp constraints
 
-- **No code is copied from the reference client.** The three `ProfileSetup/*.swift` files under `resources/deltachat-ios/` are for understanding the flow only. Every Swift file we produce is written fresh against iOS 26 / SwiftUI conventions — no ported UIKit class hierarchies, no translated auto-layout constraints, no shared helper types.
+- **No code is copied from the reference client.** The three `ProfileSetup/*.swift` files under `references/deltachat-ios/` are for understanding the flow only. Every Swift file we produce is written fresh against iOS 26 / SwiftUI conventions — no ported UIKit class hierarchies, no translated auto-layout constraints, no shared helper types.
 - **iOS 26 floor. Liquid Glass everywhere.** Use the native iOS 26 Liquid Glass materials and the current (2025/2026) HIG. Backgrounds, sheets, buttons, navigation bars adopt the system's glass appearance by default — no custom translucency, no hand-rolled blurs, no legacy bar tinting. When a SwiftUI modifier gained a Liquid Glass variant in iOS 26, prefer that variant.
 - **Zero dependencies.** No SPM adds, no CocoaPods, no vendored utilities. Needed capabilities:
   - QR rendering → `CIFilter.qrCodeGenerator` (built in).
@@ -48,7 +48,7 @@ Read from `resources/deltachat-ios/deltachat-ios/Controller/ProfileSetup/{Welcom
   - File picking → SwiftUI `.fileImporter`.
 - **SwiftUI only.** UIKit bridges appear only where SwiftUI genuinely lacks the primitive; each bridge should be < 50 LOC and live in its own file under `qxp/Views/`.
 - **State shape stays:** `@Observable @MainActor` view models, event fan-out via `AppState.events`, Combine only where it already appears.
-- **Localization:** reuse string keys from `resources/deltachat-ios/deltachat-ios/en.lproj/Localizable.strings` (same semantics, same locale coverage). Copy the keys and English values into our `.strings` / `String(localized:)` call sites; don't import the file.
+- **Localization:** reuse string keys from `references/deltachat-ios/deltachat-ios/en.lproj/Localizable.strings` (same semantics, same locale coverage). Copy the keys and English values into our `.strings` / `String(localized:)` call sites; don't import the file.
 
 ---
 
@@ -151,7 +151,7 @@ Rationale for one channel: the three flows are mutually exclusive (they all end 
 
 **Outcome:** created `qxp/State/InstantOnboardingViewModel.swift` (`@Observable @MainActor`, owns `displayName` / `avatarImage` / `qrCode`, `providerHost` derived via `DcContext.checkQr` with an email-domain split for `.login`-kind QRs, `applyScanned` gated on `.login`/`.account`). Created `qxp/Views/InstantOnboardingView.swift` with the full ScrollView layout per plan: 100×100 avatar Button (confirmationDialog with Gallery/Delete/Cancel, Gallery presents a `PhotosPicker` via a dedicated `showPhotosPicker` state), centered `TextField` bound to the vm, secondary explain text, tappable privacy link (renders `https://<providerHost>/privacy.html`), `.borderedProminent` Create button, and "Use Other Server" confirmationDialog (Other Servers → openURL, Scan Invitation Code → M4 placeholder `fullScreenCover`, Manual Setup → `NavigationLink` to `ManualLoginView`). Progress `.sheet` bound to `.configuring`/`.importing`/`.receiving` with `.interactiveDismissDisabled()` and a linear `ProgressView` + cancel. Failure `.alert` bound to `.failed(msg)`, OK calls `appState.resetOnboarding()`. Wired `WelcomeView`'s Sign Up `NavigationLink` to `InstantOnboardingView()`.
 
-**Gotcha:** the plan described the avatar gallery flow without specifying the SwiftUI mechanics, and SwiftUI's `confirmationDialog` button can't also be the `.photosPicker` trigger — the sheet is torn down before the picker can present. Using a dedicated `showPhotosPicker` state (set `true` from the Gallery button, read by `.photosPicker(isPresented:)`) works cleanly. Image load is done via `.task(id: photoItem)` calling `loadTransferable(type: Data.self)` → `UIImage(data:)` → `vm.applyAvatar(_:)` which writes the JPEG into the blobdir and points `selfavatar` at it. Strings still reference localized keys; `Localizable.xcstrings` will be populated from `resources/deltachat-ios/` in a later pass.
+**Gotcha:** the plan described the avatar gallery flow without specifying the SwiftUI mechanics, and SwiftUI's `confirmationDialog` button can't also be the `.photosPicker` trigger — the sheet is torn down before the picker can present. Using a dedicated `showPhotosPicker` state (set `true` from the Gallery button, read by `.photosPicker(isPresented:)`) works cleanly. Image load is done via `.task(id: photoItem)` calling `loadTransferable(type: Data.self)` → `UIImage(data:)` → `vm.applyAvatar(_:)` which writes the JPEG into the blobdir and points `selfavatar` at it. Strings still reference localized keys; `Localizable.xcstrings` will be populated from `references/deltachat-ios/` in a later pass.
 
 `qxp/Views/InstantOnboardingView.swift` + `qxp/State/InstantOnboardingViewModel.swift`.
 

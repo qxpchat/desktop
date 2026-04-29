@@ -19,7 +19,7 @@ Mirror the DC app's "All Media" feature — reachable from a chat's profile page
 
 ## Reference behaviour
 
-`resources/deltachat-ios/Controller/AllMediaViewController.swift` (UIPageViewController, segmented title, four tabs). `GalleryViewController.swift` (UICollectionView grid). `FilesViewController.swift` (UITableView). All three:
+`references/deltachat-ios/Controller/AllMediaViewController.swift` (UIPageViewController, segmented title, four tabs). `GalleryViewController.swift` (UICollectionView grid). `FilesViewController.swift` (UITableView). All three:
 
 - Refresh in background on `messagesChanged | incomingMessage | messageReadDeliveredFailedReaction` with single-flight coalescing.
 - Pull message ids via `dc_get_chat_media(chatId, type1, type2, type3)`, reversed for newest-first.

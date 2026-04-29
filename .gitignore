@@ -1,4 +1,4 @@
-/resources/
+/references/
 
 # Compiled core (built locally by scripts/build-core.sh)
 libs/libdeltachat.xcframework/

@@ -72,7 +72,7 @@ Out:
   `ChatListTableViewController`) is already UIKit; no change.
 - 71 tests target `ChatViewModel`. No edits.
 
-### Reference (`resources/deltachat-ios/`)
+### Reference (`references/deltachat-ios/`)
 
 - `Chat/Views/Cells/BaseMessageCell.swift` — common avatar / sender / quote /
   body / status / reactions Auto Layout scaffolding inherited by every bubble

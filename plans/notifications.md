@@ -25,7 +25,7 @@ This plan wires up everything that is achievable **without** an APNs push pipeli
 
 ## Reference behaviour
 
-`resources/deltachat-ios/deltachat-ios/Helper/NotificationManager.swift` is the canonical implementation. Distilled:
+`references/deltachat-ios/deltachat-ios/Helper/NotificationManager.swift` is the canonical implementation. Distilled:
 
 1. **Cross-account total** (`DcAccounts.getFreshMessagesCount(skipCurrent:)`) iterates `getAll()`, calls `dc_get_fresh_msgs` per account, sums *unless* the account itself is muted (`ui.account.muted` config). Optionally skips the selected account (used when populating "other accounts have unread" indicators).
 2. **Per-account total** (`DcContext.getFreshMessagesCount`) wraps `dc_get_fresh_msgs` + `dc_array_get_cnt`. Already skips per-chat-muted chats (the core does this in `dc_get_fresh_msgs`, see `deltachat.h:1944`).
