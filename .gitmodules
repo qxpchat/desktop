@@ -1,3 +1,6 @@
 [submodule "libs/deltachat-core-rust"]
 	path = libs/deltachat-core-rust
 	url = https://github.com/deltachat/deltachat-core-rust.git
+[submodule "libs/notifiers"]
+	path = libs/notifiers
+	url = https://github.com/chatmail/notifiers
