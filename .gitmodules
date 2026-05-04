@@ -4,3 +4,7 @@
 [submodule "libs/notifiers"]
 	path = libs/notifiers
 	url = https://github.com/chatmail/notifiers
+[submodule "relay"]
+	path = relay
+	url = ssh://git@codeberg.org/qxp/relay.git
+	branch = qxp
