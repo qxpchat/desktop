@@ -1,7 +1,7 @@
 /references/
 
-# Compiled core (built locally by scripts/build-core.sh)
-libs/libdeltachat.xcframework/
+# Compiled core (built locally by ios/scripts/build-core.sh)
+ios/libs/libdeltachat.xcframework/
 .DS_Store
 xcuserdata/
 *.xcuserstate

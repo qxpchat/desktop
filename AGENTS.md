@@ -1,30 +1,32 @@
 # qxp
 
 qxp is a cross-platform client for the delta chat protocol.
+User instructions **always** override this file.
 
-## Project state
+## Repository layout
 
-- **Platform scope (current milestone):** iOS 26+ only. macOS/other platforms deferred.
-- **UI:** SwiftUI, Signal-like minimalism, latest Apple HIG, Liquid Glass design only. Use iOS 26 native materials and modifiers — no custom blurs, no legacy bar tinting, no pre-Liquid-Glass variants when a newer one exists.
-- **Dependencies:** only `libdeltachat.a` (compiled from deltachat-core-rust). Zero Swift/ObjC package deps.
-- **Reference implementation:** `references/deltachat-ios/` — the official UIKit client. Use for inspiration only; do not import.
-- **Hardening:** strict concurrency complete, warnings-as-errors, TSan/ASan clean, 71 tests (28 pure logic + 41 integration).
-- **Project layout:** `qxp/Core/` Swift wrappers over `libdeltachat.a`; `qxp/State/` `@Observable @MainActor` view models (`AppState`, `ChatListViewModel`, `ChatViewModel`); `qxp/Views/` SwiftUI. Entry in `qxpApp.swift` routes `ProgressView → LoginView → ChatListView` via `AppState.isReady`/`isLoggedIn`. Events fan out via Combine `PassthroughSubject` on `AppState.events`.
-- **Active plan:** `PLAN.md` — Push Notifications (drafted, awaiting approval). Adds APNs pipeline behind the existing local-notifications layer; requires patching `libs/deltachat-core-rust` to swap notifier URL + PGP key + dual-register, plus a `qxpNSE` Notification Service Extension target. **Bundle id renamed `limo.eth.qxp` → `chat.qxp` 2026-05-04** (commit `1e0fa4f`); App Group is `group.chat.qxp`. **Notifier deploy scaffold landed 2026-05-04** (commit `67a44e6`) — `notifier/` (deploy driver + systemd unit + nginx vhost + runbook) and `libs/notifiers/` (chatmail/notifiers submodule, pinned). Co-located with the chatmail relay on a single VPS (`root@qxp.chat`); `notifier/README.md` is the runbook. Pending manual: Apple Developer portal AppIDs `chat.qxp` + `chat.qxp.qxpShare` + App Group `group.chat.qxp`, OpenPGP keypair (rsop) into `~/.qxp-secrets/`, APNs `.p12` from Mac Keychain, then `./notifier/deploy.sh`. PLAN.md Phase 1 (core fork, bakes `notifier.pubkey` into the iOS app) untouched. Prior completed: `plans/share-extension.md` — Sharing Suggestions + Share Extension, code shipped 2026-05-01 (App Group container `group.chat.qxp` + accounts-dir migration; `INSendMessageIntent` donations on send + chat-open + group-delete on logout; `qxpShare/` scaffold with Liquid Glass picker + materialise/send/donate pipeline; multi-target shared `qxp/Core/*`). Awaits Xcode wiring on the Mac to create the `qxpShare` target and toggle the App Group capability — see "Xcode wiring" checklist in the archived plan. Prior: `plans/in-chat-media-browser.md` — In-chat Media / Audio / Files browser, all 5 phases shipped 2026-04-29. Prior: `plans/notifications.md` — Local Notifications + Unread Badges (awaits device verification). Completed plans archive under `plans/`.
+- `ios/` — iOS app (SwiftUI), share extension, tests, Xcode project, iOS-only build scripts. **For iOS work, also read `ios/AGENTS.md`** — it has iOS-specific project state, layout, and active plans.
+- `libs/` — Rust core (`deltachat-core-rust` submodule), patches, and the `notifiers` submodule.
+- `notifier/`, `relay/` — server-side: notifier deploy scaffold and chatmail relay.
+- `references/` — third-party reference implementations (read-only inspiration).
+- `plans/`, `PLAN.md` — plan history and active plan.
 
 ## Approach
 
--   Minimalism: do not invent ANYTHING, do everything max idiomatic way with no dependencies or custom code whenever possible.
--   Think before acting. Read existing files before writing code.
--   Be very concise in output but thorough in reasoning.
--   Do not re-read files you have already read unless the file may have changed.
--   Keep solutions simple and direct. No over-engineering.
--   If unsure: say so. Never guess or invent anything.
--   User instructions always override this file.
+- Be very concise in output but thorough in reasoning.
+- Think before acting and make absolutely sure you understand the problem before trying to solve it. 
+- Always ask for clarifications in case of doubts. Never guess.
+- Challenge the user if their inputs are inconsistent with your reasoning.
+- Avoid dependencies at any costs as long as they are not strictly necessary. If you need to use a library, make sure it is widely used and well maintained.
+- Do not re-read files you have already read unless the file may have changed.
+- Keep solutions simple and direct. No over-engineering. Do not invent things if possible, do everything in an idiomatic way.
+
+## Control
+
+- Never execute mutable Git commands: the user needs to review all your changes.
+- **Never** exeucute mutable system commands without user's explicit confirmation unless they asked you to do so.
 
 ## Efficiency
 
--   Read before writing. Understand the problem before coding.
--   No redundant file reads. Read each file once.
--   One focused coding pass. Avoid write-delete-rewrite cycles.
--   Work efficiently, think ahead.
+- Always think ahead and try to optimize your steps to reduce the token expense.
+- If you nee to consume a really big input, get a user confirmation.
