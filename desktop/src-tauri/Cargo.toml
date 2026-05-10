@@ -1,0 +1,28 @@
+[package]
+name = "qxp-desktop"
+version = "0.1.0"
+edition = "2021"
+description = "qxp Tauri desktop shell — wraps the qxp-web daemon + Svelte SPA in a native window."
+license = "MPL-2.0"
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = [] }
+
+# Daemon is a sibling crate; we spawn it in-process on its own tokio runtime.
+qxp-web = { path = "../server" }
+
+tokio = { version = "1", features = ["rt-multi-thread", "macros"] }
+anyhow = "1"
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+
+# Same dev-profile dance as the daemon — deltachat-core's transitive async
+# functions need opt-level >= 1 to fit on tokio's default 2 MB worker stacks.
+[profile.dev]
+opt-level = 1
+
+[profile.dev.package."*"]
+opt-level = "z"

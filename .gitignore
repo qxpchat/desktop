@@ -5,3 +5,4 @@ ios/libs/libdeltachat.xcframework/
 .DS_Store
 xcuserdata/
 *.xcuserstate
+target

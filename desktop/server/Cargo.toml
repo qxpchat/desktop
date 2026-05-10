@@ -1,0 +1,40 @@
+[package]
+name = "qxp-web"
+version = "0.1.0"
+edition = "2021"
+description = "qxp web client daemon — axum + yerpc bridge to deltachat-jsonrpc"
+license = "MPL-2.0"
+
+[dependencies]
+# Path into the pinned `libs/deltachat-core-rust` submodule. The crate is not
+# published to crates.io, and cargo resolves its `workspace = true` inheritance
+# via the inner deltachat-core-rust workspace.
+deltachat-jsonrpc = { path = "../../libs/deltachat-core-rust/deltachat-jsonrpc" }
+
+axum = { version = "0.8", features = ["ws"] }
+tokio = { version = "1", features = ["macros", "rt-multi-thread", "signal", "sync", "fs"] }
+tokio-util = { version = "0.7", features = ["io"] }
+futures-lite = "2"
+
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+
+anyhow = "1"
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+clap = { version = "4", features = ["derive"] }
+
+[features]
+default = ["vendored"]
+vendored = ["deltachat-jsonrpc/vendored"]
+
+# Mirror deltachat-core-rust's dev profile. Without `opt-level = 1`, async
+# functions in `deltachat` produce stack frames large enough to overflow the
+# default 2 MB tokio worker stack — the symptom is `thread 'tokio-rt-worker'
+# has overflowed its stack` on the first JSON-RPC call.
+[profile.dev]
+opt-level = 1
+
+# Always optimize transitive deps — cuts both stack frames and binary size.
+[profile.dev.package."*"]
+opt-level = "z"

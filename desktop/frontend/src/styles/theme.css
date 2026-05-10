@@ -1,0 +1,83 @@
+/* Light theme — default. */
+:root {
+  --color-bg: #fafafa;
+  --color-bg-pane: #ffffff;
+  --color-bg-elevated: #ffffff;
+  --color-bg-hover: #f0f0f2;
+  --color-bg-selected: #d4f5ec;
+
+  --color-fg: #1a1a1a;
+  --color-fg-secondary: #555;
+  --color-fg-tertiary: #8a8a8a;
+
+  --color-border: #e5e5e7;
+  --color-border-strong: #d0d0d4;
+
+  /* qxp brand accent — matches ios AccentColor.colorset (rgb 0x22 0xCC 0xAA). */
+  --color-accent: #22ccaa;
+  --color-accent-fg: #0a0a0a;
+  --color-accent-soft: #d4f5ec;
+
+  --color-danger: #d83838;
+  --color-success: #34c759;
+
+  --color-shadow: rgba(0, 0, 0, 0.06);
+
+  color-scheme: light;
+}
+
+/* Explicit dark. */
+:root[data-theme='dark'] {
+  --color-bg: #0f0f10;
+  --color-bg-pane: #18181a;
+  --color-bg-elevated: #232325;
+  --color-bg-hover: #232326;
+  --color-bg-selected: #1a3d33;
+
+  --color-fg: #ededed;
+  --color-fg-secondary: #aaa;
+  --color-fg-tertiary: #777;
+
+  --color-border: #2a2a2c;
+  --color-border-strong: #3a3a3c;
+
+  --color-accent: #22ccaa;
+  --color-accent-fg: #0a0a0a;
+  --color-accent-soft: #1a3d33;
+
+  --color-danger: #ef5350;
+  --color-success: #30d158;
+
+  --color-shadow: rgba(0, 0, 0, 0.4);
+
+  color-scheme: dark;
+}
+
+/* System: follow OS preference. */
+@media (prefers-color-scheme: dark) {
+  :root[data-theme='system'] {
+    --color-bg: #0f0f10;
+    --color-bg-pane: #18181a;
+    --color-bg-elevated: #232325;
+    --color-bg-hover: #232326;
+    --color-bg-selected: #1a3d33;
+
+    --color-fg: #ededed;
+    --color-fg-secondary: #aaa;
+    --color-fg-tertiary: #777;
+
+    --color-border: #2a2a2c;
+    --color-border-strong: #3a3a3c;
+
+    --color-accent: #22ccaa;
+    --color-accent-fg: #0a0a0a;
+    --color-accent-soft: #1a3d33;
+
+    --color-danger: #ef5350;
+    --color-success: #30d158;
+
+    --color-shadow: rgba(0, 0, 0, 0.4);
+
+    color-scheme: dark;
+  }
+}
