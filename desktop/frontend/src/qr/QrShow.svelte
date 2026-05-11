@@ -76,6 +76,7 @@
 </script>
 
 <section class="qr-show">
+  <div class="titlebar-gutter" data-tauri-drag-region></div>
   <header class="topbar">
     <button class="back" onclick={backToChat} aria-label="Back">‹ Back</button>
     <h1>{chatId == null ? 'Your QR' : 'Group invite'}</h1>
@@ -109,6 +110,10 @@
     display: flex;
     flex-direction: column;
     min-height: 0;
+  }
+  .titlebar-gutter {
+    height: var(--titlebar-gutter);
+    flex: 0 0 auto;
   }
   .topbar {
     display: flex;

@@ -330,8 +330,7 @@
     align-items: center;
     gap: var(--space-3);
     padding: var(--space-3) var(--space-4);
-    border-bottom: 1px solid var(--color-border);
-    background: var(--color-bg-pane);
+    background: var(--color-bg);
     min-height: 56px;
     flex: 0 0 auto;
   }

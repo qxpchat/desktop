@@ -68,6 +68,7 @@
       <Settings />
     {:else if mainRoute.route.kind === 'profileEditor'}
       <div class="profile-shell">
+        <div class="titlebar-gutter" data-tauri-drag-region></div>
         <header class="profile-header">
           <button class="back" onclick={() => mainRoute.route = { kind: 'chat' }} aria-label="Back">‹ Back</button>
           <h1>Profile</h1>
@@ -167,6 +168,10 @@
     display: flex;
     flex-direction: column;
     min-height: 0;
+  }
+  .profile-shell .titlebar-gutter {
+    height: var(--titlebar-gutter);
+    flex: 0 0 auto;
   }
   .profile-header {
     display: flex;

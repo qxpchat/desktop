@@ -29,6 +29,7 @@
   }
 </script>
 
+<div class="titlebar-gutter" data-tauri-drag-region></div>
 <header class="topbar">
   <button class="back" onclick={onBack} aria-label="Back">‹ Back</button>
 </header>
@@ -82,6 +83,9 @@
 <ProgressOverlay />
 
 <style>
+  .titlebar-gutter {
+    height: var(--titlebar-gutter);
+  }
   .topbar {
     height: 48px;
     padding: 0 var(--space-3);
@@ -157,6 +161,7 @@
     border-radius: var(--radius-md);
     font-size: var(--text-md);
     font-weight: 600;
+    justify-content: center;
   }
   .primary {
     background: var(--color-accent);

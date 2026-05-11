@@ -12,7 +12,6 @@
   type Props = {
     selectedAccountId: number;
     onSelect: (id: number) => void;
-    onCollapse: () => void;
     onAddAccount: () => void;
     onRemoveAccount: (id: number) => void;
   };
@@ -20,23 +19,12 @@
   let {
     selectedAccountId,
     onSelect,
-    onCollapse,
     onAddAccount,
     onRemoveAccount,
   }: Props = $props();
 
   let menuFor = $state<number | null>(null);
   let proxyEnabled = $state(false);
-
-  // Collapse is meaningful only when the main pane is showing a chat.
-  // When the user is in Settings / QrShow / QrScan, hiding the profile
-  // rail strands them with no way back to it (the expand button lives on
-  // the chat-list pane's header, which is itself hidden by the
-  // fullscreenRoute logic).
-  let collapseDisabled = $derived.by(() => {
-    const k = mainRoute.route.kind;
-    return k === 'settings' || k === 'qrShow' || k === 'qrScan' || k === 'profileEditor';
-  });
 
   async function refreshProxyState() {
     if (accounts.selectedId == null) return;
@@ -78,10 +66,9 @@
 </script>
 
 <aside class="nav" aria-label="Profiles">
-  <!-- macOS title bar is `Overlay` + `hiddenTitle`, so the system
-       traffic-lights float over this strip. It also serves as the window
-       drag handle — wry treats mouse events on `data-tauri-drag-region`
-       elements as a window drag. Keep it empty of interactive children. -->
+  <!-- macOS title-bar drag zone — empty + draggable, mirrors the gutter
+       in ChatListPane so the strip behind the rail is still a drag
+       handle. -->
   <div class="titlebar-gutter" data-tauri-drag-region></div>
   <div class="accounts">
     {#each profiles.list as profile (profile.id)}
@@ -149,24 +136,15 @@
     >
       <Icon name="settings" size={20} />
     </button>
-    <button
-      class="collapse"
-      title="Collapse profile rail"
-      aria-label="Collapse profile rail"
-      disabled={collapseDisabled}
-      onclick={onCollapse}
-    >
-      <Icon name="chevron-left" size={18} />
-    </button>
   </div>
 </aside>
 
 <style>
   .nav {
+    flex: 0 0 var(--pane1-width);
+    width: var(--pane1-width);
     display: flex;
     flex-direction: column;
-    width: var(--pane1-width);
-    flex: 0 0 var(--pane1-width);
     background: var(--color-bg-pane);
     border-right: 1px solid var(--color-border);
     padding-bottom: var(--space-3);
@@ -175,8 +153,6 @@
   .titlebar-gutter {
     flex: 0 0 auto;
     height: var(--titlebar-gutter);
-    /* Empty by design — the macOS traffic-lights overlay it, and the rest
-       of the strip is the drag handle. */
   }
   .accounts {
     display: flex;
@@ -270,23 +246,6 @@
   }
   .footer-btn.active {
     color: var(--color-accent);
-  }
-  .collapse {
-    width: 32px;
-    height: 32px;
-    border-radius: var(--radius-sm);
-    color: var(--color-fg-secondary);
-    font-size: 18px;
-    line-height: 1;
-    justify-content: center;
-  }
-  .collapse:hover:not(:disabled) {
-    background: var(--color-bg-hover);
-    color: var(--color-fg);
-  }
-  .collapse:disabled {
-    opacity: 0.35;
-    cursor: default;
   }
   .menu-backdrop {
     position: fixed;

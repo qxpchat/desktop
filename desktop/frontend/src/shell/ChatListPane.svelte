@@ -5,6 +5,7 @@
     setArchivedOnly,
   } from '../lib/state/chatlist.svelte';
   import { paneMode, setPaneMode, backToInbox } from '../lib/state/paneMode.svelte';
+  import { mainRoute } from '../lib/state/mainRoute.svelte';
   import {
     messageSearch,
     setSearchAccount,
@@ -26,13 +27,22 @@
     width: number;
     selectedChatId: number | null;
     onSelectChat: (id: number) => void;
-    showExpandPane1: boolean;
-    onExpandPane1: () => void;
+    /** True when the profile rail (NavTabs) is currently visible. */
+    railOpen: boolean;
+    onToggleRail: () => void;
   };
 
-  let { width, selectedChatId, onSelectChat, showExpandPane1, onExpandPane1 }: Props = $props();
+  let { width, selectedChatId, onSelectChat, railOpen, onToggleRail }: Props = $props();
 
   let narrow = $derived(width < 80);
+
+  // Burger is disabled when the user is in a full-screen route (Settings
+  // / QR / etc.) — opening the rail there overlays nothing useful and
+  // the toggle is ambiguous with the route's own back-navigation.
+  let burgerDisabled = $derived.by(() => {
+    const k = mainRoute.route.kind;
+    return k === 'settings' || k === 'qrShow' || k === 'qrScan' || k === 'profileEditor';
+  });
 
   let search = $state('');
   $effect(() => {
@@ -104,13 +114,7 @@
 </script>
 
 <aside class="pane" style:width="{width}px" aria-label="Chat list">
-  {#if showExpandPane1}
-    <!-- pane1 (profile rail) is collapsed, so the chat list is now the
-         leftmost pane and inherits the responsibility for hosting the
-         macOS title-bar overlay. Same height as NavTabs's gutter so the
-         search-bar / expand button line up with the topmost profile pic. -->
-    <div class="titlebar-gutter" data-tauri-drag-region></div>
-  {/if}
+  <div class="titlebar-gutter" data-tauri-drag-region></div>
   {#if paneMode.mode.kind === 'inbox' || paneMode.mode.kind === 'archive'}
     {@const archive = paneMode.mode.kind === 'archive'}
     <header class="header" class:narrow>
@@ -122,16 +126,17 @@
           <span class="title">Archived</span>
         {/if}
       {:else}
-        {#if showExpandPane1}
-          <button
-            class="expand"
-            title="Show profiles"
-            aria-label="Show profile rail"
-            onclick={onExpandPane1}
-          >
-            <Icon name="chevron-right" size={18} />
-          </button>
-        {/if}
+        <button
+          class="burger"
+          class:active={railOpen}
+          title={railOpen ? 'Hide profiles' : 'Show profiles'}
+          aria-label="Toggle profile rail"
+          aria-pressed={railOpen}
+          disabled={burgerDisabled}
+          onclick={onToggleRail}
+        >
+          <Icon name="menu" size={18} />
+        </button>
         {#if !narrow}
           <input
             class="search"
@@ -243,7 +248,8 @@
     justify-content: center;
     padding: var(--space-2);
   }
-  .expand {
+  .expand,
+  .burger {
     width: 28px;
     height: 28px;
     border-radius: var(--radius-sm);
@@ -252,10 +258,20 @@
     font-size: 18px;
     line-height: 1;
     justify-content: center;
+    transition: background 0.1s ease, color 0.1s ease;
   }
-  .expand:hover {
+  .expand:hover,
+  .burger:hover:not(:disabled) {
     background: var(--color-bg-hover);
     color: var(--color-fg);
+  }
+  .burger.active {
+    background: var(--color-bg-hover);
+    color: var(--color-accent);
+  }
+  .burger:disabled {
+    opacity: 0.35;
+    cursor: default;
   }
   .search {
     flex: 1;

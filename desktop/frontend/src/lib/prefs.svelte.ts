@@ -20,7 +20,10 @@ export type Prefs = {
 
 const DEFAULTS: Prefs = {
   pane2Width: 320,
-  pane1Collapsed: false,
+  // Profile rail (`NavTabs`) hidden by default — it pops out from the
+  // burger button in the chat-list header on demand and overlays the
+  // chat list without reflowing it.
+  pane1Collapsed: true,
   theme: 'system',
   accent: '#22ccaa',
   textScale: 1,

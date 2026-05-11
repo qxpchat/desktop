@@ -69,6 +69,7 @@
 </script>
 
 <section class="settings">
+  <div class="titlebar-gutter" data-tauri-drag-region></div>
   <header class="topbar">
     <button class="back" onclick={backToChat} aria-label="Back">
       <Icon name="chevron-left" size={16} /> Back
@@ -130,6 +131,10 @@
     display: flex;
     flex-direction: column;
     min-height: 0;
+  }
+  .titlebar-gutter {
+    height: var(--titlebar-gutter);
+    flex: 0 0 auto;
   }
   .topbar {
     display: flex;

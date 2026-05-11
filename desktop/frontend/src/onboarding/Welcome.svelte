@@ -75,7 +75,7 @@
     flex-direction: column;
     align-items: center;
     justify-content: space-between;
-    padding: 8vh var(--space-5) 6vh;
+    padding: calc(8vh + var(--titlebar-gutter)) var(--space-5) 6vh;
     background: var(--color-bg);
   }
   .brand {
@@ -116,6 +116,7 @@
     border-radius: var(--radius-md);
     font-size: var(--text-md);
     font-weight: 600;
+    justify-content: center;
     transition:
       background 0.12s,
       transform 0.05s;
@@ -156,7 +157,7 @@
   }
   .alt-menu button {
     padding: var(--space-3) var(--space-4);
-    text-align: left;
+    justify-content: flex-start;
     color: var(--color-fg);
     font-size: var(--text-md);
   }

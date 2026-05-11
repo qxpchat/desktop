@@ -201,11 +201,10 @@
   {/if}
 {:else}
   <div class="shell">
-    {#if !prefs.pane1Collapsed}
+    {#if !prefs.pane1Collapsed && !fullscreenRoute}
       <NavTabs
         selectedAccountId={accounts.selectedId ?? 0}
         onSelect={selectAccount}
-        onCollapse={togglePane1}
         onAddAccount={addAccount}
         onRemoveAccount={(id) => void removeAccount(id)}
       />
@@ -216,8 +215,8 @@
         width={prefs.pane2Width}
         selectedChatId={selection.chatId}
         onSelectChat={selectChat}
-        showExpandPane1={prefs.pane1Collapsed}
-        onExpandPane1={togglePane1}
+        railOpen={!prefs.pane1Collapsed}
+        onToggleRail={togglePane1}
       />
 
       <Splitter onMove={moveSplitter} />
