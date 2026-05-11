@@ -8,3 +8,5 @@ frontend/.vite/
 
 # Local accounts dir (created by `cargo run`)
 qxp-web-accounts/
+references
+TODOs.md

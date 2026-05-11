@@ -16,8 +16,10 @@
   import { accounts } from '../lib/state/accounts.svelte';
   import ChatListRow from './ChatListRow.svelte';
   import ChatRowMenu from './ChatRowMenu.svelte';
+  import DeleteChatDialog from './DeleteChatDialog.svelte';
   import { rpc } from '../lib/rpc';
   import type { ChatListItem } from '../lib/state/chatlist.svelte';
+  import { canLeaveBeforeDelete } from '../lib/chatActions';
   import Icon from '../lib/Icon.svelte';
   import { t } from '../lib/i18n/i18n.svelte';
   import ComposePane from '../compose/ComposePane.svelte';
@@ -113,6 +115,33 @@
       await rpc.call('set_chat_visibility', [accounts.selectedId, chat.id, vis]);
     } catch {
       /* same */
+    }
+  }
+
+  // Two-step delete: the context menu fires `requestDelete`, which stashes
+  // the target chat and unmounts the menu; the modal then renders against
+  // that stash. Going through a confirmation modal (rather than native
+  // `confirm()`) keeps the UX consistent inside the Tauri webview.
+  let pendingDelete = $state<ChatListItem | null>(null);
+
+  function requestDelete(chat: ChatListItem) {
+    pendingDelete = chat;
+  }
+
+  async function confirmDelete(chat: ChatListItem) {
+    if (accounts.selectedId == null) return;
+    const accountId = accounts.selectedId;
+    // Drop the selection first — the chat view subscribes to messages on
+    // the deleted id, so leaving it selected races with `delete_chat` and
+    // flashes a "missing chat" error before chatlist refresh kicks in.
+    if (selectedChatId === chat.id) selectChat(null);
+    try {
+      if (canLeaveBeforeDelete(chat)) {
+        await rpc.call('leave_group', [accountId, chat.id]);
+      }
+      await rpc.call('delete_chat', [accountId, chat.id]);
+    } catch (err) {
+      console.warn('delete_chat failed', err);
     }
   }
 
@@ -233,8 +262,17 @@
     onMute={(dur) => void muteChat(menu!.chat, dur)}
     onUnmute={() => void unmuteChat(menu!.chat)}
     onToggleArchive={() => void toggleArchive(menu!.chat)}
+    onDelete={() => requestDelete(menu!.chat)}
   />
 {/if}
+
+<DeleteChatDialog
+  open={pendingDelete !== null}
+  chatName={pendingDelete?.name ?? ''}
+  leaveBeforeDelete={pendingDelete ? canLeaveBeforeDelete(pendingDelete) : false}
+  onConfirm={() => pendingDelete && void confirmDelete(pendingDelete)}
+  onClose={() => (pendingDelete = null)}
+/>
 
 <style>
   .pane {

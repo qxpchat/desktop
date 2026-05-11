@@ -4,6 +4,7 @@
   // page. Singleton at the ChatListPane level: rows fire `onContextMenu`
   // upward and the pane mounts one instance with the click coords.
   import type { ChatListItem } from '../lib/state/chatlist.svelte';
+  import { canLeaveBeforeDelete } from '../lib/chatActions';
   import Icon from '../lib/Icon.svelte';
   import { t } from '../lib/i18n/i18n.svelte';
 
@@ -23,9 +24,18 @@
     onMute: (duration: MuteDuration) => void;
     onUnmute: () => void;
     onToggleArchive: () => void;
+    onDelete: () => void;
   };
 
-  let { chat, x, y, onClose, onTogglePin, onMute, onUnmute, onToggleArchive }: Props = $props();
+  let { chat, x, y, onClose, onTogglePin, onMute, onUnmute, onToggleArchive, onDelete }: Props = $props();
+
+  // For groups/channels you're still a member of, "delete" upstream is a
+  // leave + delete combo — surface that intent in the label so the user
+  // isn't surprised that other members get a "<name> left" service message.
+  let deleteLabel = $derived.by(() => {
+    if (!canLeaveBeforeDelete(chat)) return t('Delete chat');
+    return chat.chatType === 'InBroadcast' ? t('Leave channel') : t('Leave group');
+  });
 
   let menu: HTMLDivElement | undefined = $state();
   // svelte-ignore state_referenced_locally
@@ -101,6 +111,11 @@
       <Icon name="archive" size={14} />
       {chat.isArchived ? t('Unarchive') : t('Archive')}
     </button>
+    <div class="separator" role="separator"></div>
+    <button class="danger" role="menuitem" onclick={() => fire(onDelete)}>
+      <Icon name="trash-2" size={14} />
+      {deleteLabel}
+    </button>
   {:else}
     <button class="sub-back" role="menuitem" onclick={() => (view = 'main')}>
       <Icon name="chevron-left" size={14} />
@@ -152,5 +167,13 @@
   .sub-back {
     color: var(--color-fg-secondary);
     font-weight: 600;
+  }
+  .menu button.danger {
+    color: var(--color-danger);
+  }
+  .separator {
+    height: 1px;
+    background: var(--color-border);
+    margin: 4px 2px;
   }
 </style>

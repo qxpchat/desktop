@@ -2,7 +2,8 @@
   "permissions": {
     "allow": [
       "Bash(npm run *)",
-      "Bash(./node_modules/.bin/svelte-check --tsconfig ./tsconfig.json)"
+      "Bash(./node_modules/.bin/svelte-check --tsconfig ./tsconfig.json)",
+      "Bash(nix-shell --run \"npm run check 2>&1 | tail -60\" /home/anon/qxp/desktop/shell.nix)"
     ]
   }
 }
