@@ -5,7 +5,8 @@
       "Bash(./node_modules/.bin/svelte-check --tsconfig ./tsconfig.json)",
       "Bash(nix-shell --run \"npm run check 2>&1 | tail -60\" /home/anon/qxp/desktop/shell.nix)",
       "Bash(nix-shell --run \"cd frontend && npm run check 2>&1 | tail -30\" /home/anon/qxp/desktop/shell.nix)",
-      "Bash(nix-shell --run \"npm run check 2>&1 | tail -30\" /home/anon/qxp/desktop/shell.nix)"
+      "Bash(nix-shell --run \"npm run check 2>&1 | tail -30\" /home/anon/qxp/desktop/shell.nix)",
+      "Bash(nix-shell --run \"npm run check 2>&1 | tail -20\" /home/anon/qxp/desktop/shell.nix)"
     ]
   }
 }

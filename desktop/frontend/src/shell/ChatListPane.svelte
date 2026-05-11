@@ -14,6 +14,7 @@
   import { selectChat } from '../lib/state/selection.svelte';
   import { jumpToMessage } from '../lib/state/jump';
   import { accounts } from '../lib/state/accounts.svelte';
+  import { profiles } from '../lib/state/profiles.svelte';
   import ChatListRow from './ChatListRow.svelte';
   import ChatRowMenu from './ChatRowMenu.svelte';
   import DeleteChatDialog from './DeleteChatDialog.svelte';
@@ -57,6 +58,17 @@
     const k = mainRoute.route.kind;
     return k === 'settings' || k === 'qrShow' || k === 'qrScan' || k === 'profileEditor';
   });
+
+  // Sum unread across all *inactive* profiles — used as a roll-up badge on
+  // the burger when the profile rail is collapsed, so the user notices a
+  // pinging account they can't currently see.
+  let otherUnread = $derived(
+    profiles.list.reduce(
+      (sum, p) => (p.id === accounts.selectedId ? sum : sum + p.freshCount),
+      0,
+    ),
+  );
+  let otherUnreadLabel = $derived(otherUnread > 99 ? '99+' : String(otherUnread));
 
   let search = $state('');
   $effect(() => {
@@ -178,6 +190,9 @@
           onclick={onToggleRail}
         >
           <Icon name="menu" size={18} />
+          {#if !railOpen && otherUnread > 0}
+            <span class="burger-badge" aria-label={t('Unread in other profiles')}>{otherUnreadLabel}</span>
+          {/if}
         </button>
         {#if !narrow}
           <input
@@ -307,6 +322,7 @@
   }
   .expand,
   .burger {
+    position: relative;
     width: 28px;
     height: 28px;
     border-radius: var(--radius-sm);
@@ -329,6 +345,28 @@
   .burger:disabled {
     opacity: 0.35;
     cursor: default;
+  }
+  /* Roll-up unread badge: only mounted when the profile rail is collapsed
+     and at least one inactive profile has fresh messages. Mirrors the
+     per-tile `.badge` in NavTabs but pinned to the burger corner. */
+  .burger-badge {
+    position: absolute;
+    top: -6px;
+    right: -6px;
+    min-width: 16px;
+    height: 16px;
+    padding: 0 4px;
+    border-radius: 8px;
+    background: var(--color-accent);
+    color: var(--color-accent-fg);
+    font-size: 10px;
+    font-weight: 700;
+    line-height: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 2px solid var(--color-bg-pane);
+    pointer-events: none;
   }
   .search {
     flex: 1;
