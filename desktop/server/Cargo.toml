@@ -16,6 +16,15 @@ tokio = { version = "1", features = ["macros", "rt-multi-thread", "signal", "syn
 tokio-util = { version = "0.7", features = ["io"] }
 futures-lite = "2"
 
+# Workaround for a transitive build failure on macOS: `netwatch 0.5.0`
+# (pulled in via deltachat-core's iroh stack) uses `socket2::Type::RAW` in
+# its BSD-specific `bsd.rs`. `Type::RAW` is gated behind socket2's `all`
+# feature. Netwatch should declare that feature itself; until upstream
+# fixes it, we declare socket2 at the top level with `features = ["all"]`
+# so Cargo's feature resolver enables it for every consumer of socket2 0.5.x.
+# Linux skips `bsd.rs` via cfg, which is why the Linux build never noticed.
+socket2 = { version = "0.5", features = ["all"] }
+
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 

@@ -29,7 +29,7 @@
     return chat.isEncrypted ? 'Direct chat · encrypted' : 'Direct chat';
   });
 
-  let showChatTopBar = $derived(mainRoute.route.kind === 'chat');
+  let showChatTopBar = $derived(mainRoute.route.kind === 'chat' && chat != null);
 
   function backToChatRoute() {
     mainRoute.route = { kind: 'chat' };
@@ -38,25 +38,21 @@
 </script>
 
 <section class="main">
-  {#if showChatTopBar}
+  {#if showChatTopBar && chat}
     <header class="topbar">
-      {#if chat}
-        <button class="title-btn" onclick={() => setMainRoute({ kind: 'chatInfo', chatId: chat!.id })}>
-          <span class="avatar" style:background={chat.color}>
-            {#if chat.avatarPath}
-              <img src={fileUrl(chat.avatarPath)} alt="" />
-            {:else}
-              {(chat.name[0] ?? '?').toUpperCase()}
-            {/if}
-          </span>
-          <div class="titles">
-            <span class="chat-title">{chat.name || '(no name)'}</span>
-            <span class="chat-status">{chatSubtitle}</span>
-          </div>
-        </button>
-      {:else}
-        <span class="placeholder-title">qxp-web</span>
-      {/if}
+      <button class="title-btn" onclick={() => setMainRoute({ kind: 'chatInfo', chatId: chat.id })}>
+        <span class="avatar" style:background={chat.color}>
+          {#if chat.avatarPath}
+            <img src={fileUrl(chat.avatarPath)} alt="" />
+          {:else}
+            {(chat.name[0] ?? '?').toUpperCase()}
+          {/if}
+        </span>
+        <div class="titles">
+          <span class="chat-title">{chat.name || '(no name)'}</span>
+          <span class="chat-status">{chatSubtitle}</span>
+        </div>
+      </button>
     </header>
   {/if}
 
@@ -152,6 +148,7 @@
   .chat-title {
     font-weight: 600;
     font-size: var(--text-lg);
+    color: var(--color-fg-secondary);
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -159,11 +156,6 @@
   .chat-status {
     color: var(--color-fg-secondary);
     font-size: var(--text-sm);
-  }
-  .placeholder-title {
-    font-weight: 600;
-    font-size: var(--text-lg);
-    color: var(--color-fg);
   }
   .body {
     flex: 1;

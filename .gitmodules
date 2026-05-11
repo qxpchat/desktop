@@ -1,6 +1,6 @@
 [submodule "libs/deltachat-core-rust"]
 	path = libs/deltachat-core-rust
-	url = ssh://git@codeberg.org/qxp/deltachat-core-rust.git
+	url = git@github.com:chatmail/core.git
 [submodule "libs/notifiers"]
 	path = libs/notifiers
 	url = https://github.com/chatmail/notifiers

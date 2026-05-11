@@ -18,14 +18,20 @@ server:
 ui:
 	cd frontend && npm run dev -- --host
 
-tauri-dev:
+tauri-dev: frontend/node_modules
 	cd src-tauri && cargo tauri dev
 
-tauri-build:
+tauri-build: frontend/node_modules
 	cd src-tauri && cargo tauri build
 
-install:
+install: frontend/node_modules
+
+# Treat node_modules as an order-dependent target so the npm install only
+# runs on a fresh clone (or after a manual `rm -rf node_modules`). Avoids
+# the "sh: vite: command not found" trap.
+frontend/node_modules: frontend/package.json
 	cd frontend && npm install
+	@touch frontend/node_modules
 
 build:
 	cd frontend && npm run build

@@ -184,11 +184,14 @@
   .preview {
     font-size: var(--text-sm);
     color: var(--color-fg-secondary);
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
     flex: 1;
     min-width: 0;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    overflow: hidden;
+    overflow-wrap: anywhere;
   }
   .unread {
     flex: 0 0 auto;

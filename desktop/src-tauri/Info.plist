@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>CFBundleIdentifier</key>
+	<string>chat.qxp.desktop</string>
+	<key>CFBundleName</key>
+	<string>qxp</string>
+	<key>NSCameraUsageDescription</key>
+	<string>qxp uses the camera to scan QR codes when adding a second device or verifying contacts.</string>
+</dict>
+</plist>

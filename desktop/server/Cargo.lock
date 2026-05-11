@@ -4326,6 +4326,7 @@ dependencies = [
  "futures-lite",
  "serde",
  "serde_json",
+ "socket2 0.5.10",
  "tokio",
  "tokio-util",
  "tracing",

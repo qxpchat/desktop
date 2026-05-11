@@ -13,6 +13,8 @@
   let scanError = $state<string | null>(null);
   let confirmOpen = $state(false);
   let scannerKey = $state(0); // re-mount to retry after reject
+  let pasteOpen = $state(false);
+  let pasteValue = $state('');
 
   function onScanned(qr: string) {
     // deltachat-core matches the `DCBACKUP` prefix case-insensitively and
@@ -44,9 +46,21 @@
     scannerKey += 1;
   }
 
-  function pasteCode() {
-    const code = prompt('Paste backup pair code (DCBACKUP…):');
-    if (code) onScanned(code.trim());
+  function openPaste() {
+    pasteValue = '';
+    pasteOpen = true;
+  }
+
+  function cancelPaste() {
+    pasteOpen = false;
+    pasteValue = '';
+  }
+
+  function submitPaste() {
+    const code = pasteValue.trim();
+    pasteOpen = false;
+    pasteValue = '';
+    if (code) onScanned(code);
   }
 </script>
 
@@ -74,8 +88,31 @@
     <p class="error">{scanError}</p>
   {/if}
 
-  <button class="paste" onclick={pasteCode}>Paste Code Manually</button>
+  <button class="paste" onclick={openPaste}>Paste Code Manually</button>
 </main>
+
+{#if pasteOpen}
+  <div class="overlay" role="dialog" aria-modal="true">
+    <div class="card">
+      <h2>Paste backup pair code</h2>
+      <p>Paste the <code>DCBACKUP…</code> code shown on the other device.</p>
+      <!-- svelte-ignore a11y_autofocus -->
+      <textarea
+        bind:value={pasteValue}
+        placeholder="DCBACKUP4:…"
+        autofocus
+        rows="3"
+        spellcheck="false"
+        autocapitalize="off"
+        autocorrect="off"
+      ></textarea>
+      <div class="actions">
+        <button onclick={cancelPaste}>Cancel</button>
+        <button class="primary" onclick={submitPaste} disabled={!pasteValue.trim()}>Pair</button>
+      </div>
+    </div>
+  </div>
+{/if}
 
 {#if confirmOpen}
   <div class="overlay" role="dialog" aria-modal="true">
@@ -165,6 +202,28 @@
   .card p {
     margin: 0 0 var(--space-4) 0;
     color: var(--color-fg-secondary);
+  }
+  .card code {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 0.95em;
+  }
+  .card textarea {
+    width: 100%;
+    box-sizing: border-box;
+    margin: 0 0 var(--space-4) 0;
+    padding: var(--space-3);
+    border-radius: var(--radius-md);
+    border: 1px solid var(--color-border);
+    background: var(--color-bg);
+    color: var(--color-fg);
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: var(--text-sm);
+    resize: vertical;
+    min-height: 72px;
+  }
+  .card textarea:focus {
+    outline: 2px solid var(--color-accent);
+    outline-offset: -1px;
   }
   .actions {
     display: flex;
