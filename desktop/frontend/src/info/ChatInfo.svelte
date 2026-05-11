@@ -379,30 +379,39 @@
     padding: 6px 12px;
     border-radius: var(--radius-md);
   }
+  /* Signal-style sections: no card border, just spacing + a divider
+     between consecutive groups. Sits inside the info pane's padding. */
   .group {
-    margin: var(--space-3) var(--space-4);
-    border: 1px solid var(--color-border);
-    border-radius: var(--radius-md);
-    background: var(--color-bg-elevated);
-    overflow: hidden;
+    padding: var(--space-3) var(--space-4);
+  }
+  .group + .group {
+    border-top: 1px solid var(--color-border);
   }
   .row {
     display: flex;
     align-items: center;
-    gap: 8px;
-    padding: var(--space-3) var(--space-4);
+    gap: var(--space-3);
+    padding: 8px 0;
+    min-height: 48px;
     width: 100%;
     background: transparent;
     color: var(--color-fg);
+    text-align: left;
   }
   .row + .row {
-    border-top: 1px solid var(--color-border);
+    border-top: 1px solid color-mix(in srgb, var(--color-border) 60%, transparent);
   }
   .row.link {
     cursor: pointer;
+    border-radius: var(--radius-md);
+    transition: background 0.1s ease;
   }
   .row.link:hover {
     background: var(--color-bg-hover);
+  }
+  .row .label {
+    flex: 1;
+    min-width: 0;
   }
   .label {
     flex: 1;
@@ -414,11 +423,9 @@
     background: var(--color-bg);
   }
   h3 {
-    margin: var(--space-4) var(--space-4) var(--space-2);
-    font-size: var(--text-xs);
-    text-transform: uppercase;
-    letter-spacing: 0.06em;
-    color: var(--color-fg-tertiary);
+    margin: var(--space-5) var(--space-4) var(--space-2);
+    font-size: var(--text-md);
+    color: var(--color-fg);
     font-weight: 600;
   }
   .shared-name {

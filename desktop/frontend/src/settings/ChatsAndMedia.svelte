@@ -2,6 +2,9 @@
   import { onMount } from 'svelte';
   import { rpc } from '../lib/rpc';
   import { accounts } from '../lib/state/accounts.svelte';
+  import SettingsSection from '../lib/SettingsSection.svelte';
+  import SettingsRow from '../lib/SettingsRow.svelte';
+  import Toggle from '../lib/Toggle.svelte';
 
   // Subset of deltachat config keys this section manages.
   let mdnsEnabled = $state(false);
@@ -69,117 +72,128 @@
   }
 </script>
 
-<h2>Chats & Media</h2>
+<h2>Chats &amp; Media</h2>
 
 {#if !loaded}
   <p class="muted">Loading…</p>
 {:else}
-  <label class="toggle">
-    <input type="checkbox" checked={mdnsEnabled} onchange={(e) => setMdns((e.currentTarget as HTMLInputElement).checked)} />
-    <span>Send read receipts</span>
-  </label>
+  <SettingsSection title="Messaging">
+    <SettingsRow label="Send read receipts" right={mdnsToggle} />
+  </SettingsSection>
 
-  <div class="field">
-    <span class="label">Media quality</span>
-    <select bind:value={mediaQuality} onchange={() => setKey('media_quality', mediaQuality)}>
+  {#snippet mdnsToggle()}
+    <Toggle checked={mdnsEnabled} onChange={(v) => void setMdns(v)} label="Send read receipts" />
+  {/snippet}
+
+  <SettingsSection title="Media">
+    <SettingsRow label="Media quality" right={mediaQualitySelect} />
+    <SettingsRow
+      label="Auto-download size limit"
+      description="Bytes; 0 = unlimited."
+      right={downloadLimitInput}
+    />
+  </SettingsSection>
+
+  {#snippet mediaQualitySelect()}
+    <select
+      class="select"
+      bind:value={mediaQuality}
+      onchange={() => void setKey('media_quality', mediaQuality)}
+    >
       <option value="0">Balanced</option>
       <option value="1">High</option>
     </select>
-  </div>
+  {/snippet}
 
-  <div class="field">
-    <span class="label">Auto-download size limit (bytes; 0 = unlimited)</span>
+  {#snippet downloadLimitInput()}
     <input
+      class="number"
       type="number"
+      min="0"
       bind:value={downloadLimit}
-      onchange={() => setKey('download_limit', downloadLimit)}
+      onchange={() => void setKey('download_limit', downloadLimit)}
     />
-  </div>
+  {/snippet}
 
-  <div class="field">
-    <span class="label">Auto-delete from device after (seconds; 0 = never)</span>
-    <div class="inline">
-      <input
-        type="number"
-        bind:value={deleteDeviceAfter}
-        onchange={() => setKey('delete_device_after', deleteDeviceAfter)}
-      />
-      <button onclick={previewDeleteDevice}>Preview count</button>
-    </div>
-    {#if deviceCount != null}
-      <p class="hint">Would affect {deviceCount} message{deviceCount === 1 ? '' : 's'}.</p>
-    {/if}
-  </div>
+  <SettingsSection title="Auto-delete">
+    <SettingsRow
+      label="From device after"
+      description={deviceCount != null
+        ? `Seconds; 0 = never. Would affect ${deviceCount} message${deviceCount === 1 ? '' : 's'}.`
+        : 'Seconds; 0 = never.'}
+      right={deviceDeleteRight}
+    />
+    <SettingsRow
+      label="From server after"
+      description={serverCount != null
+        ? `Seconds; 0 = never. Would affect ${serverCount} message${serverCount === 1 ? '' : 's'}.`
+        : 'Seconds; 0 = never.'}
+      right={serverDeleteRight}
+    />
+  </SettingsSection>
 
-  <div class="field">
-    <span class="label">Auto-delete from server after (seconds; 0 = never)</span>
-    <div class="inline">
-      <input
-        type="number"
-        bind:value={deleteServerAfter}
-        onchange={() => setKey('delete_server_after', deleteServerAfter)}
-      />
-      <button onclick={previewDeleteServer}>Preview count</button>
-    </div>
-    {#if serverCount != null}
-      <p class="hint">Would affect {serverCount} message{serverCount === 1 ? '' : 's'}.</p>
-    {/if}
-  </div>
+  {#snippet deviceDeleteRight()}
+    <input
+      class="number"
+      type="number"
+      min="0"
+      bind:value={deleteDeviceAfter}
+      onchange={() => void setKey('delete_device_after', deleteDeviceAfter)}
+    />
+    <button class="ghost" onclick={previewDeleteDevice}>Preview</button>
+  {/snippet}
+
+  {#snippet serverDeleteRight()}
+    <input
+      class="number"
+      type="number"
+      min="0"
+      bind:value={deleteServerAfter}
+      onchange={() => void setKey('delete_server_after', deleteServerAfter)}
+    />
+    <button class="ghost" onclick={previewDeleteServer}>Preview</button>
+  {/snippet}
 {/if}
 
 <style>
   h2 {
-    margin: 0 0 var(--space-3) 0;
+    margin: 0 0 var(--space-5) 0;
     font-size: var(--text-xl);
+    font-weight: 600;
   }
   .muted {
     color: var(--color-fg-tertiary);
   }
-  .toggle {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    margin-bottom: var(--space-3);
-  }
-  .field {
-    margin-bottom: var(--space-4);
-    max-width: 520px;
-  }
-  .label {
-    display: block;
-    font-size: var(--text-sm);
-    color: var(--color-fg-secondary);
-    font-weight: 500;
-    margin-bottom: 4px;
-  }
-  .field input,
-  .field select {
-    padding: 8px 12px;
+  .select,
+  .number {
+    height: 32px;
+    padding: 0 var(--space-3);
     border-radius: var(--radius-md);
     border: 1px solid var(--color-border);
     background: var(--color-bg);
     color: var(--color-fg);
-    font-size: var(--text-md);
+    font-size: var(--text-sm);
     font-family: inherit;
   }
-  .inline {
-    display: flex;
-    gap: 8px;
-    align-items: center;
+  .number {
+    width: 100px;
+    text-align: right;
   }
-  .inline button {
-    padding: 8px 12px;
+  .select:focus,
+  .number:focus {
+    outline: 2px solid var(--color-accent);
+    outline-offset: -1px;
+  }
+  .ghost {
+    height: 32px;
+    padding: 0 var(--space-3);
     border-radius: var(--radius-md);
     background: var(--color-bg-hover);
     color: var(--color-fg);
+    font-size: var(--text-sm);
     font-weight: 500;
   }
-  .inline button:hover {
-    background: var(--color-border);
-  }
-  .hint {
-    margin-top: 4px;
-    color: var(--color-fg-tertiary);
-    font-size: var(--text-sm);
+  .ghost:hover {
+    background: var(--color-bg-selected);
   }
 </style>

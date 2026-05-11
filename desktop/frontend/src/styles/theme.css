@@ -4,7 +4,12 @@
   --color-bg-pane: #ffffff;
   --color-bg-elevated: #ffffff;
   --color-bg-hover: #f0f0f2;
-  --color-bg-selected: #d4f5ec;
+  /* Selection + soft-accent track the current accent (App.svelte writes
+     `--color-accent` dynamically; the `color-mix` re-evaluates). The
+     percentages are intentionally low — the selection bg should read as
+     a *hint* of the accent, not the accent itself. */
+  --color-bg-selected: color-mix(in srgb, var(--color-accent) 10%, var(--color-bg-pane));
+  --color-accent-soft: color-mix(in srgb, var(--color-accent) 14%, var(--color-bg));
 
   --color-fg: #1a1a1a;
   --color-fg-secondary: #555;
@@ -16,7 +21,6 @@
   /* qxp brand accent — matches ios AccentColor.colorset (rgb 0x22 0xCC 0xAA). */
   --color-accent: #22ccaa;
   --color-accent-fg: #0a0a0a;
-  --color-accent-soft: #d4f5ec;
 
   --color-danger: #d83838;
   --color-success: #34c759;
@@ -32,7 +36,8 @@
   --color-bg-pane: #18181a;
   --color-bg-elevated: #232325;
   --color-bg-hover: #232326;
-  --color-bg-selected: #1a3d33;
+  --color-bg-selected: color-mix(in srgb, var(--color-accent) 14%, var(--color-bg-pane));
+  --color-accent-soft: color-mix(in srgb, var(--color-accent) 18%, var(--color-bg));
 
   --color-fg: #ededed;
   --color-fg-secondary: #aaa;
@@ -43,7 +48,6 @@
 
   --color-accent: #22ccaa;
   --color-accent-fg: #0a0a0a;
-  --color-accent-soft: #1a3d33;
 
   --color-danger: #ef5350;
   --color-success: #30d158;
@@ -60,7 +64,8 @@
     --color-bg-pane: #18181a;
     --color-bg-elevated: #232325;
     --color-bg-hover: #232326;
-    --color-bg-selected: #1a3d33;
+    --color-bg-selected: color-mix(in srgb, var(--color-accent) 14%, var(--color-bg-pane));
+    --color-accent-soft: color-mix(in srgb, var(--color-accent) 18%, var(--color-bg));
 
     --color-fg: #ededed;
     --color-fg-secondary: #aaa;
@@ -71,7 +76,6 @@
 
     --color-accent: #22ccaa;
     --color-accent-fg: #0a0a0a;
-    --color-accent-soft: #1a3d33;
 
     --color-danger: #ef5350;
     --color-success: #30d158;

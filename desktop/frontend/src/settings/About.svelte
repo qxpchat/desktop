@@ -1,6 +1,8 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import { rpc } from '../lib/rpc';
+  import SettingsSection from '../lib/SettingsSection.svelte';
+  import SettingsRow from '../lib/SettingsRow.svelte';
 
   type SystemInfo = Record<string, unknown>;
   let info = $state<SystemInfo | null>(null);
@@ -12,45 +14,64 @@
       info = null;
     }
   });
+
+  // Promoted to dedicated rows so the most useful values are easy to copy
+  // without scrolling through the full JSON dump below. Each is referenced
+  // from within a snippet (reactive closure) so no `void` suppressors needed.
+  let coreVersion = $derived(String(info?.deltachat_core_version ?? '—'));
+  let sqliteVersion = $derived(String(info?.sqlite_version ?? '—'));
+  let arch = $derived(String(info?.arch ?? '—'));
 </script>
 
 <h2>About</h2>
 
-<div class="card">
-  <h3>qxp-web</h3>
-  <p class="muted">Web client for the Delta Chat protocol — a sibling to the iOS qxp app.</p>
+<p class="lede">qxp — desktop client for the Delta Chat protocol.</p>
+
+<SettingsSection title="System">
+  <SettingsRow label="Delta Chat core" right={coreRight} />
+  <SettingsRow label="SQLite" right={sqliteRight} />
+  <SettingsRow label="Architecture" right={archRight} />
+</SettingsSection>
+
+{#snippet coreRight()}<span class="value">{coreVersion}</span>{/snippet}
+{#snippet sqliteRight()}<span class="value">{sqliteVersion}</span>{/snippet}
+{#snippet archRight()}<span class="value">{arch}</span>{/snippet}
+
+<SettingsSection title="Diagnostics">
   {#if info}
-    <pre>{JSON.stringify(info, null, 2)}</pre>
+    <pre class="dump">{JSON.stringify(info, null, 2)}</pre>
   {:else}
     <p class="muted">Loading system info…</p>
   {/if}
-</div>
+</SettingsSection>
 
 <style>
   h2 {
     margin: 0 0 var(--space-3) 0;
     font-size: var(--text-xl);
-  }
-  h3 {
-    margin: 0 0 6px 0;
-    font-size: var(--text-md);
     font-weight: 600;
   }
-  .card {
-    max-width: 640px;
-    padding: var(--space-4);
-    border: 1px solid var(--color-border);
-    border-radius: var(--radius-md);
-    background: var(--color-bg-elevated);
+  .lede {
+    margin: 0 0 var(--space-5);
+    color: var(--color-fg-secondary);
   }
   .muted {
     color: var(--color-fg-secondary);
   }
-  pre {
-    background: var(--color-bg);
+  .value {
+    font-family: var(--font-mono);
+    font-size: var(--text-sm);
+    color: var(--color-fg-secondary);
+  }
+  .dump {
+    margin: 0;
     padding: var(--space-3);
+    background: var(--color-bg-hover);
     border-radius: var(--radius-md);
     overflow-x: auto;
+    font-family: var(--font-mono);
     font-size: var(--text-xs);
+    color: var(--color-fg-secondary);
+    user-select: text;
   }
 </style>

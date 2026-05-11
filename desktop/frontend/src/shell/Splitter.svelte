@@ -60,7 +60,7 @@
   .splitter {
     flex: 0 0 4px;
     cursor: col-resize;
-    background: var(--color-border);
+    background: var(--color-bg);
     transition: background 0.12s ease;
     touch-action: none;
   }

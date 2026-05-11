@@ -236,7 +236,13 @@
     sending = true;
     try {
       const result = await recorder.stop();
-      const ext = result.mimeType.includes('ogg') ? 'ogg' : 'webm';
+      // `.webm` would be sniffed as `video/webm` by deltachat-core
+      // (message.rs: "webm" => (Viewtype::File, "video/webm")), so the
+      // receiving client renders the bubble as a video — even though we
+      // pass `viewtype: 'Voice'`. The audio-only WebM extension is
+      // `.weba`, which maps to `audio/webm` (line above in the same
+      // table). Same bytes, different hint.
+      const ext = result.mimeType.includes('ogg') ? 'ogg' : 'weba';
       const path = await uploadBlob(result.blob, ext);
       await sendMessage({
         viewtype: 'Voice',
@@ -380,6 +386,7 @@
     border-radius: 50%;
     color: var(--color-fg-secondary);
     font-size: 18px;
+    justify-content: center;
   }
   .attach:hover:not(:disabled) {
     background: var(--color-bg-hover);
@@ -442,6 +449,7 @@
     border-radius: 50%;
     color: var(--color-fg-secondary);
     font-size: 16px;
+    justify-content: center;
   }
   .mic:hover:not(:disabled) {
     background: var(--color-bg-hover);
@@ -454,6 +462,7 @@
     border-radius: 50%;
     color: var(--color-danger, #b00);
     font-size: 16px;
+    justify-content: center;
   }
   .cancel-rec:hover {
     background: var(--color-bg-hover);

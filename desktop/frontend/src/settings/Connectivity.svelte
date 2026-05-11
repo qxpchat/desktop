@@ -11,6 +11,8 @@
   import { accounts } from '../lib/state/accounts.svelte';
   import { onEvent } from '../lib/events';
   import Icon from '../lib/Icon.svelte';
+  import SettingsSection from '../lib/SettingsSection.svelte';
+  import SettingsRow from '../lib/SettingsRow.svelte';
   import Proxy from './Proxy.svelte';
   import TransportForm, { type LoginParam } from './TransportForm.svelte';
 
@@ -57,7 +59,10 @@
 
   // View state — `main` is the Relays/SMTP/Proxy list; `proxy` is the
   // proxy sub-screen. Modeled inside this component instead of as a
-  // top-level route because Settings is a single-pane layout.
+  // top-level route because Settings is a single-pane layout. We snapshot
+  // `initialView` *once* (it's a one-shot deep-link parameter) — afterwards
+  // the user steers via the in-component back button.
+  // svelte-ignore state_referenced_locally
   let view = $state<'main' | 'proxy'>(initialView === 'proxy' ? 'proxy' : 'main');
 
   let relays = $state<RelayInfo[]>([]);
@@ -353,131 +358,94 @@
 {:else}
   <h2>Connectivity</h2>
 
-  <!-- Section: Relays -->
-  <section class="group">
-    <header class="group-header">Relays</header>
-    <div class="card">
-      <ul class="list">
-        {#each relays as r (r.addr)}
-          <li class="relay-row">
-            <button
-              class="relay-main"
-              onclick={() => void setDefault(r.addr)}
-              disabled={busy}
-              aria-label={`Set ${r.addr} as default`}
-            >
-              <div class="relay-head">
-                <span class="email">{r.addr}</span>
-                {#if r.addr === defaultAddr}
-                  <Icon name="check" size={14} stroke={2.5} />
-                {/if}
-              </div>
-              {#if r.addr === defaultAddr}
-                <div class="sub">Used for sending</div>
-              {:else if r.isUnpublished}
-                <div class="sub">Hidden from contacts</div>
-              {/if}
-              {#each r.connections as line (line.text)}
-                <div class="status-line">
-                  <span class="dot dot-sm" data-dot={line.dot}></span>
-                  <span>{line.text}</span>
-                </div>
-              {/each}
-              {#if r.quota}
-                <div class="quota">
-                  <span class="sub">{r.quota.label}</span>
-                  <div class="bar">
-                    <div
-                      class="fill"
-                      data-dot={quotaTint(r.quota.percent)}
-                      style:width="{Math.min(r.quota.percent, 100)}%"
-                    ></div>
-                  </div>
-                </div>
-              {/if}
-            </button>
-            <div class="row-actions">
-              <button
-                class="link"
-                disabled={busy}
-                onclick={() => (editForm = r.param)}
-                title="Edit"
-                aria-label="Edit"
-              >
-                <Icon name="pencil" size={14} />
-              </button>
-              {#if r.addr !== defaultAddr}
-                <button
-                  class="link"
-                  disabled={busy}
-                  onclick={() => void toggleHidden(r)}
-                  title={r.isUnpublished ? 'Show' : 'Hide'}
-                >
-                  {r.isUnpublished ? 'Show' : 'Hide'}
-                </button>
-                <button
-                  class="danger"
-                  disabled={busy}
-                  onclick={() => (removeTarget = r)}
-                  title="Remove"
-                >
-                  Remove
-                </button>
-              {/if}
+  <SettingsSection title="Relays" footer="Messages are received on all relays.">
+    {#each relays as r (r.addr)}
+      <div class="relay">
+        <button
+          class="relay-main"
+          onclick={() => void setDefault(r.addr)}
+          disabled={busy}
+          aria-label={`Set ${r.addr} as default`}
+        >
+          <div class="relay-head">
+            <span class="email">{r.addr}</span>
+            {#if r.addr === defaultAddr}
+              <Icon name="check" size={14} stroke={2.5} />
+            {/if}
+          </div>
+          {#if r.addr === defaultAddr}
+            <div class="sub">Used for sending</div>
+          {:else if r.isUnpublished}
+            <div class="sub">Hidden from contacts</div>
+          {/if}
+          {#each r.connections as line (line.text)}
+            <div class="status-line">
+              <span class="dot dot-sm" data-dot={line.dot}></span>
+              <span>{line.text}</span>
             </div>
-          </li>
-        {/each}
-        {#if loaded && relays.length === 0}
-          <li class="muted">No relays configured.</li>
-        {/if}
-        <li class="add-row">
-          <button class="link add" onclick={openAddOptions} disabled={busy}>
-            <Icon name="plus" size={14} /> Add Relay
+          {/each}
+          {#if r.quota}
+            <div class="quota">
+              <span class="sub">{r.quota.label}</span>
+              <div class="bar">
+                <div
+                  class="fill"
+                  data-dot={quotaTint(r.quota.percent)}
+                  style:width="{Math.min(r.quota.percent, 100)}%"
+                ></div>
+              </div>
+            </div>
+          {/if}
+        </button>
+        <div class="row-actions">
+          <button class="link" disabled={busy} onclick={() => (editForm = r.param)} aria-label="Edit">
+            <Icon name="pencil" size={14} />
           </button>
-        </li>
-      </ul>
-    </div>
-    <p class="footer-note">Messages are received on all relays.</p>
-  </section>
-
-  <!-- Section: Outgoing Messages -->
-  {#if smtp}
-    <section class="group">
-      <header class="group-header">Outgoing Messages</header>
-      <div class="card">
-        <div class="status-line">
-          <span class="dot" data-dot={smtp.dot}></span>
-          <span>{smtp.text}</span>
+          {#if r.addr !== defaultAddr}
+            <button class="link" disabled={busy} onclick={() => void toggleHidden(r)}>
+              {r.isUnpublished ? 'Show' : 'Hide'}
+            </button>
+            <button class="link link-danger" disabled={busy} onclick={() => (removeTarget = r)}>
+              Remove
+            </button>
+          {/if}
         </div>
       </div>
-    </section>
-  {/if}
+    {/each}
+    {#if loaded && relays.length === 0}
+      <p class="muted-row">No relays configured.</p>
+    {/if}
+    <SettingsRow label="Add Relay" icon="plus" onClick={openAddOptions} />
+  </SettingsSection>
 
-  <!-- Section: Status (fallback) -->
-  {#if rawStatus}
-    <section class="group">
-      <header class="group-header">Status</header>
-      <div class="card">
-        <p class="raw">{rawStatus}</p>
+  {#if smtp}
+    <SettingsSection title="Outgoing Messages">
+      <div class="status-line row-line">
+        <span class="dot" data-dot={smtp.dot}></span>
+        <span>{smtp.text}</span>
       </div>
-    </section>
+    </SettingsSection>
   {/if}
 
-  <!-- Section: Proxy nav -->
-  <section class="group">
-    <div class="card">
-      <button class="nav-row" onclick={() => (view = 'proxy')} disabled={busy}>
-        <span class="nav-left">
-          <Icon name="shield-check" size={16} />
-          <span>Proxy</span>
-        </span>
-        <span class="nav-right">
-          {#if proxyEnabled}<span class="badge muted">On</span>{/if}
-          <Icon name="chevron-right" size={14} />
-        </span>
-      </button>
-    </div>
-  </section>
+  {#if rawStatus}
+    <SettingsSection title="Status">
+      <p class="raw">{rawStatus}</p>
+    </SettingsSection>
+  {/if}
+
+  <SettingsSection>
+    <SettingsRow
+      label="Proxy"
+      icon="shield-check"
+      onClick={() => (view = 'proxy')}
+      right={proxyOnSnippet}
+    />
+  </SettingsSection>
+
+  {#snippet proxyOnSnippet()}
+    {#if proxyEnabled}<span class="badge-on">On</span>{/if}
+    <Icon name="chevron-right" size={14} />
+  {/snippet}
 
   {#if errorMsg}
     <p class="error">{errorMsg}</p>
@@ -564,47 +532,18 @@
 
 <style>
   h2 {
-    margin: 0 0 var(--space-3) 0;
+    margin: 0 0 var(--space-5) 0;
     font-size: var(--text-xl);
+    font-weight: 600;
   }
-  .group {
-    margin-bottom: var(--space-5);
-  }
-  .group-header {
-    text-transform: uppercase;
-    font-size: var(--text-xs);
-    color: var(--color-fg-tertiary);
-    letter-spacing: 0.06em;
-    margin: 0 0 var(--space-2) var(--space-3);
-  }
-  .footer-note {
-    margin: var(--space-2) var(--space-3) 0;
-    color: var(--color-fg-tertiary);
-    font-size: var(--text-xs);
-  }
-  .card {
-    border: 1px solid var(--color-border);
-    border-radius: var(--radius-md);
-    background: var(--color-bg-elevated);
-    overflow: hidden;
-  }
-  .list {
-    margin: 0;
-    padding: 0;
-    list-style: none;
-  }
-  .list > li {
+  .relay {
     display: flex;
-    align-items: stretch;
-    gap: var(--space-2);
-    padding: 10px var(--space-3);
-    border-bottom: 1px solid var(--color-border);
-  }
-  .list > li:last-child {
-    border-bottom: none;
-  }
-  .relay-row {
     align-items: center;
+    gap: var(--space-3);
+    padding: 8px 0;
+  }
+  .relay + .relay {
+    border-top: 1px solid var(--color-border);
   }
   .relay-main {
     flex: 1;
@@ -708,65 +647,31 @@
     opacity: 0.5;
     cursor: default;
   }
-  .danger {
-    background: transparent;
+  .link-danger {
     color: var(--color-danger);
-    font-size: var(--text-sm);
   }
-  .danger:disabled {
-    opacity: 0.5;
-    cursor: default;
-  }
-  .add-row {
-    padding: 8px var(--space-3);
-  }
-  .add {
-    font-size: var(--text-md);
-  }
-  .muted {
+  .muted-row {
     color: var(--color-fg-tertiary);
     font-size: var(--text-sm);
-    padding: 8px var(--space-3);
+    padding: 8px 0;
+    margin: 0;
   }
   .raw {
     margin: 0;
-    padding: 10px var(--space-3);
     color: var(--color-fg-secondary);
-    font-size: var(--text-xs);
+    font-size: var(--text-sm);
     user-select: text;
   }
-  .nav-row {
-    width: 100%;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 10px var(--space-3);
-    background: transparent;
-    color: var(--color-fg);
+  .row-line {
+    padding: 8px 0;
   }
-  .nav-row:hover:not(:disabled) {
-    background: var(--color-bg-hover);
-  }
-  .nav-left {
-    display: inline-flex;
-    align-items: center;
-    gap: var(--space-3);
-  }
-  .nav-right {
-    display: inline-flex;
-    align-items: center;
-    gap: var(--space-2);
-    color: var(--color-fg-tertiary);
-  }
-  .badge {
-    padding: 1px 6px;
-    border-radius: 8px;
+  .badge-on {
+    padding: 1px 8px;
+    border-radius: 10px;
+    background: var(--color-accent-soft);
+    color: var(--color-accent);
     font-size: var(--text-xs);
     font-weight: 600;
-  }
-  .badge.muted {
-    background: var(--color-bg-hover);
-    color: var(--color-fg-secondary);
   }
   .error {
     color: var(--color-danger);

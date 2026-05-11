@@ -53,86 +53,96 @@
 {#if !loaded}
   <p class="muted">Loading…</p>
 {:else}
-  <div class="row">
+  <div class="avatar-wrap">
     <Avatar
       name={displayName}
       color={profiles.list.find((p) => p.id === accounts.selectedId)?.color ?? 'var(--color-accent)'}
       imagePath={avatarPath}
-      size={64}
+      size={96}
       alt="Profile avatar"
     />
   </div>
 
   <label class="field">
-    <span class="label">Display name</span>
-    <input bind:value={displayName} />
+    <span class="field-label">Display name</span>
+    <input bind:value={displayName} placeholder="Your name" />
   </label>
 
   <label class="field">
-    <span class="label">Signature (status)</span>
-    <textarea bind:value={signature} rows="3"></textarea>
+    <span class="field-label">Signature</span>
+    <textarea bind:value={signature} rows="3" placeholder="Shown in your contact info"></textarea>
   </label>
 
   <div class="actions">
     <button class="primary" onclick={save} disabled={saving}>
-      {saving ? 'Saving…' : recentlySaved ? 'Saved ✓' : 'Save'}
+      {saving ? 'Saving…' : recentlySaved ? 'Saved' : 'Save'}
     </button>
   </div>
 {/if}
 
 <style>
   h2 {
-    margin: 0 0 var(--space-3) 0;
+    margin: 0 0 var(--space-5) 0;
     font-size: var(--text-xl);
+    font-weight: 600;
   }
   .muted {
     color: var(--color-fg-tertiary);
   }
-  .row {
+  .avatar-wrap {
     display: flex;
-    align-items: center;
-    gap: var(--space-3);
-    margin-bottom: var(--space-4);
+    justify-content: center;
+    margin-bottom: var(--space-5);
   }
   .field {
     display: block;
-    margin-bottom: var(--space-3);
+    margin-bottom: var(--space-4);
     max-width: 480px;
   }
-  .label {
+  .field-label {
     display: block;
     font-size: var(--text-sm);
     color: var(--color-fg-secondary);
-    font-weight: 500;
-    margin-bottom: 2px;
+    margin-bottom: 6px;
   }
   .field input,
   .field textarea {
     width: 100%;
-    padding: 8px 12px;
+    box-sizing: border-box;
+    padding: 10px 12px;
     border-radius: var(--radius-md);
     border: 1px solid var(--color-border);
     background: var(--color-bg);
     color: var(--color-fg);
     font-family: inherit;
     font-size: var(--text-md);
+    resize: vertical;
   }
   .field input:focus,
   .field textarea:focus {
-    border-color: var(--color-accent);
-    outline: none;
+    outline: 2px solid var(--color-accent);
+    outline-offset: -1px;
+    border-color: transparent;
   }
   .actions {
-    margin-top: var(--space-3);
+    margin-top: var(--space-4);
+    max-width: 480px;
+    display: flex;
+    justify-content: flex-end;
   }
   .primary {
-    padding: 8px 16px;
+    height: 36px;
+    padding: 0 var(--space-5);
     border-radius: var(--radius-md);
     background: var(--color-accent);
     color: var(--color-accent-fg);
     font-weight: 600;
   }
+  .primary:hover:not(:disabled) {
+    filter: brightness(1.05);
+  }
   .primary:disabled {
-    opacity: 0.6;
+    opacity: 0.5;
+    cursor: default;
   }
 </style>

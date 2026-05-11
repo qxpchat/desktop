@@ -44,14 +44,13 @@
     display: flex;
     flex-wrap: wrap;
     gap: 4px;
-    /* Pull the chips up so they overlap the bubble's lower edge — iMessage /
-     * Signal style. The bubble sits below in the parent .bubble-wrap; we sit
-     * above it via z-index, anchored to the bottom-trailing corner. */
-    margin-top: -12px;
+    /* Chips sit just below the bubble with a small gap. Previously they
+     * overlapped via `margin-top: -12px` for an iMessage stacking effect,
+     * but on short messages the overlap region collided with the bubble's
+     * own bottom-right `.meta` row (timestamp + state glyph). */
+    margin-top: 4px;
     margin-right: 6px;
     margin-left: 6px;
-    position: relative;
-    z-index: 1;
   }
   .chip {
     display: inline-flex;

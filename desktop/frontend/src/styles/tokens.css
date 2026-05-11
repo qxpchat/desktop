@@ -23,12 +23,18 @@
   /* Type */
   --font-sans: system-ui, -apple-system, 'Segoe UI', sans-serif;
   --font-mono: ui-monospace, SFMono-Regular, Menlo, monospace;
-  --text-xs: 11px;
-  --text-sm: 12px;
-  --text-md: 14px;
-  --text-lg: 16px;
-  --text-xl: 20px;
-  --text-2xl: 28px;
+  /* Global text-size multiplier. App.svelte writes this from prefs so the
+     user can pick small / default / large / extra-large in Appearance.
+     All `var(--text-*)` consumers scale together. Raw `font-size: Npx`
+     callsites do not — those are intentionally fixed (icons, monospace
+     code dumps, etc.) or are pending migration. */
+  --text-scale: 1;
+  --text-xs: calc(11px * var(--text-scale));
+  --text-sm: calc(12px * var(--text-scale));
+  --text-md: calc(14px * var(--text-scale));
+  --text-lg: calc(16px * var(--text-scale));
+  --text-xl: calc(20px * var(--text-scale));
+  --text-2xl: calc(28px * var(--text-scale));
 
   /* Radii */
   --radius-sm: 4px;

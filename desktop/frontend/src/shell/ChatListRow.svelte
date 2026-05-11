@@ -68,6 +68,7 @@
     color={chat.color}
     imagePath={chat.avatarPath}
     size={40}
+    seenRecently={chat.wasSeenRecently}
   />
 
   {#if !narrow}

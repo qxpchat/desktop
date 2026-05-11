@@ -10,6 +10,7 @@
   import { accounts } from '../lib/state/accounts.svelte';
   import { logs, clearLogs, type LogEntry } from '../lib/state/logs.svelte';
   import Icon from '../lib/Icon.svelte';
+  import Toggle from '../lib/Toggle.svelte';
 
   let header = $state<string>('');
   let redact = $state(false);
@@ -128,11 +129,11 @@
   </div>
   <div class="actions">
     <label class="toggle">
-      <input type="checkbox" bind:checked={redact} />
+      <Toggle checked={redact} onChange={(v) => (redact = v)} label="Redact addresses" />
       <span>Redact addresses</span>
     </label>
     <label class="toggle">
-      <input type="checkbox" bind:checked={autoScroll} />
+      <Toggle checked={autoScroll} onChange={(v) => (autoScroll = v)} label="Auto-scroll" />
       <span>Auto-scroll</span>
     </label>
     <button class="ghost" onclick={copyAll} title="Copy all">

@@ -222,6 +222,7 @@
     border-radius: var(--radius-md);
     color: var(--color-fg-secondary);
     font-size: 18px;
+    justify-content: center;
   }
   .footer-btn:hover,
   .footer-btn.active {
@@ -238,6 +239,7 @@
     color: var(--color-fg-secondary);
     font-size: 18px;
     line-height: 1;
+    justify-content: center;
   }
   .collapse:hover {
     background: var(--color-bg-hover);

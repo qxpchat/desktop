@@ -1,6 +1,6 @@
 <script lang="ts">
   import { onMount } from 'svelte';
-  import { prefs, savePrefs } from '../lib/prefs.svelte';
+  import { prefs, savePrefs, accentForeground } from '../lib/prefs.svelte';
   import { rpc, type ConnectionStatus } from '../lib/rpc';
   import { startEventLoop } from '../lib/events';
   import { startLogCapture } from '../lib/state/logs.svelte';
@@ -34,10 +34,15 @@
 
   let connectionStatus = $state<ConnectionStatus>('idle');
 
-  // Mirror the persisted theme + accent onto <html>.
+  // Mirror the persisted theme + accent + text-scale onto <html>. The
+  // accent foreground is computed from luminance instead of leaving the
+  // static `#0a0a0a` from theme.css — otherwise dark accent hues (blue,
+  // indigo, purple, pink, red) end up with near-black text on a near-black bg.
   $effect(() => {
     document.documentElement.dataset.theme = prefs.theme;
     document.documentElement.style.setProperty('--color-accent', prefs.accent);
+    document.documentElement.style.setProperty('--color-accent-fg', accentForeground(prefs.accent));
+    document.documentElement.style.setProperty('--text-scale', String(prefs.textScale));
   });
 
   // Re-fetch the chatlist whenever the active account changes; clear chat

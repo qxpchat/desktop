@@ -84,11 +84,23 @@
     prefs.accent = c;
     savePrefs();
   }
+
+  const TEXT_SIZES = [
+    { label: 'Small', value: 0.85 },
+    { label: 'Default', value: 1 },
+    { label: 'Large', value: 1.15 },
+    { label: 'X-Large', value: 1.3 },
+  ];
+
+  function setTextScale(v: number) {
+    prefs.textScale = v;
+    savePrefs();
+  }
 </script>
 
 <h2>Appearance</h2>
 
-<div class="group">
+<section class="block">
   <h3>Theme</h3>
   <div class="seg" role="radiogroup" aria-label="Theme">
     {#each THEMES as t}
@@ -102,9 +114,9 @@
       </button>
     {/each}
   </div>
-</div>
+</section>
 
-<div class="group">
+<section class="block">
   <h3>Accent color</h3>
   <div class="swatches" role="radiogroup" aria-label="Accent color">
     {#each swatches as s (s.value + s.label)}
@@ -118,33 +130,62 @@
       ></button>
     {/each}
   </div>
-</div>
+</section>
+
+<section class="block">
+  <h3>Text size</h3>
+  <div class="seg" role="radiogroup" aria-label="Text size">
+    {#each TEXT_SIZES as t}
+      <button
+        role="radio"
+        aria-checked={prefs.textScale === t.value}
+        class:active={prefs.textScale === t.value}
+        onclick={() => setTextScale(t.value)}
+      >
+        {t.label}
+      </button>
+    {/each}
+  </div>
+  <p class="hint">Affects every text element using the size tokens — most of the app.</p>
+</section>
 
 <style>
   h2 {
-    margin: 0 0 var(--space-4) 0;
+    margin: 0 0 var(--space-5) 0;
     font-size: var(--text-xl);
+    font-weight: 600;
   }
   h3 {
-    margin: 0 0 var(--space-2) 0;
+    margin: 0 0 var(--space-3) 0;
     font-size: var(--text-md);
     font-weight: 600;
   }
-  .group {
-    margin-bottom: var(--space-4);
+  .block {
+    padding-bottom: var(--space-5);
   }
+  .block + .block {
+    border-top: 1px solid var(--color-border);
+    padding-top: var(--space-5);
+  }
+  /* Segmented theme picker — pill background with a sliding-looking
+     accent button. Matches Signal Desktop's segmented theme control. */
   .seg {
     display: inline-flex;
-    gap: 1px;
-    background: var(--color-border);
+    padding: 3px;
+    background: var(--color-bg-hover);
     border-radius: var(--radius-md);
-    padding: 1px;
   }
   .seg button {
-    padding: 6px 14px;
-    background: var(--color-bg-pane);
-    border-radius: calc(var(--radius-md) - 1px);
+    padding: 6px 16px;
+    background: transparent;
+    border-radius: calc(var(--radius-md) - 2px);
     text-transform: capitalize;
+    color: var(--color-fg);
+    font-size: var(--text-sm);
+    font-weight: 500;
+    transition: background 0.1s ease, color 0.1s ease;
+  }
+  .seg button:hover:not(.active) {
     color: var(--color-fg);
   }
   .seg button.active {
@@ -154,7 +195,7 @@
   .swatches {
     display: grid;
     grid-template-columns: repeat(10, 32px);
-    gap: 8px;
+    gap: 10px;
     max-width: max-content;
   }
   .swatch {
@@ -162,10 +203,20 @@
     height: 32px;
     border-radius: 50%;
     border: 2px solid transparent;
-    box-shadow: 0 2px 4px var(--color-shadow);
     padding: 0;
+    cursor: pointer;
+    transition: transform 0.08s ease;
+  }
+  .swatch:hover {
+    transform: scale(1.06);
   }
   .swatch.active {
     border-color: var(--color-fg);
+    box-shadow: 0 0 0 2px var(--color-bg);
+  }
+  .hint {
+    margin: var(--space-3) 0 0;
+    color: var(--color-fg-tertiary);
+    font-size: var(--text-sm);
   }
 </style>

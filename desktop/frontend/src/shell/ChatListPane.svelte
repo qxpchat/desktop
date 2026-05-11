@@ -236,7 +236,6 @@
     align-items: center;
     gap: var(--space-2);
     padding: var(--space-3);
-    border-bottom: 1px solid var(--color-border);
     flex: 0 0 auto;
     min-height: 56px;
   }
@@ -252,6 +251,7 @@
     flex: 0 0 auto;
     font-size: 18px;
     line-height: 1;
+    justify-content: center;
   }
   .expand:hover {
     background: var(--color-bg-hover);
@@ -279,6 +279,7 @@
     flex: 0 0 auto;
     font-size: 16px;
     line-height: 1;
+    justify-content: center;
   }
   .compose:hover {
     background: var(--color-bg-hover);
@@ -296,7 +297,6 @@
     text-align: left;
     background: transparent;
     color: var(--color-fg);
-    border-bottom: 1px solid var(--color-border);
   }
   .archive-row:hover {
     background: var(--color-bg-hover);

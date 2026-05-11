@@ -1,5 +1,7 @@
 <script lang="ts">
   import { onMount, onDestroy, tick } from 'svelte';
+  import { fly } from 'svelte/transition';
+  import { cubicOut } from 'svelte/easing';
   import {
     chat,
     setActiveChat,
@@ -37,6 +39,13 @@
   let newSinceScroll = $state(0);
   let scrolling = $state(false);
   let scrollIdleTimer: ReturnType<typeof setTimeout> | null = null;
+  // Suppresses the per-bubble enter-transition while the chat is doing
+  // its first-paint (otherwise every message in a long history would
+  // burst-animate). Flipped to `false` shortly after the initial render
+  // populates `chat.ids`, so only messages added *after* that point get
+  // the fly-in.
+  let firstPaint = $state(true);
+  let firstPaintTimer: ReturnType<typeof setTimeout> | null = null;
 
   let isGroupOrBroadcast = $derived.by(() => {
     const item = chatlist.items.get(chatId);
@@ -61,6 +70,14 @@
     } else if (newAppended && newCount > 0) {
       newSinceScroll += newCount;
     }
+    // Drop the first-paint guard once the initial batch has rendered.
+    if (firstPaint && ids.length > 0) {
+      if (firstPaintTimer != null) clearTimeout(firstPaintTimer);
+      firstPaintTimer = setTimeout(() => (firstPaint = false), 60);
+    }
+  });
+  onDestroy(() => {
+    if (firstPaintTimer != null) clearTimeout(firstPaintTimer);
   });
 
   $effect(() => {
@@ -313,7 +330,10 @@
           {#if marker}
             <div class="daymarker"><span>{marker}</span></div>
           {/if}
-          <div id="msg-{id}">
+          <div
+            id="msg-{id}"
+            in:fly={{ y: 12, duration: firstPaint ? 0 : 220, easing: cubicOut }}
+          >
             {#if m.isInfo}
               <InfoMessage message={m} />
             {:else}

@@ -11,6 +11,7 @@
   import { accounts } from '../lib/state/accounts.svelte';
   import { rpc } from '../lib/rpc';
   import ContactRow from './ContactRow.svelte';
+  import Icon from '../lib/Icon.svelte';
 
   type Props = {
     onSelectChat: (id: number) => void;

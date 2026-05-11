@@ -1,4 +1,7 @@
 <script lang="ts">
+  import { scale } from 'svelte/transition';
+  import { cubicOut } from 'svelte/easing';
+
   type Props = {
     visible: boolean;
     count: number;
@@ -9,7 +12,12 @@
 </script>
 
 {#if visible}
-  <button class="scroll-to-latest" onclick={onClick} aria-label="Scroll to latest">
+  <button
+    class="scroll-to-latest"
+    onclick={onClick}
+    aria-label="Scroll to latest"
+    transition:scale={{ start: 0.7, duration: 160, easing: cubicOut }}
+  >
     <span class="arrow" aria-hidden="true">↓</span>
     {#if count > 0}
       <span class="badge">{count > 99 ? '99+' : count}</span>

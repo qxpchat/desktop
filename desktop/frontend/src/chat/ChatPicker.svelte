@@ -1,7 +1,10 @@
 <script lang="ts">
   // Modal chat picker — used for "Forward to…" in Phase 10's message-action
-  // menu. Reuses the chatlist store but renders a simplified row.
+  // menu. Reuses the chatlist store but renders a simplified row through
+  // the shared `Avatar` so chat profile pictures actually appear (the
+  // previous inline avatar only painted the initial letter).
   import { chatlist } from '../lib/state/chatlist.svelte';
+  import Avatar from '../lib/Avatar.svelte';
 
   type Props = {
     open: boolean;
@@ -39,9 +42,7 @@
       {#each visible as c (c.id)}
         <li>
           <button class="row" onclick={() => onPick(c.id)}>
-            <span class="avatar" style:background={c.color}>
-              {(c.name[0] ?? '?').toUpperCase()}
-            </span>
+            <Avatar name={c.name || '?'} color={c.color} imagePath={c.avatarPath} size={36} />
             <span class="name">{c.name || '(no name)'}</span>
           </button>
         </li>
@@ -128,17 +129,6 @@
   }
   .row:hover {
     background: var(--color-bg-hover);
-  }
-  .avatar {
-    width: 32px;
-    height: 32px;
-    border-radius: 50%;
-    color: white;
-    font-weight: 600;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex: 0 0 auto;
   }
   .name {
     flex: 1;

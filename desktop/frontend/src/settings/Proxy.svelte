@@ -9,6 +9,9 @@
   import { accounts } from '../lib/state/accounts.svelte';
   import { onEvent } from '../lib/events';
   import Icon from '../lib/Icon.svelte';
+  import SettingsSection from '../lib/SettingsSection.svelte';
+  import SettingsRow from '../lib/SettingsRow.svelte';
+  import Toggle from '../lib/Toggle.svelte';
   import ShareProxy from './ShareProxy.svelte';
 
   type Props = {
@@ -189,63 +192,52 @@
   <h2>Proxy</h2>
 </header>
 
-<section class="group">
-  <div class="card">
-    <label class="toggle">
-      <input
-        type="checkbox"
-        checked={proxyEnabled}
-        disabled={proxies.length === 0 || busy}
-        onchange={(e) => void setEnabled((e.currentTarget as HTMLInputElement).checked)}
-      />
-      <span>Use Proxy</span>
-    </label>
-  </div>
-</section>
+<SettingsSection>
+  <SettingsRow label="Use Proxy" right={useProxyToggle} />
+</SettingsSection>
+
+{#snippet useProxyToggle()}
+  <Toggle
+    checked={proxyEnabled}
+    disabled={proxies.length === 0 || busy}
+    onChange={(v) => void setEnabled(v)}
+    label="Use Proxy"
+  />
+{/snippet}
 
 {#if proxies.length > 0}
-  <section class="group">
-    <header class="group-header">Saved Proxies</header>
-    <div class="card">
-      <ul class="list">
-        {#each proxies as url, idx (url)}
-          {@const isActive = idx === 0}
-          <li>
-            <button class="row" disabled={busy} onclick={() => void select(url)}>
-              <div class="head">
-                <span class="host">{hosts[url] ?? url}</span>
-                {#if isActive}
-                  <Icon name="check" size={14} stroke={2.5} />
-                {/if}
-              </div>
-              <div class="meta">
-                <span class="scheme">{scheme(url)}</span>
-                {#if isActive}
-                  <span class="muted">{connectionLabel()}</span>
-                {/if}
-              </div>
-            </button>
-            <div class="row-actions">
-              <button class="link" disabled={busy} onclick={() => (shareTarget = url)}>Share</button>
-              <button class="danger" disabled={busy} onclick={() => (removeTarget = url)}>
-                Delete
-              </button>
-            </div>
-          </li>
-        {/each}
-      </ul>
-    </div>
-  </section>
+  <SettingsSection title="Saved Proxies">
+    {#each proxies as url, idx (url)}
+      {@const isActive = idx === 0}
+      <div class="proxy">
+        <button class="proxy-main" disabled={busy} onclick={() => void select(url)}>
+          <div class="head">
+            <span class="host">{hosts[url] ?? url}</span>
+            {#if isActive}
+              <Icon name="check" size={14} stroke={2.5} />
+            {/if}
+          </div>
+          <div class="meta">
+            <span class="scheme">{scheme(url)}</span>
+            {#if isActive}
+              <span>{connectionLabel()}</span>
+            {/if}
+          </div>
+        </button>
+        <div class="row-actions">
+          <button class="link" disabled={busy} onclick={() => (shareTarget = url)}>Share</button>
+          <button class="link link-danger" disabled={busy} onclick={() => (removeTarget = url)}>
+            Delete
+          </button>
+        </div>
+      </div>
+    {/each}
+  </SettingsSection>
 {/if}
 
-<section class="group">
-  <div class="card">
-    <button class="nav-row" onclick={openAdd} disabled={busy}>
-      <Icon name="plus" size={14} />
-      <span>Add Proxy</span>
-    </button>
-  </div>
-</section>
+<SettingsSection>
+  <SettingsRow label="Add Proxy" icon="plus" onClick={openAdd} />
+</SettingsSection>
 
 {#if errorMsg}
   <p class="error">{errorMsg}</p>
@@ -312,45 +304,18 @@
   h2 {
     margin: 0;
     font-size: var(--text-xl);
+    font-weight: 600;
   }
-  .group {
-    margin-bottom: var(--space-4);
-  }
-  .group-header {
-    text-transform: uppercase;
-    font-size: var(--text-xs);
-    color: var(--color-fg-tertiary);
-    letter-spacing: 0.06em;
-    margin: 0 0 var(--space-2) var(--space-3);
-  }
-  .card {
-    border: 1px solid var(--color-border);
-    border-radius: var(--radius-md);
-    background: var(--color-bg-elevated);
-    overflow: hidden;
-  }
-  .toggle {
+  .proxy {
     display: flex;
     align-items: center;
     gap: var(--space-3);
-    padding: 12px var(--space-3);
+    padding: 8px 0;
   }
-  .list {
-    margin: 0;
-    padding: 0;
-    list-style: none;
+  .proxy + .proxy {
+    border-top: 1px solid var(--color-border);
   }
-  .list li {
-    display: flex;
-    align-items: center;
-    gap: var(--space-2);
-    padding: 8px var(--space-3);
-    border-bottom: 1px solid var(--color-border);
-  }
-  .list li:last-child {
-    border-bottom: none;
-  }
-  .row {
+  .proxy-main {
     flex: 1;
     min-width: 0;
     background: transparent;
@@ -362,7 +327,7 @@
     flex-direction: column;
     gap: 2px;
   }
-  .row:hover:not(:disabled) {
+  .proxy-main:hover:not(:disabled) {
     background: var(--color-bg-hover);
   }
   .head {
@@ -382,6 +347,7 @@
     align-items: center;
     gap: var(--space-2);
     font-size: var(--text-xs);
+    color: var(--color-fg-tertiary);
   }
   .scheme {
     border: 1px solid var(--color-fg-tertiary);
@@ -391,12 +357,9 @@
     text-transform: uppercase;
     letter-spacing: 0.04em;
   }
-  .muted {
-    color: var(--color-fg-tertiary);
-  }
   .row-actions {
     display: flex;
-    gap: var(--space-2);
+    gap: var(--space-3);
     flex: 0 0 auto;
   }
   .link {
@@ -404,28 +367,12 @@
     color: var(--color-accent);
     font-size: var(--text-sm);
   }
-  .link:disabled,
-  .danger:disabled {
+  .link:disabled {
     opacity: 0.5;
     cursor: default;
   }
-  .danger {
-    background: transparent;
+  .link-danger {
     color: var(--color-danger);
-    font-size: var(--text-sm);
-  }
-  .nav-row {
-    width: 100%;
-    display: flex;
-    align-items: center;
-    gap: var(--space-3);
-    padding: 12px var(--space-3);
-    background: transparent;
-    color: var(--color-accent);
-    font-weight: 500;
-  }
-  .nav-row:hover:not(:disabled) {
-    background: var(--color-bg-hover);
   }
   .error {
     color: var(--color-danger);

@@ -4,6 +4,8 @@
   import { onEvent } from '../lib/events';
   import { fileUrl } from '../lib/files';
   import { setMainRoute } from '../lib/state/mainRoute.svelte';
+  import SettingsSection from '../lib/SettingsSection.svelte';
+  import SettingsRow from '../lib/SettingsRow.svelte';
 
   let status = $state<'idle' | 'exporting' | 'ready' | 'error'>('idle');
   let progress = $state(0);
@@ -55,73 +57,111 @@
 
 <h2>Backup</h2>
 
-<div class="card">
-  <h3>Export backup</h3>
-  <p class="muted">Save your account as a <code>.tar</code> file you can restore on another device.</p>
+<SettingsSection
+  title="Export backup"
+  footer="Save your account as a .tar file you can restore on another device."
+>
   {#if status === 'idle'}
-    <button class="primary" onclick={startExport}>Export backup</button>
+    <SettingsRow label="Export backup" icon="hard-drive" onClick={startExport} />
   {:else if status === 'exporting'}
-    <progress max="1000" value={progress}></progress>
-    <p class="muted">{Math.round((progress / 1000) * 100)}%</p>
+    <div class="progress-row">
+      <span class="label">Exporting…</span>
+      <progress max="1000" value={progress}></progress>
+      <span class="pct">{Math.round((progress / 1000) * 100)}%</span>
+    </div>
   {:else if status === 'ready' && writtenPath}
-    <a class="primary" href={fileUrl(writtenPath)} download>Download backup</a>
-    <p class="muted small">Saved to {writtenPath}</p>
+    <a class="row link" href={fileUrl(writtenPath)} download>
+      <span class="label">Download backup</span>
+      <span class="value">Saved to {writtenPath}</span>
+    </a>
   {:else if status === 'error'}
-    <p class="error">{message ?? 'Export failed'}</p>
-    <button onclick={() => (status = 'idle')}>Try again</button>
+    <div class="row">
+      <span class="label danger">{message ?? 'Export failed'}</span>
+      <button class="ghost" onclick={() => (status = 'idle')}>Try again</button>
+    </div>
   {/if}
-</div>
+</SettingsSection>
 
-<div class="card">
-  <h3>Pair another device</h3>
-  <p class="muted">Show a QR on this device that another Delta Chat client can scan to receive a copy of your account.</p>
-  <button onclick={pairAsSecondDevice}>Show pair QR</button>
-</div>
+<SettingsSection
+  title="Pair another device"
+  footer="Show a QR on this device that another Delta Chat client can scan to receive a copy of your account."
+>
+  <SettingsRow label="Show pair QR" icon="qr-code" onClick={pairAsSecondDevice} />
+</SettingsSection>
 
 <style>
   h2 {
-    margin: 0 0 var(--space-3) 0;
+    margin: 0 0 var(--space-5) 0;
     font-size: var(--text-xl);
-  }
-  h3 {
-    margin: 0 0 6px 0;
-    font-size: var(--text-md);
     font-weight: 600;
   }
-  .card {
-    max-width: 520px;
-    padding: var(--space-4);
-    border: 1px solid var(--color-border);
-    border-radius: var(--radius-md);
-    margin-bottom: var(--space-4);
-    background: var(--color-bg-elevated);
+  .progress-row {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    padding: 12px 0;
   }
-  .muted {
+  .progress-row .label {
     color: var(--color-fg-secondary);
-    margin: 0 0 12px 0;
+    font-size: var(--text-sm);
   }
-  .small {
-    font-size: var(--text-xs);
-    word-break: break-all;
-  }
-  .primary {
-    display: inline-block;
-    padding: 8px 16px;
-    border-radius: var(--radius-md);
-    background: var(--color-accent);
-    color: var(--color-accent-fg);
-    font-weight: 600;
-    text-decoration: none;
-  }
-  .primary:hover {
-    filter: brightness(1.05);
+  .progress-row .pct {
+    color: var(--color-fg-tertiary);
+    font-size: var(--text-sm);
+    font-variant-numeric: tabular-nums;
+    min-width: 40px;
+    text-align: right;
   }
   progress {
-    width: 100%;
-    height: 8px;
+    flex: 1;
+    height: 6px;
     accent-color: var(--color-accent);
   }
-  .error {
+  .row {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    padding: 10px 0;
+  }
+  .row .label {
+    flex: 1;
+    min-width: 0;
+    font-size: var(--text-md);
+  }
+  .row.link {
+    color: inherit;
+    text-decoration: none;
+    cursor: pointer;
+    border-radius: var(--radius-md);
+    transition: background 0.1s ease;
+    padding: 10px var(--space-3);
+    margin: 0 calc(-1 * var(--space-3));
+  }
+  .row.link:hover {
+    background: var(--color-bg-hover);
+  }
+  .row .value {
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    color: var(--color-fg-tertiary);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 240px;
+  }
+  .label.danger {
     color: var(--color-danger);
+  }
+  .ghost {
+    height: 32px;
+    padding: 0 var(--space-3);
+    border-radius: var(--radius-md);
+    background: var(--color-bg-hover);
+    color: var(--color-fg);
+    font-size: var(--text-sm);
+    font-weight: 500;
+  }
+  .ghost:hover {
+    background: var(--color-bg-selected);
   }
 </style>

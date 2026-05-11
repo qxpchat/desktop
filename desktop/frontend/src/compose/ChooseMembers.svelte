@@ -8,6 +8,7 @@
   import { backToInbox, setPaneMode } from '../lib/state/paneMode.svelte';
   import { accounts } from '../lib/state/accounts.svelte';
   import ContactRow from './ContactRow.svelte';
+  import Avatar from '../lib/Avatar.svelte';
 
   type Props = {
     mode: { kind: 'chooseMembers'; flow: 'group' | 'channel'; selected: number[] };
@@ -77,8 +78,8 @@
     <div class="pills" role="list" aria-label="Selected contacts">
       {#each selectedContacts as c (c.id)}
         <button class="pill" onclick={() => toggle(c.id)} aria-label="Remove {c.displayName}">
-          <span class="dot" style:background={c.color}></span>
-          {c.displayName || c.address}
+          <Avatar name={c.displayName || '?'} color={c.color} imagePath={c.profileImage} size={20} />
+          <span class="pill-name">{c.displayName || c.address}</span>
           <span class="x" aria-hidden="true">×</span>
         </button>
       {/each}
@@ -174,7 +175,7 @@
     display: inline-flex;
     align-items: center;
     gap: 6px;
-    padding: 4px 8px;
+    padding: 3px 8px 3px 3px;
     border-radius: 14px;
     background: var(--color-bg-hover);
     color: var(--color-fg);
@@ -183,10 +184,11 @@
   .pill:hover {
     background: var(--color-border);
   }
-  .dot {
-    width: 12px;
-    height: 12px;
-    border-radius: 50%;
+  .pill-name {
+    max-width: 160px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
   .x {
     margin-left: 2px;

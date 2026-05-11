@@ -139,6 +139,7 @@
     color: var(--color-accent-fg);
     font-size: 12px;
     flex: 0 0 auto;
+    justify-content: center;
   }
   .bar {
     flex: 1;

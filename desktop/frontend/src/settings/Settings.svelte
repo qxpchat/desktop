@@ -162,7 +162,7 @@
   .rail {
     width: 220px;
     flex: 0 0 auto;
-    background: var(--color-bg-pane);
+    background: var(--color-bg);
     border-right: 1px solid var(--color-border);
     padding: var(--space-3);
     overflow-y: auto;
@@ -173,20 +173,23 @@
   .rail button {
     display: flex;
     align-items: center;
-    gap: 10px;
-    padding: 8px 10px;
-    border-radius: var(--radius-md);
+    gap: var(--space-3);
+    padding: 10px 12px;
+    border-radius: 10px;
     background: transparent;
     color: var(--color-fg);
     text-align: left;
+    font-size: var(--text-md);
     font-weight: 500;
+    transition: background 0.1s ease;
   }
-  .rail button:hover {
+  .rail button:hover:not(.active) {
     background: var(--color-bg-hover);
   }
   .rail button.active {
-    background: var(--color-bg-selected);
-    color: var(--color-accent);
+    background: var(--color-bg-hover);
+    color: var(--color-fg);
+    font-weight: 600;
   }
   .icon {
     width: 20px;

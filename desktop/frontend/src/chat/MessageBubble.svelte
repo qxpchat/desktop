@@ -244,7 +244,9 @@
     word-break: break-word;
     overflow-wrap: anywhere;
     line-height: 1.4;
-    font-size: var(--text-md);
+    /* Slightly larger than the rest of the UI — chat text is what you
+       actually read, so it deserves a bit more bulk than --text-md (14px). */
+    font-size: var(--text-lg);
     box-shadow: 0 1px 0 var(--color-shadow);
     cursor: context-menu;
   }
@@ -326,6 +328,12 @@
   }
   .text {
     white-space: pre-wrap;
+    user-select: text;
+    -webkit-user-select: text;
+    /* Body text gets a different default cursor so the user knows it's
+     * the one selectable thing inside the bubble (the rest of the bubble
+     * is `cursor: context-menu` from `.bubble`). */
+    cursor: text;
   }
   .text a {
     color: inherit;

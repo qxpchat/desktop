@@ -2,12 +2,14 @@
   import { onMount } from 'svelte';
   import { rpc } from '../lib/rpc';
   import { accounts } from '../lib/state/accounts.svelte';
+  import Avatar from '../lib/Avatar.svelte';
 
   type Contact = {
     id: number;
     displayName: string;
     address: string;
     color: string;
+    profileImage: string | null;
   };
 
   let list = $state<Contact[]>([]);
@@ -32,7 +34,7 @@
   }
 </script>
 
-<h2>Blocked contacts</h2>
+<h2>Blocked</h2>
 
 {#if loading}
   <p class="muted">Loading…</p>
@@ -41,10 +43,8 @@
 {:else}
   <ul class="list">
     {#each list as c (c.id)}
-      <li>
-        <span class="avatar" style:background={c.color}>
-          {(c.displayName[0] ?? '?').toUpperCase()}
-        </span>
+      <li class="row">
+        <Avatar name={c.displayName} color={c.color} imagePath={c.profileImage} size={36} />
         <span class="meta">
           <span class="name">{c.displayName}</span>
           <span class="addr">{c.address}</span>
@@ -57,32 +57,27 @@
 
 <style>
   h2 {
-    margin: 0 0 var(--space-3) 0;
+    margin: 0 0 var(--space-5) 0;
     font-size: var(--text-xl);
+    font-weight: 600;
   }
   .muted {
     color: var(--color-fg-tertiary);
   }
   .list {
-    max-width: 520px;
+    max-width: 560px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
   }
-  li {
+  .row {
     display: flex;
     align-items: center;
-    gap: 12px;
-    padding: 8px 0;
-    border-bottom: 1px solid var(--color-border);
+    gap: var(--space-3);
+    padding: 10px 0;
   }
-  .avatar {
-    width: 36px;
-    height: 36px;
-    border-radius: 50%;
-    color: white;
-    font-weight: 600;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex: 0 0 auto;
+  .row + .row {
+    border-top: 1px solid var(--color-border);
   }
   .meta {
     flex: 1;
@@ -99,10 +94,16 @@
     font-size: var(--text-sm);
   }
   .unblock {
-    padding: 6px 12px;
+    height: 32px;
+    padding: 0 var(--space-3);
     border-radius: var(--radius-md);
-    background: var(--color-accent);
-    color: var(--color-accent-fg);
-    font-weight: 600;
+    background: var(--color-bg-hover);
+    color: var(--color-fg);
+    font-size: var(--text-sm);
+    font-weight: 500;
+  }
+  .unblock:hover {
+    background: var(--color-bg-selected);
+    color: var(--color-accent);
   }
 </style>
