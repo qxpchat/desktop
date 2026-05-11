@@ -88,6 +88,7 @@
   .menu button {
     display: flex;
     align-items: center;
+    justify-content: flex-start;
     gap: var(--space-2);
     padding: 8px 10px;
     background: transparent;

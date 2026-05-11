@@ -53,6 +53,7 @@
   .row {
     display: flex;
     align-items: center;
+    justify-content: flex-start;
     gap: var(--space-3);
     width: 100%;
     padding: 10px var(--space-3);

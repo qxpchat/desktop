@@ -307,6 +307,7 @@
   .archive-row {
     display: flex;
     align-items: center;
+    justify-content: flex-start;
     gap: var(--space-3);
     width: 100%;
     padding: var(--space-3);
@@ -356,6 +357,7 @@
     display: flex;
     flex-direction: column;
     align-items: flex-start;
+    justify-content: flex-start;
     width: 100%;
     padding: var(--space-2) var(--space-3);
     text-align: left;

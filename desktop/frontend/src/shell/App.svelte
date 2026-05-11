@@ -268,8 +268,8 @@
   }
   .onboarding-back {
     position: fixed;
-    top: 16px;
-    left: 16px;
+    top: calc(var(--titlebar-gutter) + var(--space-2));
+    left: var(--space-3);
     padding: 8px 14px;
     border-radius: var(--radius-md);
     background: var(--color-bg-elevated);

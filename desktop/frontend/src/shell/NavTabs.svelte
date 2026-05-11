@@ -274,6 +274,7 @@
     background: transparent;
     color: var(--color-fg);
     text-align: left;
+    justify-content: flex-start;
     font-size: var(--text-sm);
   }
   .menu button:hover {

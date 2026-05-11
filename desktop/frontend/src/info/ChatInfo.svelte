@@ -389,6 +389,7 @@
   .row {
     display: flex;
     align-items: center;
+    justify-content: flex-start;
     gap: var(--space-3);
     padding: 8px 0;
     min-height: 48px;

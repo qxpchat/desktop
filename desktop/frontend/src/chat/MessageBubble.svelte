@@ -183,7 +183,7 @@
         {/if}
       </div>
     </div>
-    <ReactionsRow {message} showCount={showReactionCount} />
+    <ReactionsRow {message} showCount={showReactionCount} {mediaOnly} />
   </div>
   {#if message.error && message.state === MSG_STATE.OutFailed}
     <div class="error">{message.error}</div>
@@ -315,6 +315,7 @@
   .quote {
     display: flex;
     align-items: stretch;
+    justify-content: flex-start;
     gap: 6px;
     margin: -2px 0 6px;
     padding: 4px 6px 4px 0;

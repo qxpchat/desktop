@@ -169,6 +169,7 @@
   .action {
     display: flex;
     align-items: center;
+    justify-content: flex-start;
     gap: var(--space-3);
     width: 100%;
     padding: var(--space-3);

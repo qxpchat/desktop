@@ -68,8 +68,7 @@
       <Settings />
     {:else if mainRoute.route.kind === 'profileEditor'}
       <div class="profile-shell">
-        <div class="titlebar-gutter" data-tauri-drag-region></div>
-        <header class="profile-header">
+        <header class="profile-header" data-tauri-drag-region>
           <button class="back" onclick={() => mainRoute.route = { kind: 'chat' }} aria-label="Back">‹ Back</button>
           <h1>Profile</h1>
         </header>
@@ -111,6 +110,7 @@
   .title-btn {
     display: flex;
     align-items: center;
+    justify-content: flex-start;
     gap: var(--space-3);
     padding: 4px 8px 4px 4px;
     border-radius: var(--radius-md);
@@ -169,18 +169,13 @@
     flex-direction: column;
     min-height: 0;
   }
-  .profile-shell .titlebar-gutter {
-    height: var(--titlebar-gutter);
-    flex: 0 0 auto;
-  }
   .profile-header {
     display: flex;
     align-items: center;
     gap: var(--space-3);
-    padding: var(--space-3) var(--space-4);
+    padding: calc(var(--space-3) + var(--titlebar-gutter)) var(--space-4) var(--space-3);
     border-bottom: 1px solid var(--color-border);
     background: var(--color-bg-pane);
-    min-height: 56px;
   }
   .profile-header h1 {
     margin: 0;

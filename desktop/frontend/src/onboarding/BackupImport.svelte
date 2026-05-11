@@ -56,8 +56,7 @@
   }
 </script>
 
-<div class="titlebar-gutter" data-tauri-drag-region></div>
-<header class="topbar">
+<header class="topbar" data-tauri-drag-region>
   <button class="back" onclick={onBack}>‹ Back</button>
   <h1>Restore Backup</h1>
 </header>
@@ -103,15 +102,12 @@
 <ProgressOverlay />
 
 <style>
-  .titlebar-gutter {
-    height: var(--titlebar-gutter);
-  }
   .topbar {
-    height: 48px;
-    padding: 0 var(--space-3);
+    padding: calc(var(--titlebar-gutter)) var(--space-3) 0;
     display: flex;
     align-items: center;
     gap: var(--space-3);
+    min-height: 48px;
     background: var(--color-bg);
   }
   .back {

@@ -145,6 +145,7 @@
   .action {
     display: flex;
     align-items: center;
+    justify-content: flex-start;
     gap: 8px;
     padding: 6px 10px;
     border-radius: var(--radius-sm);

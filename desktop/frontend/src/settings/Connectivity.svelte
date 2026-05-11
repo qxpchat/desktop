@@ -567,11 +567,11 @@
     border-radius: var(--radius-sm);
     display: flex;
     flex-direction: column;
-    /* Cross-axis = horizontal here. The global button reset sets
-     * `align-items: center` (great for icon+text row buttons), but in a
-     * flex *column* button that pushes every child to the centre — which
-     * is exactly the relay-row content being centred. Override to start. */
+    /* In a flex column the global button reset's `align-items: center;
+     * justify-content: center` would centre the relay-row content along
+     * both axes — push to the top-left corner instead. */
     align-items: flex-start;
+    justify-content: flex-start;
     gap: 4px;
   }
   .relay-main:hover:not(:disabled) {
@@ -768,6 +768,7 @@
     color: var(--color-fg);
     font-weight: 500;
     text-align: left;
+    justify-content: flex-start;
   }
   .chooser button:hover {
     background: var(--color-bg-selected);
