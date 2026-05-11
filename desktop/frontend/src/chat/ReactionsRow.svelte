@@ -8,12 +8,9 @@
     /** When false the per-emoji count is hidden — useful in 1:1 chats where
      *  the count is always 1 and adds noise. */
     showCount?: boolean;
-    /** Bubble is media without a caption — chips can't overlap into the
-     *  bubble's bottom corner without covering the image, so sit below. */
-    mediaOnly?: boolean;
   };
 
-  let { message, showCount = true, mediaOnly = false }: Props = $props();
+  let { message, showCount = true }: Props = $props();
 
   type ReactionEntry = { emoji: string; count: number; isFromSelf: boolean };
   let reactions = $derived.by(() => {
@@ -25,7 +22,7 @@
 </script>
 
 {#if reactions.length > 0}
-  <div class="row" class:below={mediaOnly} role="group" aria-label={t('Reactions')}>
+  <div class="row" role="group" aria-label={t('Reactions')}>
     {#each reactions as r (r.emoji)}
       <button
         class="chip"
@@ -44,24 +41,22 @@
 {/if}
 
 <style>
+  /* Reactions render as a sibling of the bubble. The negative top margin
+   * pulls the chip up just enough to overlap the bubble's bottom rounded
+   * corner — visually "attached" without entering the bubble's content /
+   * meta band. Identical placement for every bubble type (text, media,
+   * media-only, jumbomoji). */
   .row {
     display: flex;
     flex-wrap: wrap;
     gap: 4px;
-    /* Tiny overlap into the bubble's bottom border-radius so the chip
-     * looks attached, not "hanging below". The previous full -12px
-     * overlap collided with the in-bubble timestamp on short messages;
-     * -2px sits inside the rounded corner zone only, well below the
-     * meta row's vertical position. */
-    margin-top: -8px;
-    margin-right: 6px;
-    margin-left: 6px;
-  }
-  .row.below {
-    /* Media-only bubbles have no rounded-corner safe zone (the image
-     * extends to the bubble edge), so chips can't overlap without
-     * covering the image — sit cleanly below instead. */
-    margin-top: 4px;
+    margin: -6px 8px 0;
+    /* `.bubble.media` is `position: relative`, which kicks it into the
+     * positioned-descendants paint phase that lands on top of static
+     * siblings — without our own stacking context the chip's overlap
+     * with the picture would be painted under it. */
+    position: relative;
+    z-index: 1;
   }
   .chip {
     display: inline-flex;

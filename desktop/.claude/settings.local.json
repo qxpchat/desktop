@@ -20,7 +20,9 @@
       "Bash(nix-shell --run \"cd frontend && npm run check 2>&1 | tail -10\")",
       "WebFetch(domain:js.jsonrpc.delta.chat)",
       "WebFetch(domain:rs.delta.chat)",
-      "Bash(nix-shell --run \"cd frontend && npm run check 2>&1 | tail -5\")"
+      "Bash(nix-shell --run \"cd frontend && npm run check 2>&1 | tail -5\")",
+      "Bash(grep -B1 -A5 \"\\\\.row,\\\\|\\\\.row {\\\\|\\\\.bubble {\\\\|\\\\.bubble.media\" /home/anon/qxp/desktop/frontend/src/chat/MessageBubble.svelte)",
+      "Bash(grep -A8 \"^\\\\s*\\\\.meta {\\\\|\\\\.meta,\" /home/anon/qxp/desktop/frontend/src/chat/MessageBubble.svelte)"
     ]
   }
 }

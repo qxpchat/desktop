@@ -238,7 +238,7 @@
         {/if}
       </div>
     </div>
-    <ReactionsRow {message} showCount={showReactionCount} {mediaOnly} />
+    <ReactionsRow {message} showCount={showReactionCount} />
   </div>
   {#if message.error && message.state === MSG_STATE.OutFailed}
     <div class="error">{message.error}</div>
