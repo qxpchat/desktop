@@ -89,7 +89,7 @@
             imagePath={profile.profileImage}
             size={40}
           />
-          {#if profile.freshCount > 0}
+          {#if profile.id !== selectedAccountId && profile.freshCount > 0}
             <span class="badge">{profile.freshCount > 99 ? '99+' : profile.freshCount}</span>
           {/if}
         </button>

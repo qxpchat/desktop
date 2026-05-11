@@ -2,7 +2,8 @@
 // Refreshed on:
 //   - boot (App.svelte calls refreshProfiles after refreshAccounts)
 //   - AccountsChanged / AccountsItemChanged events
-//   - IncomingMsg / MsgsChanged / MsgsNoticed (any) — to update fresh-msg counts
+//   - IncomingMsg / MsgsChanged / MsgsNoticed / ChatlistChanged /
+//     ChatlistItemChanged — to update fresh-msg counts
 
 import { rpc } from '../rpc';
 import { onEvent } from '../events';
@@ -18,6 +19,25 @@ export type Profile = {
 };
 
 export const profiles = $state<{ list: Profile[] }>({ list: [] });
+
+// freshCount mirrors the sum of per-row badges the user sees inside that
+// profile's chatlist (i.e. `freshMessageCounter` summed across entries).
+// `get_fresh_msgs` is the wrong source: it deliberately excludes contact
+// requests and muted chats, so a fresh DM from another profile landing as
+// an unaccepted request leaves the count at 0.
+async function computeFreshCount(accountId: number): Promise<number> {
+  const ids = await rpc.call<number[]>('get_chatlist_entries', [accountId, null, null, null]);
+  if (ids.length === 0) return 0;
+  const entries = await rpc.call<
+    Record<number, { kind?: string; freshMessageCounter?: number }>
+  >('get_chatlist_items_by_entries', [accountId, ids]);
+  let count = 0;
+  for (const id of ids) {
+    const e = entries[id];
+    if (e) count += e.freshMessageCounter ?? 0;
+  }
+  return count;
+}
 
 export async function refreshProfiles(ids: number[]): Promise<void> {
   const out: Profile[] = [];
@@ -41,8 +61,7 @@ export async function refreshProfiles(ids: number[]): Promise<void> {
       if (info.kind !== 'Configured') continue;
       let freshCount = 0;
       try {
-        const fresh = await rpc.call<number[]>('get_fresh_msgs', [id]);
-        freshCount = fresh.length;
+        freshCount = await computeFreshCount(id);
       } catch {
         /* skip */
       }
@@ -63,18 +82,29 @@ export async function refreshProfiles(ids: number[]): Promise<void> {
 }
 
 async function patchFresh(accountId: number) {
-  const idx = profiles.list.findIndex((p) => p.id === accountId);
-  if (idx < 0) return;
+  if (!profiles.list.some((p) => p.id === accountId)) return;
   try {
-    const fresh = await rpc.call<number[]>('get_fresh_msgs', [accountId]);
+    const freshCount = await computeFreshCount(accountId);
+    const idx = profiles.list.findIndex((p) => p.id === accountId);
+    if (idx < 0) return;
     const next = profiles.list.slice();
-    next[idx] = { ...next[idx], freshCount: fresh.length };
+    next[idx] = { ...next[idx], freshCount };
     profiles.list = next;
   } catch {
     /* skip */
   }
 }
 
+/** Recompute freshCount for every known profile. Used when the active
+ *  account changes — the just-deselected profile's count would otherwise
+ *  only re-tally on the next DC event for it. */
+export async function recomputeAllFreshCounts(): Promise<void> {
+  const ids = profiles.list.map((p) => p.id);
+  await Promise.all(ids.map((id) => patchFresh(id)));
+}
+
 onEvent('IncomingMsg', (ev) => void patchFresh(ev.contextId));
 onEvent('MsgsNoticed', (ev) => void patchFresh(ev.contextId));
 onEvent('MsgsChanged', (ev) => void patchFresh(ev.contextId));
+onEvent('ChatlistChanged', (ev) => void patchFresh(ev.contextId));
+onEvent('ChatlistItemChanged', (ev) => void patchFresh(ev.contextId));

@@ -8,7 +8,7 @@
   import { chatlist, setActiveAccount } from '../lib/state/chatlist.svelte';
   import { onboarding } from '../lib/state/onboarding.svelte';
   import { selection, selectChat } from '../lib/state/selection.svelte';
-  import { refreshProfiles, profiles } from '../lib/state/profiles.svelte';
+  import { refreshProfiles, recomputeAllFreshCounts, profiles } from '../lib/state/profiles.svelte';
   import { setMainRoute, mainRoute } from '../lib/state/mainRoute.svelte';
   import {
     startIncomingNotifications,
@@ -202,6 +202,10 @@
       await rpc.call('select_account', [id]);
       accounts.selectedId = id;
       setMainRoute({ kind: 'chat' });
+      // Recompute every profile's fresh count: opening the new active profile
+      // will notice messages (dropping its badge to 0), and the just-left
+      // profile might not get a DC event for some time.
+      void recomputeAllFreshCounts();
     } catch (err) {
       console.warn('select_account failed', err);
     }
