@@ -10,7 +10,7 @@
   } from '../lib/state/chat.svelte';
   import { accounts } from '../lib/state/accounts.svelte';
   import { rpc } from '../lib/rpc';
-  import { uploadBlob } from '../lib/files';
+  import { uploadBlob, viewtypeForFile } from '../lib/files';
   import { VoiceRecorder, pickMimeType, extensionForMime } from '../lib/audio/recorder';
   import AttachMenu from './AttachMenu.svelte';
   import ContactPickerModal from './ContactPickerModal.svelte';
@@ -134,18 +134,13 @@
 
   // ---------- attachments ----------
 
-  function viewtypeFor(file: File): MessageData['viewtype'] {
-    if (file.type.startsWith('audio/')) return 'Audio';
-    return 'File';
-  }
-
   async function pushFile(file: File): Promise<void> {
     const ext = (file.name.split('.').pop() ?? 'bin').toLowerCase();
     sending = true;
     try {
       const path = await uploadBlob(file, ext);
       const data: MessageData = {
-        viewtype: viewtypeFor(file),
+        viewtype: viewtypeForFile(file),
         file: path,
         filename: file.name,
         text: text || undefined,

@@ -42,3 +42,16 @@ export async function uploadBlob(blob: Blob, ext: string): Promise<string> {
   const { path } = (await res.json()) as { path: string };
   return path;
 }
+
+/** Pick the deltachat-core viewtype that best matches a file. Images, videos,
+ *  audio and GIFs get their own bubble treatments; everything else falls
+ *  through to a generic File cell. */
+export function viewtypeForFile(
+  file: File,
+): 'Image' | 'Video' | 'Gif' | 'Audio' | 'File' {
+  if (file.type === 'image/gif') return 'Gif';
+  if (file.type.startsWith('image/')) return 'Image';
+  if (file.type.startsWith('video/')) return 'Video';
+  if (file.type.startsWith('audio/')) return 'Audio';
+  return 'File';
+}

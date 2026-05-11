@@ -6,6 +6,7 @@
     chat,
     setActiveChat,
     markNoticed,
+    sendMessage,
     toggleReaction,
     deleteMessages,
     forwardMessages,
@@ -16,6 +17,7 @@
     CONTACT_ID_SELF,
     type Message,
   } from '../lib/state/chat.svelte';
+  import { uploadBlob, viewtypeForFile } from '../lib/files';
   import { chatlist } from '../lib/state/chatlist.svelte';
   import MessageBubble from './MessageBubble.svelte';
   import InfoMessage from './InfoMessage.svelte';
@@ -293,9 +295,74 @@
       el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
     });
   }
+
+  // -------- drag and drop --------
+  // Counter, not boolean — dragenter/dragleave fire as the cursor crosses
+  // child boundaries, so a plain flag would flicker on every nested element.
+  let dragDepth = $state(0);
+  let dragActive = $derived(dragDepth > 0);
+  let dropSending = $state(false);
+
+  function hasFiles(e: DragEvent): boolean {
+    return Array.from(e.dataTransfer?.types ?? []).includes('Files');
+  }
+  function onDragEnter(e: DragEvent) {
+    if (!hasFiles(e)) return;
+    e.preventDefault();
+    dragDepth += 1;
+  }
+  function onDragOver(e: DragEvent) {
+    if (!hasFiles(e)) return;
+    e.preventDefault();
+    if (e.dataTransfer) e.dataTransfer.dropEffect = 'copy';
+  }
+  function onDragLeave(e: DragEvent) {
+    if (!hasFiles(e)) return;
+    dragDepth = Math.max(0, dragDepth - 1);
+  }
+  async function onDrop(e: DragEvent) {
+    if (!hasFiles(e)) return;
+    e.preventDefault();
+    dragDepth = 0;
+    const files = Array.from(e.dataTransfer?.files ?? []);
+    if (files.length === 0) return;
+    dropSending = true;
+    try {
+      for (const file of files) {
+        const ext = (file.name.split('.').pop() ?? 'bin').toLowerCase();
+        const path = await uploadBlob(file, ext);
+        await sendMessage({
+          viewtype: viewtypeForFile(file),
+          file: path,
+          filename: file.name,
+        });
+      }
+    } catch (err) {
+      alert(`Send failed: ${err instanceof Error ? err.message : String(err)}`);
+    } finally {
+      dropSending = false;
+    }
+  }
 </script>
 
-<div class="chat-view">
+<div
+  class="chat-view"
+  role="region"
+  aria-label="Conversation"
+  ondragenter={onDragEnter}
+  ondragover={onDragOver}
+  ondragleave={onDragLeave}
+  ondrop={onDrop}
+>
+  {#if dragActive}
+    <div class="drop-overlay" role="presentation">
+      <div class="drop-card">
+        <div class="drop-icon" aria-hidden="true">⤓</div>
+        <div class="drop-title">{dropSending ? 'Sending…' : 'Drop to send'}</div>
+        <div class="drop-hint">Files attach as image, video, audio, or document.</div>
+      </div>
+    </div>
+  {/if}
   <InChatSearch
     {accountId}
     {chatId}
@@ -399,6 +466,42 @@
     flex-direction: column;
     min-height: 0;
     overflow: hidden;
+  }
+  .drop-overlay {
+    position: absolute;
+    inset: var(--space-3);
+    z-index: 50;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: color-mix(in srgb, var(--color-accent) 14%, transparent);
+    backdrop-filter: blur(4px);
+    pointer-events: none;
+    border: 2px dashed var(--color-accent);
+    border-radius: var(--radius-lg);
+  }
+  .drop-card {
+    background: var(--color-bg-elevated);
+    border-radius: var(--radius-lg);
+    padding: var(--space-5) var(--space-6);
+    box-shadow: 0 16px 48px var(--color-shadow);
+    text-align: center;
+    max-width: 360px;
+  }
+  .drop-icon {
+    font-size: 48px;
+    line-height: 1;
+    margin-bottom: var(--space-3);
+    color: var(--color-accent);
+  }
+  .drop-title {
+    font-size: var(--text-lg);
+    font-weight: 600;
+    margin-bottom: var(--space-2);
+  }
+  .drop-hint {
+    color: var(--color-fg-secondary);
+    font-size: var(--text-sm);
   }
   .scroll-area {
     position: relative;

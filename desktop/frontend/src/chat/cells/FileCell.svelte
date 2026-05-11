@@ -1,6 +1,7 @@
 <script lang="ts">
   import type { Message } from '../../lib/state/chat.svelte';
   import { fileUrl, formatBytes } from '../../lib/files';
+  import Icon from '../../lib/Icon.svelte';
 
   type Props = {
     message: Message;
@@ -10,16 +11,16 @@
 
   let url = $derived(fileUrl(message.file ?? undefined));
   let displayName = $derived(message.fileName ?? 'file');
-  let extension = $derived(displayName.split('.').pop()?.toUpperCase() ?? '?');
 </script>
 
 <a class="file" href={url ?? '#'} download={displayName} target="_blank" rel="noopener">
-  <span class="icon" aria-hidden="true">{extension.slice(0, 4)}</span>
+  <span class="action" aria-hidden="true">
+    <Icon name="download" size={16} stroke={2} />
+  </span>
   <span class="meta">
     <span class="name">{displayName}</span>
     <span class="size">{formatBytes(message.fileBytes)}</span>
   </span>
-  <span class="dl" aria-hidden="true">↓</span>
 </a>
 {#if message.text}
   <div class="caption">{message.text}</div>
@@ -29,7 +30,7 @@
   .file {
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: 8px;
     padding: 8px;
     background: var(--color-bg-hover);
     border-radius: 12px;
@@ -40,18 +41,17 @@
   .file:hover {
     background: var(--color-border);
   }
-  .icon {
-    width: 40px;
-    height: 40px;
-    border-radius: 8px;
-    background: var(--color-bg-elevated);
-    color: var(--color-fg-secondary);
+  /* Mirrors `.play` in VoiceCell — circular accent puck so the affordance
+   * for "tap to start" reads the same whether it's playback or download. */
+  .action {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: var(--color-accent);
+    color: var(--color-accent-fg);
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 11px;
-    font-weight: 700;
-    letter-spacing: 0.04em;
     flex: 0 0 auto;
   }
   .meta {
@@ -70,11 +70,6 @@
   .size {
     font-size: var(--text-xs);
     color: var(--color-fg-tertiary);
-  }
-  .dl {
-    color: var(--color-accent);
-    font-weight: 700;
-    flex: 0 0 auto;
   }
   .caption {
     margin-top: 6px;
