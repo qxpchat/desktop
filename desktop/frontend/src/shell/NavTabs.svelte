@@ -28,7 +28,10 @@
   let proxyEnabled = $state(false);
 
   async function refreshProxyState() {
-    if (accounts.selectedId == null) return;
+    if (accounts.selectedId == null) {
+      proxyEnabled = false;
+      return;
+    }
     try {
       const v = await rpc.call<string | null>('get_config', [accounts.selectedId, 'proxy_enabled']);
       proxyEnabled = v === '1';
@@ -37,6 +40,14 @@
     }
   }
   onMount(refreshProxyState);
+  // Switching profiles changes which account's `proxy_enabled` we mirror.
+  // The previous account's value would otherwise linger until the next
+  // ConnectivityChanged event fires (which it might never, if both profiles
+  // are idle).
+  $effect(() => {
+    void accounts.selectedId;
+    void refreshProxyState();
+  });
   onEvent('ConnectivityChanged', () => void refreshProxyState());
 
   function rightClick(e: MouseEvent, id: number) {

@@ -10,13 +10,22 @@ export type Prefs = {
   pane2Width: number;
   pane1Collapsed: boolean;
   theme: Theme;
+  /** Global fallback accent used when no per-profile override exists.
+   *  Kept as a top-level field rather than a constant so an older single-
+   *  account save still round-trips through `load`/`savePrefs`. */
   accent: string;
+  /** Per-account accent override. The picker in Settings → Appearance writes
+   *  here keyed by `accounts.selectedId`; everything else reads via
+   *  `getAccent(id)` which falls back to `accent`. */
+  accentByAccount: Record<number, string>;
   /** Multiplier on the `--text-*` tokens. 1.0 = default; the picker in
    *  Settings → Appearance offers Small / Default / Large / X-Large. */
   textScale: number;
   /** Locale override; null = follow browser. */
   language: string | null;
 };
+
+export const DEFAULT_ACCENT = '#22ccaa';
 
 const DEFAULTS: Prefs = {
   pane2Width: 320,
@@ -25,7 +34,8 @@ const DEFAULTS: Prefs = {
   // chat list without reflowing it.
   pane1Collapsed: true,
   theme: 'system',
-  accent: '#22ccaa',
+  accent: DEFAULT_ACCENT,
+  accentByAccount: {},
   textScale: 1,
   language: null,
 };
@@ -43,6 +53,27 @@ function load(): Prefs {
 }
 
 export const prefs = $state<Prefs>(load());
+
+/** Active accent for the given account — per-profile override if the user
+ *  has picked one, otherwise the global fallback. `null` (no account
+ *  selected, e.g. onboarding or boot screen) yields the global fallback. */
+export function getAccent(accountId: number | null): string {
+  if (accountId == null) return prefs.accent;
+  return prefs.accentByAccount[accountId] ?? prefs.accent;
+}
+
+/** Persist a per-profile accent. The first time any account sets a value,
+ *  the global fallback also tracks it so the next *new* account inherits a
+ *  sensible default instead of snapping back to teal. */
+export function setAccent(accountId: number | null, color: string): void {
+  if (accountId == null) {
+    prefs.accent = color;
+  } else {
+    prefs.accentByAccount[accountId] = color;
+    prefs.accent = color;
+  }
+  savePrefs();
+}
 
 export function savePrefs(): void {
   if (typeof localStorage === 'undefined') return;

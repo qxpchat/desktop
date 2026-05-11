@@ -1,6 +1,12 @@
 <script lang="ts">
-  import { prefs, savePrefs, type Theme } from '../lib/prefs.svelte';
+  import { prefs, savePrefs, getAccent, setAccent, type Theme } from '../lib/prefs.svelte';
+  import { accounts } from '../lib/state/accounts.svelte';
   import { t } from '../lib/i18n/i18n.svelte';
+
+  // Accent is a per-profile setting — the picker reads + writes the
+  // override for the currently-active account. Theme / text-size remain
+  // app-wide.
+  let activeAccent = $derived(getAccent(accounts.selectedId));
 
   const THEMES: Theme[] = ['system', 'light', 'dark'];
 
@@ -81,9 +87,8 @@
     savePrefs();
   }
 
-  function setAccent(c: string) {
-    prefs.accent = c;
-    savePrefs();
+  function pickAccent(c: string) {
+    setAccent(accounts.selectedId, c);
   }
 
   const TEXT_SIZES = $derived([
@@ -129,9 +134,9 @@
     {#each swatches as s (s.value + s.label)}
       <button
         class="swatch"
-        class:active={prefs.accent.toLowerCase() === s.value.toLowerCase()}
+        class:active={activeAccent.toLowerCase() === s.value.toLowerCase()}
         style:background={s.value}
-        onclick={() => setAccent(s.value)}
+        onclick={() => pickAccent(s.value)}
         aria-label={s.label}
         title={s.label}
       ></button>
