@@ -83,6 +83,18 @@
         }
         startEventLoop();
         startLogCapture();
+        // Onboarding flows call `start_io` for the account they just
+        // configured, but nothing kicks the scheduler for accounts that
+        // were already configured on a prior session — so a freshly-opened
+        // app sat idle with IMAP off. `start_io_for_all_accounts` is the
+        // bulk variant; safe to re-call (no-op if already running) and
+        // also catches daemon reconnects since this whole block re-runs
+        // on every `'connected'` transition.
+        try {
+          await rpc.call('start_io_for_all_accounts');
+        } catch (err) {
+          console.warn('start_io_for_all_accounts failed', err);
+        }
         startIncomingNotifications();
         // Ask once for browser-notification permission after onboarding.
         if (accounts.configuredIds.length > 0 && !hasAskedPermission()) {
