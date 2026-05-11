@@ -250,6 +250,10 @@
     open={findOpen}
     onClose={() => (findOpen = false)}
   />
+  <!-- Wrapper so the floating ScrollToLatest button positions relative to
+       the bottom of the message list — not the bottom of the whole
+       chat-view, which would put it on top of the composer. -->
+  <div class="scroll-area">
   <div
     class="scroll"
     class:scrolling
@@ -292,11 +296,12 @@
     {/if}
   </div>
 
-  <ScrollToLatest
-    visible={!atBottom}
-    count={newSinceScroll}
-    onClick={() => void scrollToBottom()}
-  />
+    <ScrollToLatest
+      visible={!atBottom}
+      count={newSinceScroll}
+      onClick={() => void scrollToBottom()}
+    />
+  </div>
 
   <Composer />
 </div>
@@ -339,6 +344,13 @@
     flex-direction: column;
     min-height: 0;
     overflow: hidden;
+  }
+  .scroll-area {
+    position: relative;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
   }
   .scroll {
     flex: 1;

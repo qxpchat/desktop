@@ -364,8 +364,7 @@
   .composer-stack {
     display: flex;
     flex-direction: column;
-    border-top: 1px solid var(--color-border);
-    background: var(--color-bg-pane);
+    background: var(--color-bg);
   }
   .composer {
     position: relative;
@@ -395,8 +394,8 @@
     max-height: 176px;
     padding: 8px 12px;
     border-radius: 18px;
-    border: 1px solid var(--color-border);
-    background: var(--color-bg);
+    border: none;
+    background: var(--color-bg-pane);
     color: var(--color-fg);
     font-family: inherit;
     font-size: var(--text-md);
@@ -412,7 +411,8 @@
     display: none;
   }
   textarea:focus {
-    border-color: var(--color-accent);
+    outline: 1px solid var(--color-accent);
+    outline-offset: -1px;
   }
   textarea:disabled {
     opacity: 0.6;

@@ -147,7 +147,7 @@
     border-radius: var(--radius-md);
     background: var(--color-bg);
     color: var(--color-fg-secondary);
-    font-family: ui-monospace, monospace;
+    font-family: var(--font-mono);
     font-size: var(--text-xs);
     word-break: break-all;
     text-align: center;

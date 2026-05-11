@@ -471,7 +471,7 @@
     border: 1px solid var(--color-border);
     background: var(--color-bg);
     color: var(--color-fg);
-    font-family: ui-monospace, monospace;
+    font-family: var(--font-mono);
     font-size: var(--text-sm);
   }
   .dialog input:focus {

@@ -1,8 +1,8 @@
 <script lang="ts">
   import type { ChatListItem } from '../lib/state/chatlist.svelte';
   import { formatRelativeTimestamp } from '../lib/format/timestamp';
-  import { fileUrl } from '../lib/files';
   import { MSG_STATE } from '../lib/state/chat.svelte';
+  import Avatar from '../lib/Avatar.svelte';
   import Icon, { type IconName } from '../lib/Icon.svelte';
 
   type Props = {
@@ -15,7 +15,6 @@
   let { chat, selected, narrow, onSelect }: Props = $props();
 
   let displayName = $derived(chat.name.length > 0 ? chat.name : '(no name)');
-  let initial = $derived(displayName[0]?.toUpperCase() ?? '?');
   let timestamp = $derived(formatRelativeTimestamp(chat.lastUpdated));
 
   let preview = $derived(
@@ -58,13 +57,12 @@
   aria-label={displayName}
   aria-pressed={selected}
 >
-  <span class="avatar" style:background={chat.color} aria-hidden="true">
-    {#if chat.avatarPath}
-      <img src={fileUrl(chat.avatarPath)} alt="" />
-    {:else}
-      {initial}
-    {/if}
-  </span>
+  <Avatar
+    name={displayName}
+    color={chat.color}
+    imagePath={chat.avatarPath}
+    size={40}
+  />
 
   {#if !narrow}
     <span class="meta">
@@ -122,23 +120,6 @@
   .row.muted .name {
     color: var(--color-fg-secondary);
   }
-  .avatar {
-    flex: 0 0 auto;
-    width: 40px;
-    height: 40px;
-    border-radius: 50%;
-    color: white;
-    font-weight: 600;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    overflow: hidden;
-  }
-  .avatar img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-  }
   .meta {
     flex: 1;
     min-width: 0;
@@ -161,6 +142,7 @@
   }
   .name {
     font-weight: 600;
+    font-size: var(--text-lg);
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -182,7 +164,7 @@
     color: var(--color-accent);
   }
   .preview {
-    font-size: var(--text-sm);
+    font-size: var(--text-md);
     color: var(--color-fg-secondary);
     flex: 1;
     min-width: 0;

@@ -1,7 +1,7 @@
 <script lang="ts">
   import { profiles } from '../lib/state/profiles.svelte';
   import { setMainRoute, mainRoute } from '../lib/state/mainRoute.svelte';
-  import { fileUrl } from '../lib/files';
+  import Avatar from '../lib/Avatar.svelte';
   import ConnectionIndicator from './ConnectionIndicator.svelte';
   import Icon from '../lib/Icon.svelte';
 
@@ -45,30 +45,32 @@
     onRemoveAccount(id);
   }
 
-  function initial(name: string): string {
-    return name[0]?.toUpperCase() ?? '?';
-  }
 </script>
 
 <aside class="nav" aria-label="Profiles">
+  <!-- macOS title bar is `Overlay` + `hiddenTitle`, so the system
+       traffic-lights float over this strip. It also serves as the window
+       drag handle — wry treats mouse events on `data-tauri-drag-region`
+       elements as a window drag. Keep it empty of interactive children. -->
+  <div class="titlebar-gutter" data-tauri-drag-region></div>
   <div class="accounts">
     {#each profiles.list as profile (profile.id)}
       <div class="tile-wrap">
         <button
           class="tile"
           class:selected={profile.id === selectedAccountId}
-          style:--tile-color={profile.color}
           title={profile.displayName}
           aria-label={profile.displayName}
           aria-pressed={profile.id === selectedAccountId}
           onclick={() => onSelect(profile.id)}
           oncontextmenu={(e) => rightClick(e, profile.id)}
         >
-          {#if profile.profileImage}
-            <img class="avatar img" src={fileUrl(profile.profileImage)} alt="" />
-          {:else}
-            <span class="avatar">{initial(profile.displayName)}</span>
-          {/if}
+          <Avatar
+            name={profile.displayName}
+            color={profile.color}
+            imagePath={profile.profileImage}
+            size={40}
+          />
           {#if profile.freshCount > 0}
             <span class="badge">{profile.freshCount > 99 ? '99+' : profile.freshCount}</span>
           {/if}
@@ -85,7 +87,7 @@
     {/each}
 
     <button class="tile add" title="Add account" aria-label="Add account" onclick={onAddAccount}>
-      <span class="avatar add-avatar"><Icon name="plus" size={18} /></span>
+      <span class="add-avatar"><Icon name="plus" size={18} /></span>
     </button>
   </div>
 
@@ -126,10 +128,16 @@
     flex-direction: column;
     width: var(--pane1-width);
     flex: 0 0 var(--pane1-width);
-    background: var(--color-bg);
+    background: var(--color-bg-pane);
     border-right: 1px solid var(--color-border);
-    padding: var(--space-3) 0;
+    padding-bottom: var(--space-3);
     overflow: hidden;
+  }
+  .titlebar-gutter {
+    flex: 0 0 auto;
+    height: var(--titlebar-gutter);
+    /* Empty by design — the macOS traffic-lights overlay it, and the rest
+       of the strip is the drag handle. */
   }
   .accounts {
     display: flex;
@@ -169,28 +177,16 @@
     background: var(--color-accent);
     border-radius: 2px;
   }
-  .avatar {
+  .add-avatar {
     width: 40px;
     height: 40px;
-    border-radius: var(--radius-md);
-    background: var(--tile-color);
-    color: white;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-weight: 600;
-    font-size: var(--text-lg);
-    object-fit: cover;
-  }
-  .avatar.img {
-    background: var(--color-bg-hover);
-  }
-  .add-avatar {
+    border-radius: 8px;
     background: transparent;
     color: var(--color-fg-secondary);
     border: 1px dashed var(--color-border-strong);
-    font-size: 22px;
-    font-weight: 400;
+    display: flex;
+    align-items: center;
+    justify-content: center;
   }
   .add:hover .add-avatar {
     color: var(--color-accent);

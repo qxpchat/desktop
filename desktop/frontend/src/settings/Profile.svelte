@@ -2,8 +2,8 @@
   import { onMount } from 'svelte';
   import { rpc } from '../lib/rpc';
   import { accounts } from '../lib/state/accounts.svelte';
-  import { refreshProfiles } from '../lib/state/profiles.svelte';
-  import { fileUrl } from '../lib/files';
+  import { refreshProfiles, profiles } from '../lib/state/profiles.svelte';
+  import Avatar from '../lib/Avatar.svelte';
 
   let displayName = $state('');
   let signature = $state('');
@@ -54,13 +54,13 @@
   <p class="muted">Loading…</p>
 {:else}
   <div class="row">
-    <span class="avatar">
-      {#if avatarPath}
-        <img src={fileUrl(avatarPath)} alt="Profile avatar" />
-      {:else}
-        {(displayName[0] ?? '?').toUpperCase()}
-      {/if}
-    </span>
+    <Avatar
+      name={displayName}
+      color={profiles.list.find((p) => p.id === accounts.selectedId)?.color ?? 'var(--color-accent)'}
+      imagePath={avatarPath}
+      size={64}
+      alt="Profile avatar"
+    />
   </div>
 
   <label class="field">
@@ -93,23 +93,6 @@
     align-items: center;
     gap: var(--space-3);
     margin-bottom: var(--space-4);
-  }
-  .avatar {
-    width: 64px;
-    height: 64px;
-    border-radius: 50%;
-    background: var(--color-bg-hover);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 24px;
-    font-weight: 600;
-    overflow: hidden;
-  }
-  .avatar img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
   }
   .field {
     display: block;

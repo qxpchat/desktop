@@ -8,13 +8,21 @@
   --space-6: 32px;
 
   /* Layout */
-  --pane1-width: 64px;
+  /* pane1 must be ≥ the macOS traffic-light cluster so the system controls
+     don't spill across the right-border into pane2 (no app title bar — the
+     window is borderless on top). 80px ≈ 20px left margin + 3×12px buttons + 2×8px gaps + a few px buffer. */
+  --pane1-width: 80px;
+  /* Empty strip above the leftmost-pane content that doubles as the window
+     drag handle (macOS traffic-lights overlay it via `titleBarStyle: Overlay`). */
+  --titlebar-gutter: 36px;
   --pane2-min: 56px;
   --pane2-max: 520px;
   --pane2-default: 320px;
   --pane2-narrow-threshold: 80px;
 
   /* Type */
+  --font-sans: system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, monospace;
   --text-xs: 11px;
   --text-sm: 12px;
   --text-md: 14px;

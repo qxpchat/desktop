@@ -67,6 +67,13 @@
 </script>
 
 <aside class="pane" style:width="{width}px" aria-label="Chat list">
+  {#if showExpandPane1}
+    <!-- pane1 (profile rail) is collapsed, so the chat list is now the
+         leftmost pane and inherits the responsibility for hosting the
+         macOS title-bar overlay. Same height as NavTabs's gutter so the
+         search-bar / expand button line up with the topmost profile pic. -->
+    <div class="titlebar-gutter" data-tauri-drag-region></div>
+  {/if}
   {#if paneMode.mode.kind === 'inbox' || paneMode.mode.kind === 'archive'}
     {@const archive = paneMode.mode.kind === 'archive'}
     <header class="header" class:narrow>
@@ -169,6 +176,10 @@
     overflow: hidden;
     min-width: var(--pane2-min);
     flex: 0 0 auto;
+  }
+  .titlebar-gutter {
+    flex: 0 0 auto;
+    height: var(--titlebar-gutter);
   }
   .header {
     display: flex;

@@ -204,7 +204,7 @@
     color: var(--color-fg-secondary);
   }
   .card code {
-    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-family: var(--font-mono);
     font-size: 0.95em;
   }
   .card textarea {
@@ -216,7 +216,7 @@
     border: 1px solid var(--color-border);
     background: var(--color-bg);
     color: var(--color-fg);
-    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-family: var(--font-mono);
     font-size: var(--text-sm);
     resize: vertical;
     min-height: 72px;

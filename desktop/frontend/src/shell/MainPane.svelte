@@ -10,7 +10,7 @@
   import ChatInfo from '../info/ChatInfo.svelte';
   import MediaBrowser from '../info/MediaBrowser.svelte';
   import { setMainRoute } from '../lib/state/mainRoute.svelte';
-  import { fileUrl } from '../lib/files';
+  import Avatar from '../lib/Avatar.svelte';
 
   type Props = {
     selectedChatId: number | null;
@@ -41,13 +41,12 @@
   {#if showChatTopBar && chat}
     <header class="topbar">
       <button class="title-btn" onclick={() => setMainRoute({ kind: 'chatInfo', chatId: chat.id })}>
-        <span class="avatar" style:background={chat.color}>
-          {#if chat.avatarPath}
-            <img src={fileUrl(chat.avatarPath)} alt="" />
-          {:else}
-            {(chat.name[0] ?? '?').toUpperCase()}
-          {/if}
-        </span>
+        <Avatar
+          name={chat.name || '?'}
+          color={chat.color}
+          imagePath={chat.avatarPath}
+          size={36}
+        />
         <div class="titles">
           <span class="chat-title">{chat.name || '(no name)'}</span>
           <span class="chat-status">{chatSubtitle}</span>
@@ -104,8 +103,7 @@
     align-items: center;
     gap: var(--space-3);
     padding: var(--space-3) var(--space-4);
-    border-bottom: 1px solid var(--color-border);
-    background: var(--color-bg-pane);
+    background: var(--color-bg);
     min-height: 56px;
     flex: 0 0 auto;
   }
@@ -121,23 +119,6 @@
   }
   .title-btn:hover {
     background: var(--color-bg-hover);
-  }
-  .avatar {
-    width: 36px;
-    height: 36px;
-    border-radius: 50%;
-    color: white;
-    font-weight: 600;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex: 0 0 auto;
-    overflow: hidden;
-  }
-  .avatar img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
   }
   .titles {
     display: flex;

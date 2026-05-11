@@ -244,7 +244,7 @@
   .header {
     margin: 0;
     padding: var(--space-3);
-    font-family: ui-monospace, monospace;
+    font-family: var(--font-mono);
     font-size: var(--text-xs);
     color: var(--color-fg-secondary);
     white-space: pre-wrap;
@@ -257,7 +257,7 @@
     max-height: 60vh;
     overflow-y: auto;
     padding: 4px 0;
-    font-family: ui-monospace, monospace;
+    font-family: var(--font-mono);
     font-size: var(--text-xs);
     user-select: text;
   }
@@ -265,7 +265,7 @@
     margin: 0;
     padding: var(--space-3);
     color: var(--color-fg-tertiary);
-    font-family: var(--font-sans, sans-serif);
+    font-family: var(--font-sans);
   }
   .entry {
     display: grid;
