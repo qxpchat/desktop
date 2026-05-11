@@ -25,7 +25,6 @@
   let proxies = $state<string[]>([]);
   let hosts = $state<Record<string, string>>({});
   let connectivity = $state(0);
-  let loaded = $state(false);
   let busy = $state(false);
   let errorMsg = $state<string | null>(null);
 
@@ -51,8 +50,6 @@
       await resolveHosts();
     } catch (err) {
       errorMsg = err instanceof Error ? err.message : String(err);
-    } finally {
-      loaded = true;
     }
   }
 

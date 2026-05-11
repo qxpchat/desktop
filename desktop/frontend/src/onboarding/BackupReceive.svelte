@@ -104,7 +104,6 @@
         rows="3"
         spellcheck="false"
         autocapitalize="off"
-        autocorrect="off"
       ></textarea>
       <div class="actions">
         <button onclick={cancelPaste}>{t('Cancel')}</button>

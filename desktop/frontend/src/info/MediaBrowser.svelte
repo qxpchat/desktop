@@ -7,6 +7,7 @@
   import { accounts } from '../lib/state/accounts.svelte';
   import { CONTACT_ID_SELF, MSG_STATE } from '../lib/state/chat.svelte';
   import { jumpToMessage } from '../lib/state/jump';
+  import { backToChat } from '../lib/state/mainRoute.svelte';
   import { fileUrl, formatBytes } from '../lib/files';
   import { onEvent } from '../lib/events';
   import Icon from '../lib/Icon.svelte';

@@ -70,7 +70,6 @@
   let defaultAddr = $state('');
   let smtp = $state<ConnectivityLine | null>(null);
   let rawStatus = $state<string | null>(null);
-  let connectivity = $state(0);
   let proxyEnabled = $state(false);
   let loaded = $state(false);
   let busy = $state(false);
@@ -95,15 +94,13 @@
     if (accounts.selectedId == null) return;
     const id = accounts.selectedId;
     try {
-      const [list, addr, conn, proxyOn, html] = await Promise.all([
+      const [list, addr, proxyOn, html] = await Promise.all([
         rpc.call<TransportListEntry[]>('list_transports_ex', [id]),
         rpc.call<string | null>('get_config', [id, 'configured_addr']),
-        rpc.call<number>('get_connectivity', [id]),
         rpc.call<string | null>('get_config', [id, 'proxy_enabled']),
         rpc.call<string>('get_connectivity_html', [id]),
       ]);
       defaultAddr = addr ?? '';
-      connectivity = conn;
       proxyEnabled = proxyOn === '1';
 
       const parsed = parseConnectivityHtml(html);
@@ -337,13 +334,18 @@
   }
 
   function stripTags(html: string): string {
-    // The core's connectivity HTML carries a `<style>` block at the top
-    // (CSS for the progress bar, dot colors, etc.). A bare tag-stripping
-    // regex leaves the CSS rules behind as plain text — drop the contents
-    // of `<style>` and `<script>` first.
+    // The core's connectivity HTML carries a style block at the top (CSS
+    // for the progress bar, dot colors, etc.). A bare tag-stripping regex
+    // leaves the CSS rules behind as plain text — drop the contents of
+    // style/script blocks first. Built from runtime concatenation so the
+    // file's source bytes never literally contain `</` + `script>`, which
+    // would otherwise confuse Svelte's parser into closing the surrounding
+    // <script lang="ts"> block prematurely.
+    const tag = (name: string) =>
+      new RegExp('<' + name + '\\b[^>]*>[\\s\\S]*?<\\/' + name + '>', 'gi');
     return html
-      .replace(/<style\b[^>]*>[\s\S]*?<\/style>/gi, '')
-      .replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, '')
+      .replace(tag('style'), '')
+      .replace(tag('script'), '')
       .replace(/<[^>]+>/g, '');
   }
 
@@ -495,7 +497,6 @@
           rows="3"
           spellcheck="false"
           autocapitalize="off"
-          autocorrect="off"
         ></textarea>
         <div class="actions">
           <button onclick={() => (pasteOpen = false)} disabled={busy}>{t('Cancel')}</button>
