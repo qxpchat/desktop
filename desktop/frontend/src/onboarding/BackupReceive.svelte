@@ -203,10 +203,6 @@
     margin: 0 0 var(--space-4) 0;
     color: var(--color-fg-secondary);
   }
-  .card code {
-    font-family: var(--font-mono);
-    font-size: 0.95em;
-  }
   .card textarea {
     width: 100%;
     box-sizing: border-box;

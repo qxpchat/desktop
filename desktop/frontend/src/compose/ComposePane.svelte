@@ -164,8 +164,13 @@
     outline: none;
   }
   .actions {
+    display: block;
     border-bottom: 1px solid var(--color-border);
     flex: 0 0 auto;
+  }
+  .actions li {
+    display: block;
+    width: 100%;
   }
   .action {
     display: flex;

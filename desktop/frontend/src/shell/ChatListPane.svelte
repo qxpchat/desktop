@@ -31,9 +31,20 @@
     /** True when the profile rail (NavTabs) is currently visible. */
     railOpen: boolean;
     onToggleRail: () => void;
+    /** Pop the pane out of narrow (pfp-only) mode. Used by the new-chat
+     *  pen-icon in narrow mode so the user can actually see the contact
+     *  picker that opens. */
+    onUncollapse?: () => void;
   };
 
-  let { width, selectedChatId, onSelectChat, railOpen, onToggleRail }: Props = $props();
+  let {
+    width,
+    selectedChatId,
+    onSelectChat,
+    railOpen,
+    onToggleRail,
+    onUncollapse,
+  }: Props = $props();
 
   let narrow = $derived(width < 80);
 
@@ -62,6 +73,9 @@
   let isFiltered = $derived(chatlist.query.trim().length > 0);
 
   function openCompose() {
+    // Starting a new conversation needs the contact picker, which is
+    // unusable at narrow (pfp-only) width — pop the pane out first.
+    if (narrow) onUncollapse?.();
     setPaneMode({ kind: 'compose' });
   }
 
@@ -141,15 +155,15 @@
             aria-label={t('Search chats')}
             bind:value={search}
           />
-          <button
-            class="compose"
-            title={t('New conversation')}
-            aria-label={t('New conversation')}
-            onclick={openCompose}
-          >
-            <Icon name="pencil" size={16} />
-          </button>
         {/if}
+        <button
+          class="compose"
+          title={t('New conversation')}
+          aria-label={t('New conversation')}
+          onclick={openCompose}
+        >
+          <Icon name="pencil" size={16} />
+        </button>
       {/if}
     </header>
 
@@ -241,8 +255,13 @@
     min-height: 56px;
   }
   .header.narrow {
-    justify-content: center;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    gap: var(--space-2);
     padding: var(--space-2);
+    /* Cancel the row-mode min-height so the column stack hugs the buttons. */
+    min-height: 0;
   }
   .expand,
   .burger {

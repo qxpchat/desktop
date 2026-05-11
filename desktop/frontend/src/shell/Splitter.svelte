@@ -2,42 +2,49 @@
   import { t } from '../lib/i18n/i18n.svelte';
 
   type Props = {
-    onMove: (deltaX: number) => void;
+    /** Fires on pointer-down. Parent snapshots the current pane width. */
+    onStart?: () => void;
+    /** Cumulative delta from `onStart`, in CSS pixels. Always relative to
+     *  the drag's origin, never to the previous frame — so snap zones can
+     *  decide based on intent without needing to track residual drag in
+     *  the parent. */
+    onMove: (totalDx: number) => void;
+    onEnd?: () => void;
   };
 
-  let { onMove }: Props = $props();
+  let { onStart, onMove, onEnd }: Props = $props();
 
   let dragging = $state(false);
-  let startX = 0;
+  let originX = 0;
 
   function down(e: PointerEvent) {
     dragging = true;
-    startX = e.clientX;
+    originX = e.clientX;
     (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+    onStart?.();
     e.preventDefault();
   }
 
   function move(e: PointerEvent) {
     if (!dragging) return;
-    const dx = e.clientX - startX;
-    if (dx === 0) return;
-    onMove(dx);
-    startX = e.clientX;
+    onMove(e.clientX - originX);
   }
 
   function up(e: PointerEvent) {
     if (!dragging) return;
     dragging = false;
     (e.currentTarget as HTMLElement).releasePointerCapture(e.pointerId);
+    onEnd?.();
   }
 
+  // Keyboard nudge: fire start/move/end together so the parent treats it
+  // as a complete drag and re-snapshots its origin width.
   function keydown(e: KeyboardEvent) {
-    if (e.key === 'ArrowLeft') {
+    if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
       e.preventDefault();
-      onMove(-16);
-    } else if (e.key === 'ArrowRight') {
-      e.preventDefault();
-      onMove(16);
+      onStart?.();
+      onMove(e.key === 'ArrowLeft' ? -16 : 16);
+      onEnd?.();
     }
   }
 </script>

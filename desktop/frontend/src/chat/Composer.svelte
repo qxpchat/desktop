@@ -6,6 +6,7 @@
     chat,
     setReplyTo,
     setEditing,
+    CONTACT_ID_SELF,
     type MessageData,
   } from '../lib/state/chat.svelte';
   import { accounts } from '../lib/state/accounts.svelte';
@@ -118,7 +119,60 @@
     if (e.key === 'Enter' && !e.shiftKey && !e.altKey && !e.isComposing) {
       e.preventDefault();
       void send();
+      return;
     }
+    // Escape cancels the active edit (and clears the pre-filled body) or
+    // active reply target. Falls through to the global Escape handler when
+    // there's nothing composer-local to clear.
+    if (e.key === 'Escape' && !e.isComposing) {
+      if (chat.editingId != null) {
+        e.preventDefault();
+        e.stopPropagation();
+        setEditing(null);
+        text = '';
+        return;
+      }
+      if (chat.replyToId != null) {
+        e.preventDefault();
+        e.stopPropagation();
+        setReplyTo(null);
+        return;
+      }
+    }
+    // Bare ArrowUp on an empty composer = recall the user's last own text
+    // message into the edit slot (WhatsApp/iMessage shortcut). If the
+    // composer already has text, let the textarea handle the key normally
+    // so cursor navigation isn't hijacked.
+    if (
+      e.key === 'ArrowUp' &&
+      !e.shiftKey &&
+      !e.altKey &&
+      !e.metaKey &&
+      !e.ctrlKey &&
+      !e.isComposing &&
+      text.length === 0 &&
+      chat.editingId == null &&
+      chat.replyToId == null
+    ) {
+      const lastOwnId = findLastOwnEditableMessage();
+      if (lastOwnId != null) {
+        e.preventDefault();
+        setEditing(lastOwnId);
+      }
+    }
+  }
+
+  function findLastOwnEditableMessage(): number | null {
+    for (let i = chat.ids.length - 1; i >= 0; i--) {
+      const id = chat.ids[i];
+      const m = chat.messages.get(id);
+      if (!m) continue;
+      if (m.fromId !== CONTACT_ID_SELF) continue;
+      if (m.isInfo) continue;
+      if (m.viewType !== 'Text') continue; // core only edits text
+      return id;
+    }
+    return null;
   }
 
   function autosize() {

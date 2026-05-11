@@ -17,7 +17,7 @@
     hasAskedPermission,
   } from '../lib/notifications/notifications';
   import { bindGlobalShortcuts, onShortcut } from '../lib/shortcuts';
-  import { setPaneMode, backToInbox } from '../lib/state/paneMode.svelte';
+  import { setPaneMode, backToInbox, paneMode } from '../lib/state/paneMode.svelte';
   import { backToChat } from '../lib/state/mainRoute.svelte';
   import { loadPreferredLocale, t } from '../lib/i18n/i18n.svelte';
   import NavTabs from './NavTabs.svelte';
@@ -28,9 +28,17 @@
   import Logo from '../lib/Logo.svelte';
   import ImageLightbox from '../chat/ImageLightbox.svelte';
 
-  // Pane-2 width clamp.
-  const MIN_W = 56;
+  // Pane-2 width has two valid modes:
+  //   - Narrow (pfp-only) at exactly NARROW_W.
+  //   - Wide (full chat rows) in [MIN_WIDE_W, MAX_W].
+  // The splitter passes the cumulative drag delta (from `onStart` to the
+  // current pointer position) so snap decisions can be made on the user's
+  // INTENT, not on the residual width after clamping. Without this, the
+  // pane would get stuck once it collapsed to narrow.
+  const NARROW_W = 72;
+  const MIN_WIDE_W = 240;
   const MAX_W = 520;
+  let dragOriginWidth = 0;
 
   let connectionStatus = $state<ConnectionStatus>('idle');
 
@@ -130,11 +138,35 @@
     return k === 'settings' || k === 'profileEditor' || k === 'qrShow' || k === 'qrScan';
   });
 
-  function moveSplitter(dx: number) {
-    const next = prefs.pane2Width + dx;
-    prefs.pane2Width = Math.min(MAX_W, Math.max(MIN_W, next));
+  function startSplitter() {
+    dragOriginWidth = prefs.pane2Width;
+  }
+  function moveSplitter(totalDx: number) {
+    const next = dragOriginWidth + totalDx;
+    if (dragOriginWidth === NARROW_W) {
+      // Started narrow: snap back to wide only once the user has dragged
+      // past MIN_WIDE_W. Smaller drags leave the pane narrow.
+      prefs.pane2Width = next >= MIN_WIDE_W ? Math.min(MAX_W, next) : NARROW_W;
+    } else {
+      // Started wide: any drag below MIN_WIDE_W collapses to narrow.
+      prefs.pane2Width = next < MIN_WIDE_W ? NARROW_W : Math.min(MAX_W, next);
+    }
     savePrefs();
   }
+  function endSplitter() {
+    dragOriginWidth = 0;
+  }
+
+  // Compose / chooseMembers / setGroupMetadata all need the wide pane to
+  // be usable — collapsing back to pfp-only width without exiting those
+  // sub-flows would leave the user staring at a 72px contact picker. Snap
+  // any active compose flow back to the inbox when the chat list goes
+  // narrow.
+  $effect(() => {
+    if (prefs.pane2Width === NARROW_W && paneMode.mode.kind !== 'inbox' && paneMode.mode.kind !== 'archive') {
+      backToInbox();
+    }
+  });
 
   function togglePane1() {
     prefs.pane1Collapsed = !prefs.pane1Collapsed;
@@ -217,9 +249,13 @@
         onSelectChat={selectChat}
         railOpen={!prefs.pane1Collapsed}
         onToggleRail={togglePane1}
+        onUncollapse={() => {
+          prefs.pane2Width = MIN_WIDE_W;
+          savePrefs();
+        }}
       />
 
-      <Splitter onMove={moveSplitter} />
+      <Splitter onStart={startSplitter} onMove={moveSplitter} onEnd={endSplitter} />
     {/if}
 
     <MainPane selectedChatId={selection.chatId} onSelectChat={selectChat} />

@@ -733,10 +733,6 @@
     margin: 0 0 var(--space-3) 0;
     color: var(--color-fg-secondary);
   }
-  .dialog code {
-    font-family: var(--font-mono);
-    font-size: 0.95em;
-  }
   .dialog textarea {
     width: 100%;
     box-sizing: border-box;

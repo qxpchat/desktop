@@ -15,7 +15,7 @@
   /* Empty strip above the leftmost-pane content that doubles as the window
      drag handle (macOS traffic-lights overlay it via `titleBarStyle: Overlay`). */
   --titlebar-gutter: 36px;
-  --pane2-min: 56px;
+  --pane2-min: 72px;
   --pane2-max: 520px;
   --pane2-default: 320px;
   --pane2-narrow-threshold: 80px;
