@@ -569,7 +569,6 @@
   }
   .group {
     margin-bottom: var(--space-5);
-    max-width: 560px;
   }
   .group-header {
     text-transform: uppercase;

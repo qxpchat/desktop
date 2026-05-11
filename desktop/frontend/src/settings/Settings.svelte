@@ -10,6 +10,7 @@
   import Backup from './Backup.svelte';
   import About from './About.svelte';
   import Connectivity from './Connectivity.svelte';
+  import Logs from './Logs.svelte';
   import Icon, { type IconName } from '../lib/Icon.svelte';
 
   type Section =
@@ -19,6 +20,7 @@
     | 'blocked'
     | 'backup'
     | 'connectivity'
+    | 'logs'
     | 'about';
 
   // Initial section + sub-view come from the route, so external callers can
@@ -37,6 +39,7 @@
     { id: 'connectivity', label: 'Connectivity', icon: 'globe' },
     { id: 'blocked', label: 'Blocked', icon: 'ban' },
     { id: 'backup', label: 'Backup', icon: 'hard-drive' },
+    { id: 'logs', label: 'Logs', icon: 'file-text' },
     { id: 'about', label: 'About', icon: 'info' },
   ];
 
@@ -104,6 +107,8 @@
           <Backup />
         {:else if active === 'connectivity'}
           <Connectivity initialView={connectivitySubView} />
+        {:else if active === 'logs'}
+          <Logs />
         {:else if active === 'about'}
           <About />
         {/if}

@@ -3,6 +3,7 @@
   import { prefs, savePrefs } from '../lib/prefs.svelte';
   import { rpc, type ConnectionStatus } from '../lib/rpc';
   import { startEventLoop } from '../lib/events';
+  import { startLogCapture } from '../lib/state/logs.svelte';
   import { accounts, refreshAccounts, purgeUnconfigured } from '../lib/state/accounts.svelte';
   import { chatlist, setActiveAccount } from '../lib/state/chatlist.svelte';
   import { onboarding } from '../lib/state/onboarding.svelte';
@@ -81,6 +82,7 @@
           await purgeUnconfigured();
         }
         startEventLoop();
+        startLogCapture();
         startIncomingNotifications();
         // Ask once for browser-notification permission after onboarding.
         if (accounts.configuredIds.length > 0 && !hasAskedPermission()) {
