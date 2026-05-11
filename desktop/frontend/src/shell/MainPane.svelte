@@ -11,6 +11,8 @@
   import MediaBrowser from '../info/MediaBrowser.svelte';
   import { setMainRoute } from '../lib/state/mainRoute.svelte';
   import Avatar from '../lib/Avatar.svelte';
+  import Icon from '../lib/Icon.svelte';
+  import { liveLocations } from '../lib/state/liveLocations.svelte';
   import { t } from '../lib/i18n/i18n.svelte';
 
   type Props = {
@@ -29,6 +31,10 @@
     if (chat.isGroup) return chat.isEncrypted ? t('Group chat') : t('Ad-hoc group');
     return chat.isEncrypted ? t('Direct chat · encrypted') : t('Direct chat');
   });
+
+  let peerStreaming = $derived(
+    selectedChatId != null && liveLocations.chatIds.has(selectedChatId),
+  );
 
   let showChatTopBar = $derived(mainRoute.route.kind === 'chat' && chat != null);
 
@@ -49,7 +55,19 @@
           size={36}
         />
         <div class="titles">
-          <span class="chat-title">{chat.name || t('(no name)')}</span>
+          <span class="chat-title">
+            {chat.name || t('(no name)')}
+            {#if chat.isMuted}
+              <span class="title-icon mute" aria-label={t('Muted')} title={t('Muted')}>
+                <Icon name="bell-off" size={14} />
+              </span>
+            {/if}
+            {#if peerStreaming}
+              <span class="title-icon live" aria-label={t('Live location')} title={t('Sharing live location')}>
+                <Icon name="map-pin" size={14} stroke={2.5} />
+              </span>
+            {/if}
+          </span>
           <span class="chat-status">{chatSubtitle}</span>
         </div>
       </button>
@@ -134,6 +152,22 @@
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    min-width: 0;
+  }
+  .title-icon {
+    display: inline-flex;
+    align-items: center;
+    line-height: 1;
+    flex: 0 0 auto;
+  }
+  .title-icon.mute {
+    color: var(--color-fg-tertiary);
+  }
+  .title-icon.live {
+    color: var(--color-success, #34c759);
   }
   .chat-status {
     color: var(--color-fg-secondary);

@@ -4,6 +4,7 @@
   import { MSG_STATE } from '../lib/state/chat.svelte';
   import Avatar from '../lib/Avatar.svelte';
   import Icon, { type IconName } from '../lib/Icon.svelte';
+  import { liveLocations } from '../lib/state/liveLocations.svelte';
   import { t } from '../lib/i18n/i18n.svelte';
 
   type Props = {
@@ -28,6 +29,7 @@
   let title = $derived(narrow ? `${displayName}${preview ? ' — ' + preview : ''}` : '');
 
   let unreadLabel = $derived(chat.freshMessageCounter > 99 ? '99+' : String(chat.freshMessageCounter));
+  let peerStreaming = $derived(liveLocations.chatIds.has(chat.id));
 
   // Mirror of iOS ChatListRow's stateGlyph — only shown for outgoing message
   // states. Incoming states (Undefined/InFresh/InNoticed/InSeen) return null.
@@ -79,6 +81,11 @@
           {displayName}
           {#if chat.isMuted}
             <span class="mute" aria-label={t('muted')} title={t('Muted')}><Icon name="bell-off" size={12} /></span>
+          {/if}
+          {#if peerStreaming}
+            <span class="live" aria-label={t('Live location')} title={t('Sharing live location')}>
+              <Icon name="map-pin" size={12} stroke={2.5} />
+            </span>
           {/if}
         </span>
         {#if timestamp}
@@ -167,12 +174,12 @@
     opacity: 0.85;
     flex: 0 0 auto;
   }
-  /* SVG defaults to `display: inline` which reserves space for descenders
-   * below its baseline — that pushes the icon visually low relative to the
-   * adjacent uppercase letters of the name. Forcing block strips that gap
-   * and the icon sits on the actual optical centre line. */
-  .mute :global(svg) {
-    display: block;
+  .live {
+    display: inline-flex;
+    align-items: center;
+    line-height: 1;
+    color: var(--color-success, #34c759);
+    flex: 0 0 auto;
   }
   .ts {
     font-size: var(--text-xs);

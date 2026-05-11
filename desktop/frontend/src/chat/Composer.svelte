@@ -16,6 +16,7 @@
   import AttachMenu from './AttachMenu.svelte';
   import ContactPickerModal from './ContactPickerModal.svelte';
   import EmojiPicker from './EmojiPicker.svelte';
+  import LocationPicker from './LocationPicker.svelte';
   import QuoteBar from './QuoteBar.svelte';
   import Icon from '../lib/Icon.svelte';
   import { t } from '../lib/i18n/i18n.svelte';
@@ -26,6 +27,7 @@
   let attachOpen = $state(false);
   let emojiOpen = $state(false);
   let contactPickerOpen = $state(false);
+  let locationPickerOpen = $state(false);
 
   function insertEmoji(c: string) {
     const ta = textarea;
@@ -209,27 +211,21 @@
     }
   }
 
-  async function shareLocation() {
-    if (!navigator.geolocation) {
-      alert('Geolocation is not available.');
-      return;
-    }
+  function openLocationPicker() {
+    locationPickerOpen = true;
+  }
+
+  async function sendPickedLocation(lat: number, lon: number) {
     sending = true;
     try {
-      const pos = await new Promise<GeolocationPosition>((resolve, reject) => {
-        navigator.geolocation.getCurrentPosition(resolve, reject, {
-          enableHighAccuracy: true,
-          timeout: 8000,
-        });
-      });
       await sendMessage({
         viewtype: 'Text',
-        text: text || `My location: ${pos.coords.latitude.toFixed(5)}, ${pos.coords.longitude.toFixed(5)}`,
-        location: [pos.coords.latitude, pos.coords.longitude],
+        text: text || undefined,
+        location: [lat, lon],
       });
       text = '';
     } catch (err) {
-      alert(`Could not get location: ${err instanceof Error ? err.message : String(err)}`);
+      alert(`${t('Could not send location')}: ${err instanceof Error ? err.message : String(err)}`);
     } finally {
       sending = false;
     }
@@ -383,7 +379,7 @@
     open={attachOpen}
     onClose={() => (attachOpen = false)}
     onPickFile={() => fileInput?.click()}
-    onShareLocation={() => void shareLocation()}
+    onShareLocation={openLocationPicker}
     onShareContact={() => (contactPickerOpen = true)}
   />
 
@@ -451,6 +447,12 @@
   open={contactPickerOpen}
   onPick={(id) => void shareContact(id)}
   onClose={() => (contactPickerOpen = false)}
+/>
+
+<LocationPicker
+  open={locationPickerOpen}
+  onSend={(lat, lon) => void sendPickedLocation(lat, lon)}
+  onClose={() => (locationPickerOpen = false)}
 />
 
 <style>

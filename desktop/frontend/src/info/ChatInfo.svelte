@@ -7,6 +7,7 @@
   import { accounts } from '../lib/state/accounts.svelte';
   import { backToChat, setMainRoute } from '../lib/state/mainRoute.svelte';
   import { selectChat } from '../lib/state/selection.svelte';
+  import { liveLocations } from '../lib/state/liveLocations.svelte';
   import Avatar from '../lib/Avatar.svelte';
   import Icon from '../lib/Icon.svelte';
   import { t } from '../lib/i18n/i18n.svelte';
@@ -41,6 +42,7 @@
     profileImage: string | null;
     isVerified: boolean;
     isBlocked: boolean;
+    wasSeenRecently: boolean;
   };
 
   type SharedChat = {
@@ -56,6 +58,36 @@
   let loaded = $state(false);
   let editingName = $state(false);
   let nameInput = $state('');
+
+  // Latest peer stream point for this chat — comes from the shared
+  // liveLocations store (one bulk `get_locations` query for the whole
+  // app, refreshed on `LocationChanged` events and a slow interval).
+  let liveLoc = $derived(liveLocations.latest.get(chatId) ?? null);
+
+  let liveLocOsmLink = $derived.by(() => {
+    if (!liveLoc) return null;
+    return `https://www.openstreetmap.org/?mlat=${liveLoc.lat}&mlon=${liveLoc.lon}#map=16/${liveLoc.lat}/${liveLoc.lon}`;
+  });
+  // OSM's iframe embed. Reliable from any origin (no CORS dance, no
+  // separate static-map service that might be rate-limited). `bbox` is
+  // a tight box around the point so zoom looks similar to a zoom-15
+  // static map.
+  let liveLocEmbed = $derived.by(() => {
+    if (!liveLoc) return null;
+    const d = 0.005;
+    const bbox = [
+      liveLoc.lon - d,
+      liveLoc.lat - d,
+      liveLoc.lon + d,
+      liveLoc.lat + d,
+    ].join(',');
+    return `https://www.openstreetmap.org/export/embed.html?bbox=${bbox}&layer=mapnik&marker=${liveLoc.lat},${liveLoc.lon}`;
+  });
+
+  let liveLocSender = $derived.by(() => {
+    if (!liveLoc) return null;
+    return members.find((m) => m.id === liveLoc.contactId);
+  });
 
   onMount(load);
   $effect(() => {
@@ -225,6 +257,7 @@
         color={chat.color}
         imagePath={chat.profileImage}
         size={96}
+        seenRecently={other?.wasSeenRecently ?? false}
       />
       {#if editingName}
         <input bind:value={nameInput} placeholder={t('Name')} />
@@ -242,6 +275,33 @@
         {/if}
       {/if}
     </div>
+
+    {#if liveLoc && liveLocEmbed && liveLocOsmLink}
+      {@const minsAgo = Math.max(0, Math.floor((Date.now() / 1000 - liveLoc.timestamp) / 60))}
+      <div class="live-loc">
+        <div class="live-loc-head">
+          <span class="live-dot" aria-hidden="true"></span>
+          <span class="live-loc-title">
+            {liveLocSender
+              ? t('{name} is sharing live location', { name: liveLocSender.displayName || liveLocSender.address })
+              : t('Live location')}
+          </span>
+          <span class="live-loc-ago">
+            {minsAgo === 0 ? t('just now') : t('{n} min ago', { n: minsAgo })}
+          </span>
+        </div>
+        <iframe
+          class="live-loc-map"
+          src={liveLocEmbed}
+          title={t('Live location map')}
+          loading="lazy"
+          referrerpolicy="no-referrer"
+        ></iframe>
+        <a class="live-loc-open" href={liveLocOsmLink} target="_blank" rel="noopener noreferrer">
+          {t('Open in OpenStreetMap')} ↗
+        </a>
+      </div>
+    {/if}
 
     <div class="group">
       <button class="row link" onclick={showMedia}>
@@ -386,6 +446,61 @@
   }
   .group + .group {
     border-top: 1px solid var(--color-border);
+  }
+  .live-loc {
+    padding: var(--space-3) var(--space-4);
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+  }
+  .live-loc-head {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .live-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--color-success, #34c759);
+    box-shadow: 0 0 0 0 currentColor;
+    animation: live-pulse 1.4s ease-in-out infinite;
+    color: var(--color-success, #34c759);
+    flex: 0 0 auto;
+  }
+  @keyframes live-pulse {
+    0%   { box-shadow: 0 0 0 0 color-mix(in srgb, currentColor 55%, transparent); }
+    100% { box-shadow: 0 0 0 10px color-mix(in srgb, currentColor 0%, transparent); }
+  }
+  .live-loc-title {
+    flex: 1;
+    min-width: 0;
+    font-weight: 600;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .live-loc-ago {
+    font-size: var(--text-xs);
+    color: var(--color-fg-tertiary);
+    flex: 0 0 auto;
+  }
+  .live-loc-map {
+    display: block;
+    width: 100%;
+    height: 180px;
+    border: 0;
+    border-radius: var(--radius-md);
+    background: var(--color-bg-hover);
+  }
+  .live-loc-open {
+    align-self: flex-end;
+    font-size: var(--text-sm);
+    color: var(--color-accent);
+    text-decoration: none;
+  }
+  .live-loc-open:hover {
+    text-decoration: underline;
   }
   .row {
     display: flex;
