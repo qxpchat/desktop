@@ -13,6 +13,7 @@
   import Icon, { type IconName } from '../lib/Icon.svelte';
   import { linkify } from '../lib/format/linkify';
   import { detectYouTubeId } from '../lib/format/youtube';
+  import { t } from '../lib/i18n/i18n.svelte';
 
   type Props = {
     message: Message;
@@ -180,7 +181,7 @@
       {/if}
 
       {#if message.isForwarded}
-        <div class="forwarded">Forwarded</div>
+        <div class="forwarded">{t('Forwarded')}</div>
       {/if}
 
       {#if message.viewType === 'Image' || message.viewType === 'Gif'}
@@ -217,7 +218,7 @@
 
       <div class="meta">
         {#if message.isEdited}
-          <span class="edited-tag">edited</span>
+          <span class="edited-tag">{t('edited')}</span>
         {/if}
         <span class="time" title={new Date(message.timestamp * 1000).toLocaleString()}>
           {timeLabel}

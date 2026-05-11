@@ -5,6 +5,7 @@
   // upward and the pane mounts one instance with the click coords.
   import type { ChatListItem } from '../lib/state/chatlist.svelte';
   import Icon from '../lib/Icon.svelte';
+  import { t } from '../lib/i18n/i18n.svelte';
 
   type Props = {
     chat: ChatListItem;
@@ -48,20 +49,20 @@
 
 <!-- Invisible backdrop catches outside-clicks. Keyboard-dismissable via
      window Escape above; the backdrop itself doesn't need its own keydown. -->
-<button class="backdrop" aria-label="Close menu" onclick={onClose}></button>
+<button class="backdrop" aria-label={t('Close menu')} onclick={onClose}></button>
 
 <div bind:this={menu} class="menu" role="menu" {style}>
   <button role="menuitem" onclick={() => fire(onTogglePin)}>
     <Icon name="pin" size={14} />
-    {chat.isPinned ? 'Unpin' : 'Pin'}
+    {chat.isPinned ? t('Unpin') : t('Pin')}
   </button>
   <button role="menuitem" onclick={() => fire(onToggleMute)}>
     <Icon name="bell-off" size={14} />
-    {chat.isMuted ? 'Unmute' : 'Mute'}
+    {chat.isMuted ? t('Unmute') : t('Mute')}
   </button>
   <button role="menuitem" onclick={() => fire(onToggleArchive)}>
     <Icon name="archive" size={14} />
-    {chat.isArchived ? 'Unarchive' : 'Archive'}
+    {chat.isArchived ? t('Unarchive') : t('Archive')}
   </button>
 </div>
 

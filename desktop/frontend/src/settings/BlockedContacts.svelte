@@ -3,6 +3,7 @@
   import { rpc } from '../lib/rpc';
   import { accounts } from '../lib/state/accounts.svelte';
   import Avatar from '../lib/Avatar.svelte';
+  import { t } from '../lib/i18n/i18n.svelte';
 
   type Contact = {
     id: number;
@@ -34,12 +35,12 @@
   }
 </script>
 
-<h2>Blocked</h2>
+<h2>{t('Blocked')}</h2>
 
 {#if loading}
-  <p class="muted">Loading…</p>
+  <p class="muted">{t('Loading…')}</p>
 {:else if list.length === 0}
-  <p class="muted">No blocked contacts.</p>
+  <p class="muted">{t('No blocked contacts.')}</p>
 {:else}
   <ul class="list">
     {#each list as c (c.id)}
@@ -49,7 +50,7 @@
           <span class="name">{c.displayName}</span>
           <span class="addr">{c.address}</span>
         </span>
-        <button class="unblock" onclick={() => unblock(c.id)}>Unblock</button>
+        <button class="unblock" onclick={() => unblock(c.id)}>{t('Unblock')}</button>
       </li>
     {/each}
   </ul>

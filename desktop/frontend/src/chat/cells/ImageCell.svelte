@@ -2,6 +2,7 @@
   import type { Message } from '../../lib/state/chat.svelte';
   import { fileUrl } from '../../lib/files';
   import { openLightbox } from '../../lib/state/lightbox.svelte';
+  import { t } from '../../lib/i18n/i18n.svelte';
 
   type Props = {
     message: Message;
@@ -26,9 +27,9 @@
   }
 </script>
 
-<button class="image" onclick={open} title="Open image" aria-label="Open image">
+<button class="image" onclick={open} title={t('Open image')} aria-label={t('Open image')}>
   {#if url}
-    <img src={url} alt={message.fileName ?? 'image'} style:aspect-ratio={aspect} />
+    <img src={url} alt={message.fileName ?? t('image')} style:aspect-ratio={aspect} />
   {/if}
 </button>
 

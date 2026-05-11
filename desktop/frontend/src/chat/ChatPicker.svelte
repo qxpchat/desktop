@@ -5,6 +5,7 @@
   // previous inline avatar only painted the initial letter).
   import { chatlist } from '../lib/state/chatlist.svelte';
   import Avatar from '../lib/Avatar.svelte';
+  import { t } from '../lib/i18n/i18n.svelte';
 
   type Props = {
     open: boolean;
@@ -26,16 +27,16 @@
 </script>
 
 {#if open}
-  <button class="backdrop" onclick={onClose} aria-label="Close picker"></button>
-  <div class="card" role="dialog" aria-label="Forward to chat">
+  <button class="backdrop" onclick={onClose} aria-label={t('Close picker')}></button>
+  <div class="card" role="dialog" aria-label={t('Forward to chat')}>
     <header>
-      <h2>Forward to…</h2>
-      <button class="close" onclick={onClose} aria-label="Close">✕</button>
+      <h2>{t('Forward to…')}</h2>
+      <button class="close" onclick={onClose} aria-label={t('Close')}>✕</button>
     </header>
     <input
       type="search"
       class="search"
-      placeholder="Search chats…"
+      placeholder={t('Search chats…')}
       bind:value={search}
     />
     <ul class="list">
@@ -43,12 +44,12 @@
         <li>
           <button class="row" onclick={() => onPick(c.id)}>
             <Avatar name={c.name || '?'} color={c.color} imagePath={c.avatarPath} size={36} />
-            <span class="name">{c.name || '(no name)'}</span>
+            <span class="name">{c.name || t('(no name)')}</span>
           </button>
         </li>
       {/each}
       {#if visible.length === 0}
-        <li class="empty">No chats.</li>
+        <li class="empty">{t('No chats.')}</li>
       {/if}
     </ul>
   </div>

@@ -1,6 +1,7 @@
 <script lang="ts">
   import { toggleReaction } from '../lib/state/chat.svelte';
   import type { Message } from '../lib/state/chat.svelte';
+  import { t } from '../lib/i18n/i18n.svelte';
 
   type Props = {
     message: Message;
@@ -24,7 +25,7 @@
 </script>
 
 {#if reactions.length > 0}
-  <div class="row" class:below={mediaOnly} role="group" aria-label="Reactions">
+  <div class="row" class:below={mediaOnly} role="group" aria-label={t('Reactions')}>
     {#each reactions as r (r.emoji)}
       <button
         class="chip"

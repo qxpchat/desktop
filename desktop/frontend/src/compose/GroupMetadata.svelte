@@ -3,6 +3,7 @@
   import { contacts } from '../lib/state/contacts.svelte';
   import { accounts } from '../lib/state/accounts.svelte';
   import { backToInbox, setPaneMode } from '../lib/state/paneMode.svelte';
+  import { t } from '../lib/i18n/i18n.svelte';
 
   type Props = {
     mode: {
@@ -29,7 +30,7 @@
 
   let canCreate = $derived(name.trim().length > 0 && !creating);
 
-  let title = $derived(mode.flow === 'group' ? 'New Group' : 'New Channel');
+  let title = $derived(mode.flow === 'group' ? t('New Group') : t('New Channel'));
 
   async function create() {
     if (!canCreate || accounts.selectedId == null) return;
@@ -75,22 +76,22 @@
 
 <div class="pane">
   <header class="header">
-    <button class="back" onclick={back} aria-label="Back">‹</button>
+    <button class="back" onclick={back} aria-label={t('Back')}>‹</button>
     <h2>{title}</h2>
     <div class="spacer"></div>
-    <button class="create" disabled={!canCreate} onclick={create}>Create</button>
+    <button class="create" disabled={!canCreate} onclick={create}>{t('Create')}</button>
   </header>
 
   <div class="body">
     <label class="field">
-      <span class="label">Name</span>
-      <input bind:value={name} placeholder={mode.flow === 'group' ? 'Project chat' : 'Updates'} />
+      <span class="label">{t('Name')}</span>
+      <input bind:value={name} placeholder={mode.flow === 'group' ? t('Project chat') : t('Updates')} />
     </label>
 
     {#if mode.flow === 'group'}
       <label class="field">
-        <span class="label">Description (optional)</span>
-        <textarea bind:value={description} rows="2" placeholder="What's this group about?"
+        <span class="label">{t('Description (optional)')}</span>
+        <textarea bind:value={description} rows="2" placeholder={t('What\'s this group about?')}
         ></textarea>
       </label>
 
@@ -101,9 +102,9 @@
           disabled={!allSelectedAreVerified}
         />
         <span>
-          Verified group
+          {t('Verified group')}
           {#if !allSelectedAreVerified}
-            <span class="hint">— available only when every member is already verified</span>
+            <span class="hint">{t('— available only when every member is already verified')}</span>
           {/if}
         </span>
       </label>
@@ -114,8 +115,7 @@
     {/if}
 
     <p class="member-count">
-      {mode.selected.length}
-      member{mode.selected.length === 1 ? '' : 's'} will be added.
+      {t('{count} members will be added.', { count: mode.selected.length })}
     </p>
   </div>
 </div>

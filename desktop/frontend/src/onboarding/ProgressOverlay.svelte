@@ -1,18 +1,19 @@
 <script lang="ts">
   import { onboarding, cancelOnboarding, resetOnboarding } from '../lib/state/onboarding.svelte';
+  import { t } from '../lib/i18n/i18n.svelte';
 
   let phase = $derived(onboarding.phase);
 
   let label = $derived.by(() => {
     switch (phase.kind) {
       case 'configuring':
-        return 'Configuring…';
+        return t('Configuring…');
       case 'importing':
-        return 'Importing backup…';
+        return t('Importing backup…');
       case 'receiving':
-        return 'Transferring…';
+        return t('Transferring…');
       case 'failed':
-        return 'Could not connect';
+        return t('Could not connect');
       default:
         return '';
     }
@@ -31,7 +32,7 @@
       <h2>{label}</h2>
       <p class="error">{phase.message}</p>
       <div class="actions">
-        <button class="primary" onclick={resetOnboarding}>OK</button>
+        <button class="primary" onclick={resetOnboarding}>{t('OK')}</button>
       </div>
     </div>
   </div>
@@ -43,9 +44,9 @@
         <progress value={progress} max="1000"></progress>
         <span class="permille">{Math.round((progress / 1000) * 100)}%</span>
       </div>
-      <p class="hint">Keep this tab open until configuration completes.</p>
+      <p class="hint">{t('Keep this tab open until configuration completes.')}</p>
       <div class="actions">
-        <button class="cancel" onclick={cancelOnboarding}>Cancel</button>
+        <button class="cancel" onclick={cancelOnboarding}>{t('Cancel')}</button>
       </div>
     </div>
   </div>

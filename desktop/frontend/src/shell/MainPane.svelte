@@ -11,6 +11,7 @@
   import MediaBrowser from '../info/MediaBrowser.svelte';
   import { setMainRoute } from '../lib/state/mainRoute.svelte';
   import Avatar from '../lib/Avatar.svelte';
+  import { t } from '../lib/i18n/i18n.svelte';
 
   type Props = {
     selectedChatId: number | null;
@@ -23,10 +24,10 @@
 
   let chatSubtitle = $derived.by(() => {
     if (!chat) return '';
-    if (chat.isSelfTalk) return 'Saved messages';
-    if (chat.isDeviceTalk) return 'Device';
-    if (chat.isGroup) return chat.isEncrypted ? 'Group chat' : 'Ad-hoc group';
-    return chat.isEncrypted ? 'Direct chat · encrypted' : 'Direct chat';
+    if (chat.isSelfTalk) return t('Saved messages');
+    if (chat.isDeviceTalk) return t('Device');
+    if (chat.isGroup) return chat.isEncrypted ? t('Group chat') : t('Ad-hoc group');
+    return chat.isEncrypted ? t('Direct chat · encrypted') : t('Direct chat');
   });
 
   let showChatTopBar = $derived(mainRoute.route.kind === 'chat' && chat != null);
@@ -48,7 +49,7 @@
           size={36}
         />
         <div class="titles">
-          <span class="chat-title">{chat.name || '(no name)'}</span>
+          <span class="chat-title">{chat.name || t('(no name)')}</span>
           <span class="chat-status">{chatSubtitle}</span>
         </div>
       </button>
@@ -69,8 +70,8 @@
     {:else if mainRoute.route.kind === 'profileEditor'}
       <div class="profile-shell">
         <header class="profile-header" data-tauri-drag-region>
-          <button class="back" onclick={() => mainRoute.route = { kind: 'chat' }} aria-label="Back">‹ Back</button>
-          <h1>Profile</h1>
+          <button class="back" onclick={() => mainRoute.route = { kind: 'chat' }} aria-label={t('Back')}>‹ {t('Back')}</button>
+          <h1>{t('Profile')}</h1>
         </header>
         <div class="profile-body">
           <Profile />
@@ -82,8 +83,8 @@
       {/key}
     {:else}
       <div class="empty-chat">
-        <div class="hint">Select a conversation</div>
-        <div class="muted">Or start a new one — click the ✏︎ icon in the chat list.</div>
+        <div class="hint">{t('Select a conversation')}</div>
+        <div class="muted">{t('Or start a new one — click the ✏︎ icon in the chat list.')}</div>
       </div>
     {/if}
   </div>

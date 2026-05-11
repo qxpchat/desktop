@@ -12,6 +12,7 @@
   import { rpc } from '../lib/rpc';
   import ContactRow from './ContactRow.svelte';
   import Icon from '../lib/Icon.svelte';
+  import { t } from '../lib/i18n/i18n.svelte';
 
   type Props = {
     onSelectChat: (id: number) => void;
@@ -43,7 +44,7 @@
       onSelectChat(chatId);
       backToInbox();
     } catch (err) {
-      alert(`Could not start chat: ${err instanceof Error ? err.message : String(err)}`);
+      alert(`${t('Could not start chat')}: ${err instanceof Error ? err.message : String(err)}`);
     }
   }
 
@@ -58,18 +59,18 @@
   }
 </script>
 
-<aside class="pane" aria-label="New conversation">
+<aside class="pane" aria-label={t('New conversation')}>
   <header class="header">
-    <button class="back" onclick={backToInbox} title="Back" aria-label="Back to inbox">‹</button>
-    <h2>New conversation</h2>
+    <button class="back" onclick={backToInbox} title={t('Back')} aria-label={t('Back to inbox')}>‹</button>
+    <h2>{t('New conversation')}</h2>
   </header>
 
   <div class="search-row">
     <input
       class="search"
       type="search"
-      placeholder="Search contacts…"
-      aria-label="Search contacts"
+      placeholder={t('Search contacts…')}
+      aria-label={t('Search contacts')}
       bind:value={search}
     />
   </div>
@@ -78,20 +79,20 @@
     <li>
       <button class="action" onclick={newContact}>
         <span class="icon" aria-hidden="true">＋</span>
-        <span class="label">New Contact</span>
-        <span class="hint">Scan a QR code</span>
+        <span class="label">{t('New Contact')}</span>
+        <span class="hint">{t('Scan a QR code')}</span>
       </button>
     </li>
     <li>
       <button class="action" onclick={newGroup}>
         <span class="icon" aria-hidden="true">⌬</span>
-        <span class="label">New Group</span>
+        <span class="label">{t('New Group')}</span>
       </button>
     </li>
     <li>
       <button class="action" onclick={newChannel}>
         <span class="icon" aria-hidden="true">📣</span>
-        <span class="label">New Channel</span>
+        <span class="label">{t('New Channel')}</span>
       </button>
     </li>
   </ul>
@@ -103,7 +104,7 @@
       </li>
     {/each}
     {#if !contacts.loading && contacts.contacts.length === 0}
-      <li class="empty">{search.length > 0 ? 'No contacts match.' : 'No contacts yet.'}</li>
+      <li class="empty">{search.length > 0 ? t('No contacts match.') : t('No contacts yet.')}</li>
     {/if}
   </ul>
 </aside>

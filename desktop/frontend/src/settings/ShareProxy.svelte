@@ -7,6 +7,7 @@
   import { onMount } from 'svelte';
   import { rpc } from '../lib/rpc';
   import Icon from '../lib/Icon.svelte';
+  import { t } from '../lib/i18n/i18n.svelte';
 
   type Props = {
     url: string;
@@ -33,7 +34,7 @@
       copied = true;
       setTimeout(() => (copied = false), 1500);
     } catch {
-      error = 'Could not copy to clipboard.';
+      error = t('Could not copy to clipboard.');
     }
   }
 </script>
@@ -41,8 +42,8 @@
 <div class="overlay" role="dialog" aria-modal="true">
   <div class="dialog">
     <header class="head">
-      <h3>Share Proxy</h3>
-      <button class="close" onclick={onClose} aria-label="Done"><Icon name="x" size={16} /></button>
+      <h3>{t('Share Proxy')}</h3>
+      <button class="close" onclick={onClose} aria-label={t('Done')}><Icon name="x" size={16} /></button>
     </header>
 
     <div class="body">
@@ -54,13 +55,13 @@
         <div class="qr-placeholder"></div>
       {/if}
 
-      <p class="hint">Your friends can add this proxy by scanning the QR code.</p>
+      <p class="hint">{t('Your friends can add this proxy by scanning the QR code.')}</p>
 
       <code class="url">{url}</code>
 
       <button class="primary" onclick={copyLink}>
         <Icon name="copy" size={14} />
-        {copied ? 'Copied' : 'Copy Link'}
+        {copied ? t('Copied') : t('Copy Link')}
       </button>
     </div>
   </div>

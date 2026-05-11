@@ -7,6 +7,7 @@
   // picker UIs.
   import type { Contact } from '../lib/state/contacts.svelte';
   import Avatar from '../lib/Avatar.svelte';
+  import { t } from '../lib/i18n/i18n.svelte';
 
   type Props = {
     contact: Contact;
@@ -19,7 +20,7 @@
   let { contact, onSelect, selectable = false, selected = false }: Props = $props();
 
   let displayName = $derived(
-    contact.displayName || contact.name || contact.address || '(no name)',
+    contact.displayName || contact.name || contact.address || t('(no name)'),
   );
 </script>
 
@@ -40,7 +41,7 @@
     <span class="name">
       <span class="name-text">{displayName}</span>
       {#if contact.isVerified}
-        <span class="verified" title="Verified" aria-label="verified">✓</span>
+        <span class="verified" title={t('Verified')} aria-label={t('verified')}>✓</span>
       {/if}
     </span>
     {#if contact.address && contact.address !== displayName}

@@ -3,6 +3,7 @@
   import { rpc } from '../lib/rpc';
   import { accounts } from '../lib/state/accounts.svelte';
   import { backToChat } from '../lib/state/mainRoute.svelte';
+  import { t } from '../lib/i18n/i18n.svelte';
 
   type Props = {
     /** When set, the QR is a group/broadcast invite for this chat. */
@@ -54,16 +55,16 @@
       const text = await navigator.clipboard.readText();
       if (text && accounts.selectedId != null) {
         const obj = await rpc.call<{ kind: string }>('check_qr', [accounts.selectedId, text]);
-        alert(`Scanned: ${obj.kind}`);
+        alert(`${t('Scanned')}: ${obj.kind}`);
       }
     } catch (err) {
-      alert(`Paste failed: ${err instanceof Error ? err.message : String(err)}`);
+      alert(`${t('Paste failed')}: ${err instanceof Error ? err.message : String(err)}`);
     }
   }
 
   async function withdraw() {
     if (!url || accounts.selectedId == null) return;
-    if (!confirm('Withdraw this invite QR? Anyone holding it will no longer be able to join.')) {
+    if (!confirm(t('Withdraw this invite QR? Anyone holding it will no longer be able to join.'))) {
       return;
     }
     try {
@@ -77,8 +78,8 @@
 
 <section class="qr-show">
   <header class="topbar" data-tauri-drag-region>
-    <button class="back" onclick={backToChat} aria-label="Back">‹ Back</button>
-    <h1>{chatId == null ? 'Your QR' : 'Group invite'}</h1>
+    <button class="back" onclick={backToChat} aria-label={t('Back')}>‹ {t('Back')}</button>
+    <h1>{chatId == null ? t('Your QR') : t('Group invite')}</h1>
   </header>
 
   <div class="body">
@@ -92,13 +93,13 @@
           <p class="url" title={url}>{url}</p>
         {/if}
         <div class="actions">
-          <button onclick={copy}>{copied ? 'Copied!' : 'Copy link'}</button>
-          <button onclick={paste}>Paste code</button>
-          <button class="danger" onclick={withdraw}>Withdraw</button>
+          <button onclick={copy}>{copied ? t('Copied!') : t('Copy link')}</button>
+          <button onclick={paste}>{t('Paste code')}</button>
+          <button class="danger" onclick={withdraw}>{t('Withdraw')}</button>
         </div>
       </div>
     {:else}
-      <p class="hint">Generating QR…</p>
+      <p class="hint">{t('Generating QR…')}</p>
     {/if}
   </div>
 </section>

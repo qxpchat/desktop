@@ -5,6 +5,7 @@
 
   import { onMount, onDestroy } from 'svelte';
   import { rpc, type ConnectionStatus } from '../lib/rpc';
+  import { t } from '../lib/i18n/i18n.svelte';
 
   let status = $state<ConnectionStatus>('idle');
   let unsub: (() => void) | null = null;
@@ -20,9 +21,9 @@
     switch (status) {
       case 'connecting':
       case 'idle':
-        return 'Connecting…';
+        return t('Connecting…');
       case 'disconnected':
-        return 'Offline';
+        return t('Offline');
       default:
         return '';
     }

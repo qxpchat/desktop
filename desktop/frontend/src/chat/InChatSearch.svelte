@@ -6,6 +6,7 @@
   import { tick } from 'svelte';
   import { rpc } from '../lib/rpc';
   import { flashMessage } from '../lib/state/chat.svelte';
+  import { t } from '../lib/i18n/i18n.svelte';
 
   type Props = {
     accountId: number;
@@ -111,10 +112,10 @@
     <input
       bind:this={input}
       type="search"
-      placeholder="Find in chat…"
+      placeholder={t('Find in chat…')}
       bind:value={query}
       onkeydown={onKeyDown}
-      aria-label="Find in chat"
+      aria-label={t('Find in chat')}
     />
     <span class="count" aria-live="polite">
       {#if busy}
@@ -125,9 +126,9 @@
         0 / 0
       {/if}
     </span>
-    <button onclick={prev} disabled={hits.length === 0} aria-label="Previous match" title="Previous (Shift+Enter)">↑</button>
-    <button onclick={next} disabled={hits.length === 0} aria-label="Next match" title="Next (Enter)">↓</button>
-    <button onclick={onClose} aria-label="Close find" title="Close (Esc)">✕</button>
+    <button onclick={prev} disabled={hits.length === 0} aria-label={t('Previous match')} title={t('Previous (Shift+Enter)')}>↑</button>
+    <button onclick={next} disabled={hits.length === 0} aria-label={t('Next match')} title={t('Next (Enter)')}>↓</button>
+    <button onclick={onClose} aria-label={t('Close find')} title={t('Close (Esc)')}>✕</button>
   </div>
 {/if}
 

@@ -1,4 +1,6 @@
 <script lang="ts">
+  import { t } from '../lib/i18n/i18n.svelte';
+
   type Props = {
     onMove: (deltaX: number) => void;
   };
@@ -47,7 +49,7 @@
   class:dragging
   role="separator"
   aria-orientation="vertical"
-  aria-label="Resize chat list"
+  aria-label={t('Resize chat list')}
   tabindex="0"
   onpointerdown={down}
   onpointermove={move}

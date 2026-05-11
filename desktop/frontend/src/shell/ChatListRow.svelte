@@ -4,6 +4,7 @@
   import { MSG_STATE } from '../lib/state/chat.svelte';
   import Avatar from '../lib/Avatar.svelte';
   import Icon, { type IconName } from '../lib/Icon.svelte';
+  import { t } from '../lib/i18n/i18n.svelte';
 
   type Props = {
     chat: ChatListItem;
@@ -15,7 +16,7 @@
 
   let { chat, selected, narrow, onSelect, onContextMenu }: Props = $props();
 
-  let displayName = $derived(chat.name.length > 0 ? chat.name : '(no name)');
+  let displayName = $derived(chat.name.length > 0 ? chat.name : t('(no name)'));
   let timestamp = $derived(formatRelativeTimestamp(chat.lastUpdated));
 
   let preview = $derived(
@@ -77,7 +78,7 @@
         <span class="name">
           {displayName}
           {#if chat.isMuted}
-            <span class="mute" aria-label="muted" title="Muted"><Icon name="bell-off" size={12} /></span>
+            <span class="mute" aria-label={t('muted')} title={t('Muted')}><Icon name="bell-off" size={12} /></span>
           {/if}
         </span>
         {#if timestamp}
@@ -94,7 +95,7 @@
         {#if chat.freshMessageCounter > 0}
           <span class="unread">{unreadLabel}</span>
         {:else if chat.isPinned}
-          <span class="pin" aria-label="pinned" title="Pinned"><Icon name="pin" size={12} /></span>
+          <span class="pin" aria-label={t('pinned')} title={t('Pinned')}><Icon name="pin" size={12} /></span>
         {/if}
       </span>
     </span>

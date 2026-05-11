@@ -5,6 +5,7 @@
   // of `name` painted on `color`; if `imagePath` is set, renders the
   // daemon-served file instead.
   import { fileUrl } from './files';
+  import { t } from './i18n/i18n.svelte';
 
   type Props = {
     name: string;
@@ -54,7 +55,7 @@
   {#if seenRecently}
     <span
       class="presence"
-      aria-label="Online recently"
+      aria-label={t('Online recently')}
       style:width="{dotPx}px"
       style:height="{dotPx}px"
     ></span>

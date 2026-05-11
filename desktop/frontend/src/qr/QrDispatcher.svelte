@@ -9,6 +9,7 @@
   import { accounts } from '../lib/state/accounts.svelte';
   import { backToChat } from '../lib/state/mainRoute.svelte';
   import Scanner from './Scanner.svelte';
+  import { t } from '../lib/i18n/i18n.svelte';
 
   type Props = {
     purpose: 'newContact' | 'general';
@@ -131,45 +132,45 @@
   }
 
   let title = $derived.by(() => {
-    if (!qr) return purpose === 'newContact' ? 'New Contact — Scan QR' : 'Scan QR';
+    if (!qr) return purpose === 'newContact' ? t('New Contact — Scan QR') : t('Scan QR');
     switch (qr.obj.kind) {
       case 'askVerifyContact':
-        return 'Verify and start chat?';
+        return t('Verify and start chat?');
       case 'askVerifyGroup':
-        return 'Join group';
+        return t('Join group');
       case 'askJoinBroadcast':
-        return 'Join channel';
+        return t('Join channel');
       case 'fprOk':
-        return 'Fingerprint verified';
+        return t('Fingerprint verified');
       case 'fprMismatch':
-        return 'Fingerprint mismatch';
+        return t('Fingerprint mismatch');
       case 'fprWithoutAddr':
-        return 'Incomplete contact code';
+        return t('Incomplete contact code');
       case 'addr':
-        return 'Start chat?';
+        return t('Start chat?');
       case 'url':
-        return 'Open URL?';
+        return t('Open URL?');
       case 'text':
-        return 'Copy text?';
+        return t('Copy text?');
       case 'account':
-        return 'Account QR scanned';
+        return t('Account QR scanned');
       case 'backup2':
       case 'backupTooNew':
-        return 'Backup pair';
+        return t('Backup pair');
       case 'webrtcInstance':
-        return 'Use video service?';
+        return t('Use video service?');
       case 'proxy':
-        return 'Add proxy?';
+        return t('Add proxy?');
       case 'login':
-        return 'Login QR scanned';
+        return t('Login QR scanned');
       case 'withdrawVerifyContact':
       case 'withdrawVerifyGroup':
       case 'withdrawJoinBroadcast':
-        return 'Withdraw your QR?';
+        return t('Withdraw your QR?');
       case 'reviveVerifyContact':
       case 'reviveVerifyGroup':
       case 'reviveJoinBroadcast':
-        return 'Revive your QR?';
+        return t('Revive your QR?');
     }
   });
 
@@ -177,17 +178,17 @@
     if (!qr) return '';
     switch (qr.obj.kind) {
       case 'askVerifyContact':
-        return 'Start a verified chat with this contact.';
+        return t('Start a verified chat with this contact.');
       case 'askVerifyGroup':
-        return `Join group “${qr.obj.grpname}”.`;
+        return t('Join group “{name}”.', { name: qr.obj.grpname });
       case 'askJoinBroadcast':
-        return `Join channel “${qr.obj.name}”.`;
+        return t('Join channel “{name}”.', { name: qr.obj.name });
       case 'fprOk':
-        return 'Fingerprint matched. Start chat?';
+        return t('Fingerprint matched. Start chat?');
       case 'addr':
         return qr.obj.draft
-          ? `Start a chat. Suggested first message: “${qr.obj.draft}”.`
-          : 'Start a chat with this contact?';
+          ? t('Start a chat. Suggested first message: “{draft}”.', { draft: qr.obj.draft })
+          : t('Start a chat with this contact?');
       case 'url':
         return qr.obj.url;
       case 'text':
@@ -211,26 +212,26 @@
       case 'askVerifyContact':
       case 'fprOk':
       case 'addr':
-        return 'Start chat';
+        return t('Start chat');
       case 'askVerifyGroup':
       case 'askJoinBroadcast':
-        return 'Join';
+        return t('Join');
       case 'url':
-        return 'Open';
+        return t('Open');
       case 'text':
-        return 'Copy';
+        return t('Copy');
       case 'proxy':
       case 'webrtcInstance':
       case 'login':
-        return 'Apply';
+        return t('Apply');
       case 'withdrawVerifyContact':
       case 'withdrawVerifyGroup':
       case 'withdrawJoinBroadcast':
-        return 'Withdraw';
+        return t('Withdraw');
       case 'reviveVerifyContact':
       case 'reviveVerifyGroup':
       case 'reviveJoinBroadcast':
-        return 'Revive';
+        return t('Revive');
       default:
         return '';
     }
@@ -246,7 +247,7 @@
 
 <section class="qr">
   <header class="topbar" data-tauri-drag-region>
-    <button class="back" onclick={backToChat} aria-label="Back">‹ Back</button>
+    <button class="back" onclick={backToChat} aria-label={t('Back')}>‹ {t('Back')}</button>
     <h1>{title}</h1>
   </header>
 
@@ -255,12 +256,12 @@
       {#key scannerKey}
         <Scanner onResult={onScanned} onError={(m) => (errorMsg = m)} />
       {/key}
-      <p class="hint">Position the QR code inside the frame.</p>
+      <p class="hint">{t('Position the QR code inside the frame.')}</p>
       {#if errorMsg}
         <p class="error">{errorMsg}</p>
       {/if}
       {#if busy}
-        <p class="hint">Checking…</p>
+        <p class="hint">{t('Checking…')}</p>
       {/if}
     {:else}
       <div class="card">
@@ -272,11 +273,11 @@
           <p class="error">{errorMsg}</p>
         {/if}
         <div class="actions">
-          <button onclick={reset} disabled={busy}>Scan again</button>
+          <button onclick={reset} disabled={busy}>{t('Scan again')}</button>
           {#if actionLabel}
             <button class="primary" onclick={confirmCurrent} disabled={busy}>{actionLabel}</button>
           {:else}
-            <button class="primary" onclick={() => backToChat()} disabled={busy}>OK</button>
+            <button class="primary" onclick={() => backToChat()} disabled={busy}>{t('OK')}</button>
           {/if}
         </div>
       </div>

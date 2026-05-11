@@ -7,6 +7,7 @@
   } from '../lib/state/contacts.svelte';
   import { accounts } from '../lib/state/accounts.svelte';
   import ContactRow from '../compose/ContactRow.svelte';
+  import { t } from '../lib/i18n/i18n.svelte';
 
   type Props = {
     open: boolean;
@@ -42,7 +43,7 @@
     class="overlay"
     role="dialog"
     aria-modal="true"
-    aria-label="Pick a contact"
+    aria-label={t('Pick a contact')}
     tabindex="-1"
     onclick={(e) => {
       if (e.target === e.currentTarget) onClose();
@@ -53,14 +54,14 @@
   >
     <div class="card">
       <header>
-        <h2>Send Contact</h2>
-        <button class="close" onclick={onClose} aria-label="Close">✕</button>
+        <h2>{t('Send Contact')}</h2>
+        <button class="close" onclick={onClose} aria-label={t('Close')}>✕</button>
       </header>
       <!-- svelte-ignore a11y_autofocus -->
       <input
         class="search"
         type="search"
-        placeholder="Search contacts…"
+        placeholder={t('Search contacts…')}
         bind:value={search}
         autofocus
       />
@@ -71,7 +72,7 @@
           </li>
         {/each}
         {#if !contacts.loading && contacts.contacts.length === 0}
-          <li class="empty">No contacts.</li>
+          <li class="empty">{t('No contacts.')}</li>
         {/if}
       </ul>
     </div>

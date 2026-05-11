@@ -19,7 +19,7 @@
   import { bindGlobalShortcuts, onShortcut } from '../lib/shortcuts';
   import { setPaneMode, backToInbox } from '../lib/state/paneMode.svelte';
   import { backToChat } from '../lib/state/mainRoute.svelte';
-  import { loadPreferredLocale } from '../lib/i18n/i18n';
+  import { loadPreferredLocale, t } from '../lib/i18n/i18n.svelte';
   import NavTabs from './NavTabs.svelte';
   import ChatListPane from './ChatListPane.svelte';
   import MainPane from './MainPane.svelte';
@@ -185,11 +185,11 @@
       <div class="boot-title">qxp</div>
       <div class="boot-status">
         {#if connectionStatus === 'connecting' || connectionStatus === 'idle'}
-          Connecting…
+          {t('Connecting…')}
         {:else if connectionStatus === 'disconnected'}
-          Disconnected — retrying…
+          {t('Disconnected — retrying…')}
         {:else}
-          Loading…
+          {t('Loading…')}
         {/if}
       </div>
     </div>
@@ -197,7 +197,7 @@
 {:else if accounts.configuredIds.length === 0 || showAddAccountOnboarding}
   <Onboarding />
   {#if showAddAccountOnboarding && accounts.configuredIds.length > 0}
-    <button class="onboarding-back" onclick={() => (showAddAccountOnboarding = false)}>← Back</button>
+    <button class="onboarding-back" onclick={() => (showAddAccountOnboarding = false)}>← {t('Back')}</button>
   {/if}
 {:else}
   <div class="shell">

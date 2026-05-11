@@ -1,5 +1,6 @@
 <script lang="ts">
   import type { Message } from '../lib/state/chat.svelte';
+  import { t } from '../lib/i18n/i18n.svelte';
 
   type Props = {
     /** Message being quoted/edited (or null = no bar). */
@@ -13,8 +14,8 @@
 
   let label = $derived.by(() => {
     if (!target) return '';
-    if (mode === 'edit') return 'Editing message';
-    return target.sender?.displayName || target.overrideSenderName || 'Reply';
+    if (mode === 'edit') return t('Editing message');
+    return target.sender?.displayName || target.overrideSenderName || t('Reply');
   });
 
   let preview = $derived.by(() => {
@@ -23,16 +24,16 @@
     switch (target.viewType) {
       case 'Image':
       case 'Gif':
-        return '🖼 Image';
+        return `🖼 ${t('Image')}`;
       case 'Video':
-        return '🎞 Video';
+        return `🎞 ${t('Video')}`;
       case 'Audio':
       case 'Voice':
-        return '🎤 Voice';
+        return `🎤 ${t('Voice')}`;
       case 'File':
-        return '📎 File';
+        return `📎 ${t('File')}`;
       case 'Vcard':
-        return '👤 Contact';
+        return `👤 ${t('Contact')}`;
       default:
         return '';
     }
@@ -46,7 +47,7 @@
       <span class="label">{label}</span>
       <span class="preview">{preview}</span>
     </div>
-    <button class="close" onclick={onClose} aria-label="Cancel">✕</button>
+    <button class="close" onclick={onClose} aria-label={t('Cancel')}>✕</button>
   </div>
 {/if}
 

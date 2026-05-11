@@ -6,6 +6,7 @@
   import { setMainRoute } from '../lib/state/mainRoute.svelte';
   import SettingsSection from '../lib/SettingsSection.svelte';
   import SettingsRow from '../lib/SettingsRow.svelte';
+  import { t } from '../lib/i18n/i18n.svelte';
 
   let status = $state<'idle' | 'exporting' | 'ready' | 'error'>('idle');
   let progress = $state(0);
@@ -18,7 +19,7 @@
     const p = Number(ev.event.progress);
     if (p === 0) {
       status = 'error';
-      message = 'Backup failed.';
+      message = t('Backup failed.');
     } else if (p === 1000) {
       status = 'ready';
       progress = 1000;
@@ -55,38 +56,38 @@
   }
 </script>
 
-<h2>Backup</h2>
+<h2>{t('Backup')}</h2>
 
 <SettingsSection
-  title="Export backup"
-  footer="Save your account as a .tar file you can restore on another device."
+  title={t('Export backup')}
+  footer={t('Save your account as a .tar file you can restore on another device.')}
 >
   {#if status === 'idle'}
-    <SettingsRow label="Export backup" icon="hard-drive" onClick={startExport} />
+    <SettingsRow label={t('Export backup')} icon="hard-drive" onClick={startExport} />
   {:else if status === 'exporting'}
     <div class="progress-row">
-      <span class="label">Exporting…</span>
+      <span class="label">{t('Exporting…')}</span>
       <progress max="1000" value={progress}></progress>
       <span class="pct">{Math.round((progress / 1000) * 100)}%</span>
     </div>
   {:else if status === 'ready' && writtenPath}
     <a class="row link" href={fileUrl(writtenPath)} download>
-      <span class="label">Download backup</span>
-      <span class="value">Saved to {writtenPath}</span>
+      <span class="label">{t('Download backup')}</span>
+      <span class="value">{t('Saved to {path}', { path: writtenPath })}</span>
     </a>
   {:else if status === 'error'}
     <div class="row">
-      <span class="label danger">{message ?? 'Export failed'}</span>
-      <button class="ghost" onclick={() => (status = 'idle')}>Try again</button>
+      <span class="label danger">{message ?? t('Export failed')}</span>
+      <button class="ghost" onclick={() => (status = 'idle')}>{t('Try again')}</button>
     </div>
   {/if}
 </SettingsSection>
 
 <SettingsSection
-  title="Pair another device"
-  footer="Show a QR on this device that another Delta Chat client can scan to receive a copy of your account."
+  title={t('Pair another device')}
+  footer={t('Show a QR on this device that another Delta Chat client can scan to receive a copy of your account.')}
 >
-  <SettingsRow label="Show pair QR" icon="qr-code" onClick={pairAsSecondDevice} />
+  <SettingsRow label={t('Show pair QR')} icon="qr-code" onClick={pairAsSecondDevice} />
 </SettingsSection>
 
 <style>

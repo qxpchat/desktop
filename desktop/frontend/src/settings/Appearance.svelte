@@ -1,5 +1,6 @@
 <script lang="ts">
   import { prefs, savePrefs, type Theme } from '../lib/prefs.svelte';
+  import { t } from '../lib/i18n/i18n.svelte';
 
   const THEMES: Theme[] = ['system', 'light', 'dark'];
 
@@ -75,8 +76,8 @@
     ...HUES.map((h) => ({ value: darken(h.rgb), label: `${h.name} dark` })),
   ];
 
-  function setTheme(t: Theme) {
-    prefs.theme = t;
+  function setTheme(theme: Theme) {
+    prefs.theme = theme;
     savePrefs();
   }
 
@@ -85,12 +86,18 @@
     savePrefs();
   }
 
-  const TEXT_SIZES = [
-    { label: 'Small', value: 0.85 },
-    { label: 'Default', value: 1 },
-    { label: 'Large', value: 1.15 },
-    { label: 'X-Large', value: 1.3 },
-  ];
+  const TEXT_SIZES = $derived([
+    { label: t('Small'), value: 0.85 },
+    { label: t('Default'), value: 1 },
+    { label: t('Large'), value: 1.15 },
+    { label: t('X-Large'), value: 1.3 },
+  ]);
+
+  const THEME_LABELS: Record<Theme, () => string> = {
+    system: () => t('System'),
+    light: () => t('Light'),
+    dark: () => t('Dark'),
+  };
 
   function setTextScale(v: number) {
     prefs.textScale = v;
@@ -98,27 +105,27 @@
   }
 </script>
 
-<h2>Appearance</h2>
+<h2>{t('Appearance')}</h2>
 
 <section class="block">
-  <h3>Theme</h3>
-  <div class="seg" role="radiogroup" aria-label="Theme">
-    {#each THEMES as t}
+  <h3>{t('Theme')}</h3>
+  <div class="seg" role="radiogroup" aria-label={t('Theme')}>
+    {#each THEMES as theme}
       <button
         role="radio"
-        aria-checked={prefs.theme === t}
-        class:active={prefs.theme === t}
-        onclick={() => setTheme(t)}
+        aria-checked={prefs.theme === theme}
+        class:active={prefs.theme === theme}
+        onclick={() => setTheme(theme)}
       >
-        {t}
+        {THEME_LABELS[theme]()}
       </button>
     {/each}
   </div>
 </section>
 
 <section class="block">
-  <h3>Accent color</h3>
-  <div class="swatches" role="radiogroup" aria-label="Accent color">
+  <h3>{t('Accent color')}</h3>
+  <div class="swatches" role="radiogroup" aria-label={t('Accent color')}>
     {#each swatches as s (s.value + s.label)}
       <button
         class="swatch"
@@ -133,20 +140,20 @@
 </section>
 
 <section class="block">
-  <h3>Text size</h3>
-  <div class="seg" role="radiogroup" aria-label="Text size">
-    {#each TEXT_SIZES as t}
+  <h3>{t('Text size')}</h3>
+  <div class="seg" role="radiogroup" aria-label={t('Text size')}>
+    {#each TEXT_SIZES as size}
       <button
         role="radio"
-        aria-checked={prefs.textScale === t.value}
-        class:active={prefs.textScale === t.value}
-        onclick={() => setTextScale(t.value)}
+        aria-checked={prefs.textScale === size.value}
+        class:active={prefs.textScale === size.value}
+        onclick={() => setTextScale(size.value)}
       >
-        {t.label}
+        {size.label}
       </button>
     {/each}
   </div>
-  <p class="hint">Affects every text element using the size tokens — most of the app.</p>
+  <p class="hint">{t('Affects every text element using the size tokens — most of the app.')}</p>
 </section>
 
 <style>

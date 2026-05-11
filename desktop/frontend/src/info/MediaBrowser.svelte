@@ -9,6 +9,7 @@
   import { fileUrl, formatBytes } from '../lib/files';
   import { onEvent } from '../lib/events';
   import Icon from '../lib/Icon.svelte';
+  import { t } from '../lib/i18n/i18n.svelte';
 
   type Props = { chatId: number };
   let { chatId }: Props = $props();
@@ -100,28 +101,28 @@
 
 <section class="media">
   <header class="topbar">
-    <button class="back" onclick={backToChat} aria-label="Back">‹ Back</button>
-    <h1>Media</h1>
+    <button class="back" onclick={backToChat} aria-label={t('Back')}>‹ {t('Back')}</button>
+    <h1>{t('Media')}</h1>
   </header>
 
   <div class="tabs" role="tablist">
-    {#each ['gallery', 'audio', 'files'] as t}
+    {#each [{ id: 'gallery', label: t('Gallery') }, { id: 'audio', label: t('Audio') }, { id: 'files', label: t('Files') }] as tabDef}
       <button
         role="tab"
-        class:active={tab === t}
-        aria-selected={tab === t}
-        onclick={() => (tab = t as Tab)}
+        class:active={tab === tabDef.id}
+        aria-selected={tab === tabDef.id}
+        onclick={() => (tab = tabDef.id as Tab)}
       >
-        {t.charAt(0).toUpperCase() + t.slice(1)}
+        {tabDef.label}
       </button>
     {/each}
   </div>
 
   <div class="body">
     {#if loading}
-      <p class="muted">Loading…</p>
+      <p class="muted">{t('Loading…')}</p>
     {:else if items.length === 0}
-      <p class="muted">Nothing yet.</p>
+      <p class="muted">{t('Nothing yet.')}</p>
     {:else if tab === 'gallery'}
       <div class="grid">
         {#each items as m (m.id)}
@@ -143,11 +144,11 @@
               <Icon name={m.viewType === 'Voice' ? 'mic' : 'music'} size={18} stroke={2} />
             </span>
             <span class="meta">
-              <span class="name">{m.fileName ?? (m.viewType === 'Voice' ? 'Voice message' : 'Audio')}</span>
+              <span class="name">{m.fileName ?? (m.viewType === 'Voice' ? t('Voice message') : t('Audio'))}</span>
               <span class="sub">{new Date(m.timestamp * 1000).toLocaleString()} · {formatBytes(m.fileBytes)}</span>
             </span>
-            <button class="link" onclick={() => jump(m.id)}>Show</button>
-            <button class="link danger" onclick={() => void deleteItem(m.id)}>Delete</button>
+            <button class="link" onclick={() => jump(m.id)}>{t('Show')}</button>
+            <button class="link danger" onclick={() => void deleteItem(m.id)}>{t('Delete')}</button>
           </li>
         {/each}
       </ul>
@@ -159,12 +160,12 @@
               <Icon name="paperclip" size={18} stroke={2} />
             </span>
             <span class="meta">
-              <span class="name">{m.fileName ?? 'file'}</span>
+              <span class="name">{m.fileName ?? t('file')}</span>
               <span class="sub">{new Date(m.timestamp * 1000).toLocaleString()} · {formatBytes(m.fileBytes)}</span>
             </span>
-            <a class="link" href={fileUrl(m.file ?? undefined)} download={m.fileName ?? undefined}>Download</a>
-            <button class="link" onclick={() => jump(m.id)}>Show</button>
-            <button class="link danger" onclick={() => void deleteItem(m.id)}>Delete</button>
+            <a class="link" href={fileUrl(m.file ?? undefined)} download={m.fileName ?? undefined}>{t('Download')}</a>
+            <button class="link" onclick={() => jump(m.id)}>{t('Show')}</button>
+            <button class="link danger" onclick={() => void deleteItem(m.id)}>{t('Delete')}</button>
           </li>
         {/each}
       </ul>

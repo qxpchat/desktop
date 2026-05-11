@@ -1,6 +1,7 @@
 <script lang="ts">
   import { onboarding, loginManually } from '../lib/state/onboarding.svelte';
   import ProgressOverlay from './ProgressOverlay.svelte';
+  import { t } from '../lib/i18n/i18n.svelte';
 
   type Props = {
     onBack: () => void;
@@ -44,13 +45,13 @@
 </script>
 
 <header class="topbar" data-tauri-drag-region>
-  <button class="back" onclick={onBack} aria-label="Back">‹ Back</button>
-  <h1>Manual Setup</h1>
+  <button class="back" onclick={onBack} aria-label={t('Back')}>‹ {t('Back')}</button>
+  <h1>{t('Manual Setup')}</h1>
 </header>
 
 <main class="manual">
   <label class="field">
-    <span class="label">Email</span>
+    <span class="label">{t('Email')}</span>
     <input
       type="email"
       bind:value={addr}
@@ -62,67 +63,67 @@
   </label>
 
   <label class="field">
-    <span class="label">Password</span>
+    <span class="label">{t('Password')}</span>
     <input type="password" bind:value={mailPw} autocomplete="current-password" />
   </label>
 
   <button class="advanced-toggle" onclick={() => (advancedOpen = !advancedOpen)} aria-expanded={advancedOpen}>
-    {advancedOpen ? '▾' : '▸'} Advanced
+    {advancedOpen ? '▾' : '▸'} {t('Advanced')}
   </button>
 
   {#if advancedOpen}
     <fieldset>
-      <legend>IMAP (incoming)</legend>
+      <legend>{t('IMAP (incoming)')}</legend>
       <label class="field">
-        <span class="label">Server</span>
+        <span class="label">{t('Server')}</span>
         <input bind:value={mail_server} placeholder="imap.example.com" autocapitalize="off" spellcheck="false" />
       </label>
       <label class="field">
-        <span class="label">Port</span>
+        <span class="label">{t('Port')}</span>
         <input type="number" bind:value={mail_port} placeholder="993" />
       </label>
       <label class="field">
-        <span class="label">Security</span>
+        <span class="label">{t('Security')}</span>
         <select bind:value={mail_security}>
-          <option value="">Auto</option>
+          <option value="">{t('Auto')}</option>
           <option value="1">SSL/TLS</option>
           <option value="2">STARTTLS</option>
-          <option value="3">Plain</option>
+          <option value="3">{t('Plain')}</option>
         </select>
       </label>
       <label class="field">
-        <span class="label">Cert check</span>
+        <span class="label">{t('Cert check')}</span>
         <select bind:value={imap_certificate_checks}>
-          <option value="">Auto</option>
-          <option value="1">Strict</option>
-          <option value="3">Accept invalid</option>
+          <option value="">{t('Auto')}</option>
+          <option value="1">{t('Strict')}</option>
+          <option value="3">{t('Accept invalid')}</option>
         </select>
       </label>
     </fieldset>
 
     <fieldset>
-      <legend>SMTP (outgoing)</legend>
+      <legend>{t('SMTP (outgoing)')}</legend>
       <label class="field">
-        <span class="label">Server</span>
+        <span class="label">{t('Server')}</span>
         <input bind:value={send_server} placeholder="smtp.example.com" autocapitalize="off" spellcheck="false" />
       </label>
       <label class="field">
-        <span class="label">Port</span>
+        <span class="label">{t('Port')}</span>
         <input type="number" bind:value={send_port} placeholder="465" />
       </label>
       <label class="field">
-        <span class="label">Security</span>
+        <span class="label">{t('Security')}</span>
         <select bind:value={send_security}>
-          <option value="">Auto</option>
+          <option value="">{t('Auto')}</option>
           <option value="1">SSL/TLS</option>
           <option value="2">STARTTLS</option>
-          <option value="3">Plain</option>
+          <option value="3">{t('Plain')}</option>
         </select>
       </label>
     </fieldset>
   {/if}
 
-  <button class="primary" disabled={!canLogin} onclick={login}>Log In</button>
+  <button class="primary" disabled={!canLogin} onclick={login}>{t('Log In')}</button>
 </main>
 
 <ProgressOverlay />

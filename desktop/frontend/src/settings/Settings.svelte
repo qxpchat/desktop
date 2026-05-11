@@ -12,6 +12,7 @@
   import Connectivity from './Connectivity.svelte';
   import Logs from './Logs.svelte';
   import Icon, { type IconName } from '../lib/Icon.svelte';
+  import { t } from '../lib/i18n/i18n.svelte';
 
   type Section =
     | 'profile'
@@ -32,16 +33,16 @@
   let connectivitySubView = $state<string | undefined>(initial?.subView);
   let loggingOut = $state(false);
 
-  const sections: { id: Section; label: string; icon: IconName }[] = [
-    { id: 'profile', label: 'Profile', icon: 'user' },
-    { id: 'appearance', label: 'Appearance', icon: 'palette' },
-    { id: 'chats', label: 'Chats & Media', icon: 'message-circle' },
-    { id: 'connectivity', label: 'Connectivity', icon: 'globe' },
-    { id: 'blocked', label: 'Blocked', icon: 'ban' },
-    { id: 'backup', label: 'Backup', icon: 'hard-drive' },
-    { id: 'logs', label: 'Logs', icon: 'file-text' },
-    { id: 'about', label: 'About', icon: 'info' },
-  ];
+  const sections: { id: Section; label: string; icon: IconName }[] = $derived([
+    { id: 'profile', label: t('Profile'), icon: 'user' },
+    { id: 'appearance', label: t('Appearance'), icon: 'palette' },
+    { id: 'chats', label: t('Chats & Media'), icon: 'message-circle' },
+    { id: 'connectivity', label: t('Connectivity'), icon: 'globe' },
+    { id: 'blocked', label: t('Blocked'), icon: 'ban' },
+    { id: 'backup', label: t('Backup'), icon: 'hard-drive' },
+    { id: 'logs', label: t('Logs'), icon: 'file-text' },
+    { id: 'about', label: t('About'), icon: 'info' },
+  ]);
 
   let activeProfile = $derived(
     profiles.list.find((p) => p.id === accounts.selectedId) ?? null,
@@ -51,7 +52,7 @@
     const id = accounts.selectedId;
     if (id == null) return;
     const label = activeProfile?.displayName ?? `account ${id}`;
-    if (!confirm(`Log out of "${label}"? All local data for this account will be deleted.`)) {
+    if (!confirm(t('Log out of "{name}"? All local data for this account will be deleted.', { name: label }))) {
       return;
     }
     loggingOut = true;
@@ -61,7 +62,7 @@
       await refreshProfiles(accounts.configuredIds);
       backToChat();
     } catch (err) {
-      alert(`Logout failed: ${err instanceof Error ? err.message : String(err)}`);
+      alert(`${t('Logout failed')}: ${err instanceof Error ? err.message : String(err)}`);
     } finally {
       loggingOut = false;
     }
@@ -70,14 +71,14 @@
 
 <section class="settings">
   <header class="topbar" data-tauri-drag-region>
-    <button class="back" onclick={backToChat} aria-label="Back">
-      <Icon name="chevron-left" size={16} /> Back
+    <button class="back" onclick={backToChat} aria-label={t('Back')}>
+      <Icon name="chevron-left" size={16} /> {t('Back')}
     </button>
-    <h1>Settings</h1>
+    <h1>{t('Settings')}</h1>
   </header>
 
   <div class="body">
-    <nav class="rail" aria-label="Settings sections">
+    <nav class="rail" aria-label={t('Settings sections')}>
       {#each sections as s}
         <button
           class:active={active === s.id}
@@ -117,7 +118,7 @@
       <div class="logout-row">
         <button class="logout" disabled={loggingOut} onclick={logout}>
           <Icon name="log-out" size={16} />
-          {loggingOut ? 'Logging out…' : 'Log out'}
+          {loggingOut ? t('Logging out…') : t('Log out')}
         </button>
       </div>
     </div>

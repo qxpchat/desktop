@@ -3,6 +3,7 @@
   import { rpc } from '../../lib/rpc';
   import { accounts } from '../../lib/state/accounts.svelte';
   import { selectChat } from '../../lib/state/selection.svelte';
+  import { t } from '../../lib/i18n/i18n.svelte';
 
   type Props = {
     message: Message;
@@ -36,11 +37,11 @@
       ]);
       selectChat(chatId);
     } catch (err) {
-      alert(`Could not open chat: ${err instanceof Error ? err.message : String(err)}`);
+      alert(`${t('Could not open chat')}: ${err instanceof Error ? err.message : String(err)}`);
     }
   }
 
-  let label = $derived(vc?.displayName || vc?.authname || vc?.addr || 'Contact');
+  let label = $derived(vc?.displayName || vc?.authname || vc?.addr || t('Contact'));
   let initial = $derived(label[0]?.toUpperCase() ?? '?');
 </script>
 
@@ -53,7 +54,7 @@
     {/if}
   </span>
   {#if vc?.addr}
-    <button class="open" onclick={openChat}>Open chat</button>
+    <button class="open" onclick={openChat}>{t('Open chat')}</button>
   {/if}
 </div>
 {#if message.text}

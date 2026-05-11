@@ -1,5 +1,6 @@
 <script lang="ts">
   import Logo from '../lib/Logo.svelte';
+  import { t } from '../lib/i18n/i18n.svelte';
 
   type Props = {
     onSignUp: () => void;
@@ -45,22 +46,22 @@
       <Logo size="clamp(96px, 22vw, 168px)" />
     </div>
     <div class="wordmark">qxp</div>
-    <p class="tagline">Chat over Email</p>
+    <p class="tagline">{t('Chat over Email')}</p>
   </div>
 
   <div class="actions">
-    <button class="primary" onclick={signUp}>Sign Up</button>
+    <button class="primary" onclick={signUp}>{t('Sign Up')}</button>
 
     <div class="alt">
       <button class="secondary" aria-haspopup="menu" aria-expanded={altMenuOpen} onclick={toggleAlt}>
-        I Already Have a Profile
+        {t('I Already Have a Profile')}
       </button>
 
       {#if altMenuOpen}
         <div class="alt-menu" role="menu">
-          <button role="menuitem" onclick={manualSetup}>Manual Setup</button>
-          <button role="menuitem" onclick={restoreBackup}>Restore Backup</button>
-          <button role="menuitem" onclick={addAsSecondDevice}>Add as Second Device</button>
+          <button role="menuitem" onclick={manualSetup}>{t('Manual Setup')}</button>
+          <button role="menuitem" onclick={restoreBackup}>{t('Restore Backup')}</button>
+          <button role="menuitem" onclick={addAsSecondDevice}>{t('Add as Second Device')}</button>
         </div>
       {/if}
     </div>

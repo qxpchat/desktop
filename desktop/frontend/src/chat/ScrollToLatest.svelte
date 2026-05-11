@@ -1,6 +1,7 @@
 <script lang="ts">
   import { scale } from 'svelte/transition';
   import { cubicOut } from 'svelte/easing';
+  import { t } from '../lib/i18n/i18n.svelte';
 
   type Props = {
     visible: boolean;
@@ -15,7 +16,7 @@
   <button
     class="scroll-to-latest"
     onclick={onClick}
-    aria-label="Scroll to latest"
+    aria-label={t('Scroll to latest')}
     transition:scale={{ start: 0.7, duration: 160, easing: cubicOut }}
   >
     <span class="arrow" aria-hidden="true">↓</span>

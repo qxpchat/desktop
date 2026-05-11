@@ -9,6 +9,7 @@
   import { selectChat } from '../lib/state/selection.svelte';
   import Avatar from '../lib/Avatar.svelte';
   import Icon from '../lib/Icon.svelte';
+  import { t } from '../lib/i18n/i18n.svelte';
 
   type Props = { chatId: number };
   let { chatId }: Props = $props();
@@ -198,25 +199,25 @@
     setMainRoute({ kind: 'qrShow', chatId: chat.id });
   }
 
-  const EPHEMERAL_OPTIONS = [
-    { v: 0, l: 'Off' },
-    { v: 30, l: '30 sec' },
-    { v: 300, l: '5 min' },
-    { v: 3600, l: '1 hour' },
-    { v: 86400, l: '1 day' },
-    { v: 604800, l: '1 week' },
-    { v: 2592000, l: '4 weeks' },
-  ];
+  const EPHEMERAL_OPTIONS = $derived([
+    { v: 0, l: t('Off') },
+    { v: 30, l: t('30 sec') },
+    { v: 300, l: t('5 min') },
+    { v: 3600, l: t('1 hour') },
+    { v: 86400, l: t('1 day') },
+    { v: 604800, l: t('1 week') },
+    { v: 2592000, l: t('4 weeks') },
+  ]);
 </script>
 
 <section class="info">
   <header class="topbar">
-    <button class="back" onclick={backToChat} aria-label="Back">‹ Back</button>
-    <h1>Info</h1>
+    <button class="back" onclick={backToChat} aria-label={t('Back')}>‹ {t('Back')}</button>
+    <h1>{t('Info')}</h1>
   </header>
 
   {#if !loaded || !chat}
-    <p class="muted">Loading…</p>
+    <p class="muted">{t('Loading…')}</p>
   {:else}
     <div class="header">
       <Avatar
@@ -226,15 +227,15 @@
         size={96}
       />
       {#if editingName}
-        <input bind:value={nameInput} placeholder="Name" />
+        <input bind:value={nameInput} placeholder={t('Name')} />
         <div class="actions">
-          <button onclick={() => (editingName = false)}>Cancel</button>
-          <button class="primary" onclick={rename}>Save</button>
+          <button onclick={() => (editingName = false)}>{t('Cancel')}</button>
+          <button class="primary" onclick={rename}>{t('Save')}</button>
         </div>
       {:else}
-        <h2>{chat.name || '(no name)'}</h2>
+        <h2>{chat.name || t('(no name)')}</h2>
         {#if isGroup || isBroadcast}
-          <button class="link" onclick={() => { nameInput = chat?.name ?? ''; editingName = true; }}>Rename</button>
+          <button class="link" onclick={() => { nameInput = chat?.name ?? ''; editingName = true; }}>{t('Rename')}</button>
         {/if}
         {#if other?.address}
           <p class="muted">{other.address}</p>
@@ -244,12 +245,12 @@
 
     <div class="group">
       <button class="row link" onclick={showMedia}>
-        <span class="label">Media, Audio &amp; Files</span>
+        <span class="label">{t('Media, Audio & Files')}</span>
         <Icon name="chevron-right" size={14} />
       </button>
       {#if (isGroup || isBroadcast) && chat.isEncrypted}
         <button class="row link" onclick={showQr}>
-          <span class="label">Invite QR</span>
+          <span class="label">{t('Invite QR')}</span>
           <Icon name="chevron-right" size={14} />
         </button>
       {/if}
@@ -257,7 +258,7 @@
 
     <div class="group">
       <div class="row">
-        <span class="label">Disappearing messages</span>
+        <span class="label">{t('Disappearing messages')}</span>
         <select onchange={(e) => void setEphemeral(Number((e.currentTarget as HTMLSelectElement).value))} value={chat.ephemeralTimer}>
           {#each EPHEMERAL_OPTIONS as o}
             <option value={o.v}>{o.l}</option>
@@ -267,12 +268,12 @@
     </div>
 
     {#if isSingle && sharedChats.length > 0}
-      <h3>Shared Chats</h3>
+      <h3>{t('Shared Chats')}</h3>
       <div class="group">
         {#each sharedChats as s (s.id)}
           <button class="row link" onclick={() => openSharedChat(s.id)}>
             <Avatar name={s.name} color={s.color} imagePath={s.profileImage} size={32} />
-            <span class="label shared-name">{s.name || '(no name)'}</span>
+            <span class="label shared-name">{s.name || t('(no name)')}</span>
             <Icon name="chevron-right" size={14} />
           </button>
         {/each}
@@ -280,7 +281,7 @@
     {/if}
 
     {#if isGroup || isBroadcast}
-      <h3>Members ({members.length})</h3>
+      <h3>{t('Members')} ({members.length})</h3>
       <ul class="members">
         {#each members as m (m.id)}
           <li>
@@ -290,7 +291,7 @@
               <span class="m-addr">{m.address}</span>
             </span>
             {#if m.id !== 1 && chat.selfInGroup}
-              <button class="link-danger" onclick={() => void removeMember(m.id)}>Remove</button>
+              <button class="link-danger" onclick={() => void removeMember(m.id)}>{t('Remove')}</button>
             {/if}
           </li>
         {/each}
@@ -300,7 +301,7 @@
     {#if isSingle && other}
       <div class="group">
         <button class="row danger-row" onclick={blockContact}>
-          <span class="label">Block contact</span>
+          <span class="label">{t('Block contact')}</span>
         </button>
       </div>
     {/if}
@@ -308,11 +309,11 @@
     <div class="group">
       {#if (isGroup || isBroadcast) && chat.selfInGroup}
         <button class="row danger-row" onclick={leave}>
-          <span class="label">Leave</span>
+          <span class="label">{t('Leave')}</span>
         </button>
       {/if}
       <button class="row danger-row" onclick={deleteChat}>
-        <span class="label">Delete chat</span>
+        <span class="label">{t('Delete chat')}</span>
       </button>
     </div>
   {/if}

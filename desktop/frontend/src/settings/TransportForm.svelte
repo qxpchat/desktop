@@ -26,6 +26,7 @@
   // one). Advanced IMAP/SMTP/cert fields are hidden behind a disclosure;
   // leave them blank to let the core auto-discover.
   import Icon from '../lib/Icon.svelte';
+  import { t } from '../lib/i18n/i18n.svelte';
 
   type Props =
     | { mode: 'add'; existing?: undefined; onSubmit: (p: LoginParam) => void; onCancel: () => void }
@@ -57,18 +58,18 @@
   // Security and cert-check enums must match the JSON tags in
   // `EnteredCertificateChecks` / `Socket` (the Rust types). Same string set
   // as iOS TransportFormView.swift.
-  const securityOptions = [
-    { value: 'automatic', label: 'Automatic' },
+  const securityOptions = $derived([
+    { value: 'automatic', label: t('Automatic') },
     { value: 'ssl', label: 'SSL/TLS' },
     { value: 'starttls', label: 'StartTLS' },
-    { value: 'plain', label: 'Off' },
-  ];
+    { value: 'plain', label: t('Off') },
+  ]);
 
-  const certOptions = [
-    { value: 'automatic', label: 'Automatic' },
-    { value: 'strict', label: 'Strict' },
-    { value: 'acceptInvalidCertificates', label: 'Accept Invalid Certificates' },
-  ];
+  const certOptions = $derived([
+    { value: 'automatic', label: t('Automatic') },
+    { value: 'strict', label: t('Strict') },
+    { value: 'acceptInvalidCertificates', label: t('Accept Invalid Certificates') },
+  ]);
 
   let canSubmit = $derived(email.trim().length > 0 && password.length > 0);
 
@@ -104,13 +105,13 @@
 <div class="overlay" role="dialog" aria-modal="true">
   <div class="dialog">
     <header class="head">
-      <h3>{isEdit ? 'Edit Relay' : 'Manual Setup'}</h3>
-      <button class="close" onclick={onCancel} aria-label="Cancel"><Icon name="x" size={16} /></button>
+      <h3>{isEdit ? t('Edit Relay') : t('Manual Setup')}</h3>
+      <button class="close" onclick={onCancel} aria-label={t('Cancel')}><Icon name="x" size={16} /></button>
     </header>
 
     <div class="form">
       <label class="field">
-        <span>Email</span>
+        <span>{t('Email')}</span>
         <!-- svelte-ignore a11y_autofocus -->
         <input
           type="email"
@@ -123,7 +124,7 @@
         />
       </label>
       <label class="field">
-        <span>Password</span>
+        <span>{t('Password')}</span>
         <input
           type="password"
           bind:value={password}
@@ -136,13 +137,13 @@
 
       <button class="disclosure" onclick={() => (advancedOpen = !advancedOpen)} type="button">
         <Icon name={advancedOpen ? 'arrow-down' : 'chevron-right'} size={14} />
-        More options
+        {t('More options')}
       </button>
 
       {#if advancedOpen}
         <div class="advanced">
           <label class="field">
-            <span>IMAP Security</span>
+            <span>{t('IMAP Security')}</span>
             <select bind:value={imapSecurity}>
               {#each securityOptions as o (o.value)}
                 <option value={o.value}>{o.label}</option>
@@ -150,25 +151,25 @@
             </select>
           </label>
           <label class="field">
-            <span>IMAP Login</span>
-            <input bind:value={imapUser} placeholder="Automatic" autocapitalize="off" autocorrect="off" spellcheck="false" />
+            <span>{t('IMAP Login')}</span>
+            <input bind:value={imapUser} placeholder={t('Automatic')} autocapitalize="off" autocorrect="off" spellcheck="false" />
           </label>
           <label class="field">
-            <span>IMAP Server</span>
-            <input bind:value={imapServer} placeholder="Automatic" autocapitalize="off" autocorrect="off" spellcheck="false" />
+            <span>{t('IMAP Server')}</span>
+            <input bind:value={imapServer} placeholder={t('Automatic')} autocapitalize="off" autocorrect="off" spellcheck="false" />
           </label>
           <label class="field">
-            <span>IMAP Port</span>
+            <span>{t('IMAP Port')}</span>
             <input
               bind:value={imapPort}
-              placeholder="Automatic"
+              placeholder={t('Automatic')}
               inputmode="numeric"
               pattern="\d*"
             />
           </label>
 
           <label class="field">
-            <span>SMTP Security</span>
+            <span>{t('SMTP Security')}</span>
             <select bind:value={smtpSecurity}>
               {#each securityOptions as o (o.value)}
                 <option value={o.value}>{o.label}</option>
@@ -176,29 +177,29 @@
             </select>
           </label>
           <label class="field">
-            <span>SMTP Login</span>
-            <input bind:value={smtpUser} placeholder="Automatic" autocapitalize="off" autocorrect="off" spellcheck="false" />
+            <span>{t('SMTP Login')}</span>
+            <input bind:value={smtpUser} placeholder={t('Automatic')} autocapitalize="off" autocorrect="off" spellcheck="false" />
           </label>
           <label class="field">
-            <span>SMTP Password</span>
-            <input type="password" bind:value={smtpPassword} placeholder="Automatic" />
+            <span>{t('SMTP Password')}</span>
+            <input type="password" bind:value={smtpPassword} placeholder={t('Automatic')} />
           </label>
           <label class="field">
-            <span>SMTP Server</span>
-            <input bind:value={smtpServer} placeholder="Automatic" autocapitalize="off" autocorrect="off" spellcheck="false" />
+            <span>{t('SMTP Server')}</span>
+            <input bind:value={smtpServer} placeholder={t('Automatic')} autocapitalize="off" autocorrect="off" spellcheck="false" />
           </label>
           <label class="field">
-            <span>SMTP Port</span>
+            <span>{t('SMTP Port')}</span>
             <input
               bind:value={smtpPort}
-              placeholder="Automatic"
+              placeholder={t('Automatic')}
               inputmode="numeric"
               pattern="\d*"
             />
           </label>
 
           <label class="field">
-            <span>Certificate Check</span>
+            <span>{t('Certificate Check')}</span>
             <select bind:value={certificateChecks}>
               {#each certOptions as o (o.value)}
                 <option value={o.value}>{o.label}</option>
@@ -206,15 +207,15 @@
             </select>
           </label>
 
-          <p class="hint">Leave fields blank to detect automatically.</p>
+          <p class="hint">{t('Leave fields blank to detect automatically.')}</p>
         </div>
       {/if}
     </div>
 
     <div class="actions">
-      <button onclick={onCancel}>Cancel</button>
+      <button onclick={onCancel}>{t('Cancel')}</button>
       <button class="primary" onclick={submit} disabled={!canSubmit}>
-        {isEdit ? 'Save' : 'Add'}
+        {isEdit ? t('Save') : t('Add')}
       </button>
     </div>
   </div>

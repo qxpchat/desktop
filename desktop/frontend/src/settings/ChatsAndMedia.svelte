@@ -5,6 +5,7 @@
   import SettingsSection from '../lib/SettingsSection.svelte';
   import SettingsRow from '../lib/SettingsRow.svelte';
   import Toggle from '../lib/Toggle.svelte';
+  import { t } from '../lib/i18n/i18n.svelte';
 
   // Subset of deltachat config keys this section manages.
   let mdnsEnabled = $state(false);
@@ -72,24 +73,24 @@
   }
 </script>
 
-<h2>Chats &amp; Media</h2>
+<h2>{t('Chats & Media')}</h2>
 
 {#if !loaded}
-  <p class="muted">Loading…</p>
+  <p class="muted">{t('Loading…')}</p>
 {:else}
-  <SettingsSection title="Messaging">
-    <SettingsRow label="Send read receipts" right={mdnsToggle} />
+  <SettingsSection title={t('Messaging')}>
+    <SettingsRow label={t('Send read receipts')} right={mdnsToggle} />
   </SettingsSection>
 
   {#snippet mdnsToggle()}
-    <Toggle checked={mdnsEnabled} onChange={(v) => void setMdns(v)} label="Send read receipts" />
+    <Toggle checked={mdnsEnabled} onChange={(v) => void setMdns(v)} label={t('Send read receipts')} />
   {/snippet}
 
-  <SettingsSection title="Media">
-    <SettingsRow label="Media quality" right={mediaQualitySelect} />
+  <SettingsSection title={t('Media')}>
+    <SettingsRow label={t('Media quality')} right={mediaQualitySelect} />
     <SettingsRow
-      label="Auto-download size limit"
-      description="Bytes; 0 = unlimited."
+      label={t('Auto-download size limit')}
+      description={t('Bytes; 0 = unlimited.')}
       right={downloadLimitInput}
     />
   </SettingsSection>
@@ -100,8 +101,8 @@
       bind:value={mediaQuality}
       onchange={() => void setKey('media_quality', mediaQuality)}
     >
-      <option value="0">Balanced</option>
-      <option value="1">High</option>
+      <option value="0">{t('Balanced')}</option>
+      <option value="1">{t('High')}</option>
     </select>
   {/snippet}
 
@@ -115,19 +116,19 @@
     />
   {/snippet}
 
-  <SettingsSection title="Auto-delete">
+  <SettingsSection title={t('Auto-delete')}>
     <SettingsRow
-      label="From device after"
+      label={t('From device after')}
       description={deviceCount != null
-        ? `Seconds; 0 = never. Would affect ${deviceCount} message${deviceCount === 1 ? '' : 's'}.`
-        : 'Seconds; 0 = never.'}
+        ? t('Seconds; 0 = never. Would affect {count} messages.', { count: deviceCount })
+        : t('Seconds; 0 = never.')}
       right={deviceDeleteRight}
     />
     <SettingsRow
-      label="From server after"
+      label={t('From server after')}
       description={serverCount != null
-        ? `Seconds; 0 = never. Would affect ${serverCount} message${serverCount === 1 ? '' : 's'}.`
-        : 'Seconds; 0 = never.'}
+        ? t('Seconds; 0 = never. Would affect {count} messages.', { count: serverCount })
+        : t('Seconds; 0 = never.')}
       right={serverDeleteRight}
     />
   </SettingsSection>
@@ -140,7 +141,7 @@
       bind:value={deleteDeviceAfter}
       onchange={() => void setKey('delete_device_after', deleteDeviceAfter)}
     />
-    <button class="ghost" onclick={previewDeleteDevice}>Preview</button>
+    <button class="ghost" onclick={previewDeleteDevice}>{t('Preview')}</button>
   {/snippet}
 
   {#snippet serverDeleteRight()}
@@ -151,7 +152,7 @@
       bind:value={deleteServerAfter}
       onchange={() => void setKey('delete_server_after', deleteServerAfter)}
     />
-    <button class="ghost" onclick={previewDeleteServer}>Preview</button>
+    <button class="ghost" onclick={previewDeleteServer}>{t('Preview')}</button>
   {/snippet}
 {/if}
 

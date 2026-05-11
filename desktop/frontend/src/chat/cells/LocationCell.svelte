@@ -1,5 +1,6 @@
 <script lang="ts">
   import type { Message } from '../../lib/state/chat.svelte';
+  import { t } from '../../lib/i18n/i18n.svelte';
 
   type Props = {
     message: Message;
@@ -18,8 +19,8 @@
   <div class="card">
     <div class="map" aria-hidden="true">📍</div>
     <div class="meta">
-      <div class="title">Location</div>
-      <div class="hint">Open the chat info to see the map.</div>
+      <div class="title">{t('Location')}</div>
+      <div class="hint">{t('Open the chat info to see the map.')}</div>
     </div>
   </div>
 {/if}

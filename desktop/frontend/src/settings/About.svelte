@@ -3,6 +3,7 @@
   import { rpc } from '../lib/rpc';
   import SettingsSection from '../lib/SettingsSection.svelte';
   import SettingsRow from '../lib/SettingsRow.svelte';
+  import { t } from '../lib/i18n/i18n.svelte';
 
   type SystemInfo = Record<string, unknown>;
   let info = $state<SystemInfo | null>(null);
@@ -23,25 +24,25 @@
   let arch = $derived(String(info?.arch ?? '—'));
 </script>
 
-<h2>About</h2>
+<h2>{t('About')}</h2>
 
-<p class="lede">qxp — desktop client for the Delta Chat protocol.</p>
+<p class="lede">{t('qxp — desktop client for the Delta Chat protocol.')}</p>
 
-<SettingsSection title="System">
-  <SettingsRow label="Delta Chat core" right={coreRight} />
-  <SettingsRow label="SQLite" right={sqliteRight} />
-  <SettingsRow label="Architecture" right={archRight} />
+<SettingsSection title={t('System')}>
+  <SettingsRow label={t('Delta Chat core')} right={coreRight} />
+  <SettingsRow label={t('SQLite')} right={sqliteRight} />
+  <SettingsRow label={t('Architecture')} right={archRight} />
 </SettingsSection>
 
 {#snippet coreRight()}<span class="value">{coreVersion}</span>{/snippet}
 {#snippet sqliteRight()}<span class="value">{sqliteVersion}</span>{/snippet}
 {#snippet archRight()}<span class="value">{arch}</span>{/snippet}
 
-<SettingsSection title="Diagnostics">
+<SettingsSection title={t('Diagnostics')}>
   {#if info}
     <pre class="dump">{JSON.stringify(info, null, 2)}</pre>
   {:else}
-    <p class="muted">Loading system info…</p>
+    <p class="muted">{t('Loading system info…')}</p>
   {/if}
 </SettingsSection>
 

@@ -19,6 +19,7 @@
   import { rpc } from '../lib/rpc';
   import type { ChatListItem } from '../lib/state/chatlist.svelte';
   import Icon from '../lib/Icon.svelte';
+  import { t } from '../lib/i18n/i18n.svelte';
   import ComposePane from '../compose/ComposePane.svelte';
   import ChooseMembers from '../compose/ChooseMembers.svelte';
   import GroupMetadata from '../compose/GroupMetadata.svelte';
@@ -108,24 +109,24 @@
   }
 </script>
 
-<aside class="pane" style:width="{width}px" aria-label="Chat list">
+<aside class="pane" style:width="{width}px" aria-label={t('Chat list')}>
   <div class="titlebar-gutter" data-tauri-drag-region></div>
   {#if paneMode.mode.kind === 'inbox' || paneMode.mode.kind === 'archive'}
     {@const archive = paneMode.mode.kind === 'archive'}
     <header class="header" class:narrow>
       {#if archive}
-        <button class="expand" aria-label="Back to inbox" onclick={exitArchive}>
+        <button class="expand" aria-label={t('Back to inbox')} onclick={exitArchive}>
           <Icon name="chevron-left" size={18} />
         </button>
         {#if !narrow}
-          <span class="title">Archived</span>
+          <span class="title">{t('Archived')}</span>
         {/if}
       {:else}
         <button
           class="burger"
           class:active={railOpen}
-          title={railOpen ? 'Hide profiles' : 'Show profiles'}
-          aria-label="Toggle profile rail"
+          title={railOpen ? t('Hide profiles') : t('Show profiles')}
+          aria-label={t('Toggle profile rail')}
           aria-pressed={railOpen}
           disabled={burgerDisabled}
           onclick={onToggleRail}
@@ -136,14 +137,14 @@
           <input
             class="search"
             type="search"
-            placeholder="Search chats…"
-            aria-label="Search chats"
+            placeholder={t('Search chats…')}
+            aria-label={t('Search chats')}
             bind:value={search}
           />
           <button
             class="compose"
-            title="New conversation"
-            aria-label="New conversation"
+            title={t('New conversation')}
+            aria-label={t('New conversation')}
             onclick={openCompose}
           >
             <Icon name="pencil" size={16} />
@@ -157,7 +158,7 @@
         <li>
           <button class="archive-row" onclick={openArchive}>
             <span class="archive-icon" aria-hidden="true"><Icon name="archive" size={20} /></span>
-            <span>Archived chats</span>
+            <span>{t('Archived chats')}</span>
           </button>
         </li>
       {/if}
@@ -178,16 +179,16 @@
 
       {#if !hasResults && !chatlist.loading}
         <li class="empty">
-          {isFiltered ? 'No conversations match.' : 'No conversations yet.'}
+          {isFiltered ? t('No conversations match.') : t('No conversations yet.')}
         </li>
       {/if}
 
       {#if isFiltered && messageSearch.hits.length > 0}
-        <li class="section-header">Messages</li>
+        <li class="section-header">{t('Messages')}</li>
         {#each messageSearch.hits.slice(0, 25) as h (h.id)}
           <li>
             <button class="hit" onclick={() => jumpToHit(h.chatId, h.id)}>
-              <span class="hit-text">{h.text || '(no text)'}</span>
+              <span class="hit-text">{h.text || t('(no text)')}</span>
               {#if h.sender}
                 <span class="hit-sender">{h.sender}</span>
               {/if}

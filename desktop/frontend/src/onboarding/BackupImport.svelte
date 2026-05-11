@@ -1,6 +1,7 @@
 <script lang="ts">
   import { importBackup } from '../lib/state/onboarding.svelte';
   import ProgressOverlay from './ProgressOverlay.svelte';
+  import { t } from '../lib/i18n/i18n.svelte';
 
   type Props = {
     onBack: () => void;
@@ -57,8 +58,8 @@
 </script>
 
 <header class="topbar" data-tauri-drag-region>
-  <button class="back" onclick={onBack}>‹ Back</button>
-  <h1>Restore Backup</h1>
+  <button class="back" onclick={onBack}>‹ {t('Back')}</button>
+  <h1>{t('Restore Backup')}</h1>
 </header>
 
 <main class="page">
@@ -66,7 +67,7 @@
     class="dropzone"
     class:hover={dragOver}
     role="region"
-    aria-label="Drop backup file here"
+    aria-label={t('Drop backup file here')}
     ondragenter={(e) => {
       e.preventDefault();
       dragOver = true;
@@ -79,14 +80,14 @@
     ondrop={onDrop}
   >
     <div class="placeholder" aria-hidden="true"></div>
-    <h2>Drop a .tar backup file here</h2>
-    <p class="hint">Or pick one from your device</p>
+    <h2>{t('Drop a .tar backup file here')}</h2>
+    <p class="hint">{t('Or pick one from your device')}</p>
     <label class="picker">
       <input type="file" accept=".tar,application/x-tar" onchange={onPick} />
-      <span>Choose file…</span>
+      <span>{t('Choose file…')}</span>
     </label>
     {#if uploading}
-      <p class="status">Uploading to daemon…</p>
+      <p class="status">{t('Uploading to daemon…')}</p>
     {/if}
     {#if errorMsg}
       <p class="error">{errorMsg}</p>
@@ -94,8 +95,8 @@
   </div>
 
   <p class="footnote">
-    Backups are produced by Delta Chat's
-    <em>Settings → Add Second Device → Export Backup</em>.
+    {t('Backups are produced by Delta Chat\'s')}
+    <em>{t('Settings → Add Second Device → Export Backup')}</em>.
   </p>
 </main>
 

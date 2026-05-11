@@ -4,6 +4,7 @@
   import { accounts } from '../lib/state/accounts.svelte';
   import { refreshProfiles, profiles } from '../lib/state/profiles.svelte';
   import Avatar from '../lib/Avatar.svelte';
+  import { t } from '../lib/i18n/i18n.svelte';
 
   let displayName = $state('');
   let signature = $state('');
@@ -48,10 +49,10 @@
   let recentlySaved = $derived(savedAt > 0 && Date.now() - savedAt < 2000);
 </script>
 
-<h2>Profile</h2>
+<h2>{t('Profile')}</h2>
 
 {#if !loaded}
-  <p class="muted">Loading…</p>
+  <p class="muted">{t('Loading…')}</p>
 {:else}
   <div class="avatar-wrap">
     <Avatar
@@ -59,23 +60,23 @@
       color={profiles.list.find((p) => p.id === accounts.selectedId)?.color ?? 'var(--color-accent)'}
       imagePath={avatarPath}
       size={96}
-      alt="Profile avatar"
+      alt={t('Profile avatar')}
     />
   </div>
 
   <label class="field">
-    <span class="field-label">Display name</span>
-    <input bind:value={displayName} placeholder="Your name" />
+    <span class="field-label">{t('Display name')}</span>
+    <input bind:value={displayName} placeholder={t('Your name')} />
   </label>
 
   <label class="field">
-    <span class="field-label">Signature</span>
-    <textarea bind:value={signature} rows="3" placeholder="Shown in your contact info"></textarea>
+    <span class="field-label">{t('Signature')}</span>
+    <textarea bind:value={signature} rows="3" placeholder={t('Shown in your contact info')}></textarea>
   </label>
 
   <div class="actions">
     <button class="primary" onclick={save} disabled={saving}>
-      {saving ? 'Saving…' : recentlySaved ? 'Saved' : 'Save'}
+      {saving ? t('Saving…') : recentlySaved ? t('Saved') : t('Save')}
     </button>
   </div>
 {/if}

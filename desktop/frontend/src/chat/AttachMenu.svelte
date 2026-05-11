@@ -1,5 +1,6 @@
 <script lang="ts">
   import Icon, { type IconName } from '../lib/Icon.svelte';
+  import { t } from '../lib/i18n/i18n.svelte';
 
   type Props = {
     open: boolean;
@@ -23,15 +24,15 @@
   }
 
   const items: { icon: IconName; label: string; action: () => void }[] = $derived([
-    { icon: 'file', label: 'File', action: onPickFile },
-    { icon: 'map-pin', label: 'Location', action: onShareLocation },
-    { icon: 'user', label: 'Contact', action: onShareContact },
+    { icon: 'file', label: t('File'), action: onPickFile },
+    { icon: 'map-pin', label: t('Location'), action: onShareLocation },
+    { icon: 'user', label: t('Contact'), action: onShareContact },
   ]);
 </script>
 
 {#if open}
-  <button class="backdrop" onclick={onClose} aria-label="Close attach menu"></button>
-  <div class="menu" role="menu" aria-label="Attach">
+  <button class="backdrop" onclick={onClose} aria-label={t('Close attach menu')}></button>
+  <div class="menu" role="menu" aria-label={t('Attach')}>
     {#each items as it}
       <button role="menuitem" onclick={() => pick(it.action)}>
         <span class="icon" aria-hidden="true"><Icon name={it.icon} size={18} /></span>

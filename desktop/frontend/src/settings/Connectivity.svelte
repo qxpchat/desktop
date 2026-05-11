@@ -15,6 +15,7 @@
   import SettingsRow from '../lib/SettingsRow.svelte';
   import Proxy from './Proxy.svelte';
   import TransportForm, { type LoginParam } from './TransportForm.svelte';
+  import { t } from '../lib/i18n/i18n.svelte';
 
   type Props = {
     /** Initial sub-view — set by deep-links (e.g. the QrShow shield button
@@ -356,16 +357,16 @@
 {#if view === 'proxy'}
   <Proxy onBack={() => (view = 'main')} bind:proxyEnabled />
 {:else}
-  <h2>Connectivity</h2>
+  <h2>{t('Connectivity')}</h2>
 
-  <SettingsSection title="Relays" footer="Messages are received on all relays.">
+  <SettingsSection title={t('Relays')} footer={t('Messages are received on all relays.')}>
     {#each relays as r (r.addr)}
       <div class="relay">
         <button
           class="relay-main"
           onclick={() => void setDefault(r.addr)}
           disabled={busy}
-          aria-label={`Set ${r.addr} as default`}
+          aria-label={t('Set {addr} as default', { addr: r.addr })}
         >
           <div class="relay-head">
             <span class="email">{r.addr}</span>
@@ -374,9 +375,9 @@
             {/if}
           </div>
           {#if r.addr === defaultAddr}
-            <div class="sub">Used for sending</div>
+            <div class="sub">{t('Used for sending')}</div>
           {:else if r.isUnpublished}
-            <div class="sub">Hidden from contacts</div>
+            <div class="sub">{t('Hidden from contacts')}</div>
           {/if}
           {#each r.connections as line (line.text)}
             <div class="status-line">
@@ -398,7 +399,7 @@
           {/if}
         </button>
         <div class="row-actions">
-          <button class="icon-btn" disabled={busy} onclick={() => (editForm = r.param)} aria-label="Edit" title="Edit">
+          <button class="icon-btn" disabled={busy} onclick={() => (editForm = r.param)} aria-label={t('Edit')} title={t('Edit')}>
             <Icon name="pencil" size={14} />
           </button>
           {#if r.addr !== defaultAddr}
@@ -406,8 +407,8 @@
               class="icon-btn"
               disabled={busy}
               onclick={() => void toggleHidden(r)}
-              aria-label={r.isUnpublished ? 'Show on contacts' : 'Hide from contacts'}
-              title={r.isUnpublished ? 'Show on contacts' : 'Hide from contacts'}
+              aria-label={r.isUnpublished ? t('Show on contacts') : t('Hide from contacts')}
+              title={r.isUnpublished ? t('Show on contacts') : t('Hide from contacts')}
             >
               <Icon name={r.isUnpublished ? 'lightbulb' : 'lightbulb-off'} size={14} />
             </button>
@@ -415,8 +416,8 @@
               class="icon-btn danger"
               disabled={busy}
               onclick={() => (removeTarget = r)}
-              aria-label="Remove"
-              title="Remove"
+              aria-label={t('Remove')}
+              title={t('Remove')}
             >
               <Icon name="trash" size={14} />
             </button>
@@ -425,13 +426,13 @@
       </div>
     {/each}
     {#if loaded && relays.length === 0}
-      <p class="muted-row">No relays configured.</p>
+      <p class="muted-row">{t('No relays configured.')}</p>
     {/if}
-    <SettingsRow label="Add Relay" icon="plus" onClick={openAddOptions} />
+    <SettingsRow label={t('Add Relay')} icon="plus" onClick={openAddOptions} />
   </SettingsSection>
 
   {#if smtp}
-    <SettingsSection title="Outgoing Messages">
+    <SettingsSection title={t('Outgoing Messages')}>
       <div class="status-line row-line">
         <span class="dot" data-dot={smtp.dot}></span>
         <span>{smtp.text}</span>
@@ -440,14 +441,14 @@
   {/if}
 
   {#if rawStatus}
-    <SettingsSection title="Status">
+    <SettingsSection title={t('Status')}>
       <p class="raw">{rawStatus}</p>
     </SettingsSection>
   {/if}
 
   <SettingsSection>
     <SettingsRow
-      label="Proxy"
+      label={t('Proxy')}
       icon="shield-check"
       onClick={() => (view = 'proxy')}
       right={proxyOnSnippet}
@@ -455,7 +456,7 @@
   </SettingsSection>
 
   {#snippet proxyOnSnippet()}
-    {#if proxyEnabled}<span class="badge-on">On</span>{/if}
+    {#if proxyEnabled}<span class="badge-on">{t('On')}</span>{/if}
     <Icon name="chevron-right" size={14} />
   {/snippet}
 
@@ -467,14 +468,14 @@
   {#if addOptionsOpen}
     <div class="overlay" role="dialog" aria-modal="true">
       <div class="dialog small">
-        <h3>Add Relay</h3>
+        <h3>{t('Add Relay')}</h3>
         <div class="chooser">
-          <button onclick={findRelays}>Find Relays…</button>
-          <button onclick={chooseManual}>Manual Setup</button>
-          <button onclick={choosePaste}>Paste Account Code</button>
+          <button onclick={findRelays}>{t('Find Relays…')}</button>
+          <button onclick={chooseManual}>{t('Manual Setup')}</button>
+          <button onclick={choosePaste}>{t('Paste Account Code')}</button>
         </div>
         <div class="actions">
-          <button onclick={() => (addOptionsOpen = false)}>Cancel</button>
+          <button onclick={() => (addOptionsOpen = false)}>{t('Cancel')}</button>
         </div>
       </div>
     </div>
@@ -484,8 +485,8 @@
   {#if pasteOpen}
     <div class="overlay" role="dialog" aria-modal="true">
       <div class="dialog">
-        <h3>Paste Account Code</h3>
-        <p>Paste a <code>DCACCOUNT:…</code> code from the relay you want to add.</p>
+        <h3>{t('Paste Account Code')}</h3>
+        <p>{t('Paste a DCACCOUNT:… code from the relay you want to add.')}</p>
         <!-- svelte-ignore a11y_autofocus -->
         <textarea
           bind:value={pasteValue}
@@ -497,9 +498,9 @@
           autocorrect="off"
         ></textarea>
         <div class="actions">
-          <button onclick={() => (pasteOpen = false)} disabled={busy}>Cancel</button>
+          <button onclick={() => (pasteOpen = false)} disabled={busy}>{t('Cancel')}</button>
           <button class="primary" onclick={submitPaste} disabled={busy || !pasteValue.trim()}>
-            {busy ? 'Adding…' : 'Add'}
+            {busy ? t('Adding…') : t('Add')}
           </button>
         </div>
       </div>
@@ -529,12 +530,12 @@
   {#if removeTarget}
     <div class="overlay" role="dialog" aria-modal="true">
       <div class="dialog small">
-        <h3>Remove {removeTarget.domain}?</h3>
-        <p>This relay will be deleted from this account.</p>
+        <h3>{t('Remove {domain}?', { domain: removeTarget.domain })}</h3>
+        <p>{t('This relay will be deleted from this account.')}</p>
         <div class="actions">
-          <button onclick={() => (removeTarget = null)} disabled={busy}>Cancel</button>
+          <button onclick={() => (removeTarget = null)} disabled={busy}>{t('Cancel')}</button>
           <button class="danger primary" onclick={confirmRemove} disabled={busy}>
-            {busy ? 'Removing…' : 'Remove'}
+            {busy ? t('Removing…') : t('Remove')}
           </button>
         </div>
       </div>

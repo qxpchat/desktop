@@ -1,6 +1,7 @@
 <script lang="ts">
   import { onboarding, createInstantAccount } from '../lib/state/onboarding.svelte';
   import ProgressOverlay from './ProgressOverlay.svelte';
+  import { t } from '../lib/i18n/i18n.svelte';
 
   type Props = {
     onBack: () => void;
@@ -30,7 +31,7 @@
 </script>
 
 <header class="topbar" data-tauri-drag-region>
-  <button class="back" onclick={onBack} aria-label="Back">‹ Back</button>
+  <button class="back" onclick={onBack} aria-label={t('Back')}>‹ {t('Back')}</button>
 </header>
 
 <main class="instant">
@@ -39,31 +40,31 @@
   <input
     class="name"
     type="text"
-    placeholder="Your name"
+    placeholder={t('Your name')}
     bind:value={displayName}
     autocomplete="nickname"
   />
 
-  <p class="hint">Set a name so others recognize you.</p>
+  <p class="hint">{t('Set a name so others recognize you.')}</p>
 
   <p class="privacy">
-    By creating a profile, you agree to the
+    {t('By creating a profile, you agree to the')}
     <a href={`https://${provider}/privacy.html`} target="_blank" rel="noopener noreferrer">
-      privacy policy of {provider}
+      {t('privacy policy of {provider}', { provider })}
     </a>.
   </p>
 
-  <button class="primary" disabled={!canCreate} onclick={create}>Create Profile</button>
+  <button class="primary" disabled={!canCreate} onclick={create}>{t('Create Profile')}</button>
 
   <div class="alt">
     <button class="secondary" aria-haspopup="menu" aria-expanded={altMenuOpen} onclick={() => (altMenuOpen = !altMenuOpen)}>
-      Use Other Server
+      {t('Use Other Server')}
     </button>
 
     {#if altMenuOpen}
       <div class="alt-menu" role="menu">
         <a href="https://chatmail.at/relays" target="_blank" rel="noopener noreferrer" role="menuitem">
-          Other Servers (web ↗)
+          {t('Other Servers (web ↗)')}
         </a>
         <button
           role="menuitem"
@@ -72,7 +73,7 @@
             onManual();
           }}
         >
-          Manual Setup
+          {t('Manual Setup')}
         </button>
       </div>
     {/if}

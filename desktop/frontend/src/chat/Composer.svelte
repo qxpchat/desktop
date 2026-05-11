@@ -17,6 +17,7 @@
   import EmojiPicker from './EmojiPicker.svelte';
   import QuoteBar from './QuoteBar.svelte';
   import Icon from '../lib/Icon.svelte';
+  import { t } from '../lib/i18n/i18n.svelte';
 
   let text = $state('');
   let sending = $state(false);
@@ -302,23 +303,23 @@
   {/if}
   <div class="composer">
   {#if recording}
-    <button class="cancel-rec" onclick={cancelRecording} aria-label="Cancel recording">
+    <button class="cancel-rec" onclick={cancelRecording} aria-label={t('Cancel recording')}>
       <Icon name="x" size={18} />
     </button>
     <div class="rec-status">
       <span class="rec-dot" aria-hidden="true"></span>
-      Recording… {fmtElapsed(recElapsed)}
+      {t('Recording…')} {fmtElapsed(recElapsed)}
     </div>
-    <button class="send" onclick={stopAndSend} aria-label="Send voice message" disabled={sending}>
+    <button class="send" onclick={stopAndSend} aria-label={t('Send voice message')} disabled={sending}>
       <Icon name="send" size={18} />
     </button>
   {:else}
   <button
     class="attach"
     onclick={() => (attachOpen = !attachOpen)}
-    aria-label="Attach"
+    aria-label={t('Attach')}
     aria-expanded={attachOpen}
-    title="Attach"
+    title={t('Attach')}
     disabled={chat.active == null}
   >
     <Icon name="paperclip" size={18} />
@@ -338,9 +339,9 @@
     bind:this={textarea}
     bind:value={text}
     onkeydown={onKeyDown}
-    placeholder="Type a message…"
+    placeholder={t('Type a message…')}
     rows="1"
-    aria-label="Message text"
+    aria-label={t('Message text')}
     disabled={chat.active == null}
   ></textarea>
 
@@ -349,9 +350,9 @@
       class="emoji-btn"
       class:active={emojiOpen}
       onclick={() => (emojiOpen = !emojiOpen)}
-      aria-label="Insert emoji"
+      aria-label={t('Insert emoji')}
       aria-expanded={emojiOpen}
-      title="Emoji"
+      title={t('Emoji')}
       disabled={chat.active == null}
     >
       <Icon name="smile" size={20} />
@@ -368,8 +369,8 @@
       <button
         class="mic"
         onclick={startRecording}
-        aria-label="Record voice message"
-        title="Voice message"
+        aria-label={t('Record voice message')}
+        title={t('Voice message')}
         disabled={chat.active == null}
       >
         <Icon name="mic" size={18} />
@@ -382,8 +383,8 @@
       class="send"
       disabled={!canSend}
       onclick={send}
-      aria-label="Send message"
-      title="Send (Enter)"
+      aria-label={t('Send message')}
+      title={t('Send (Enter)')}
     >
       <Icon name="send" size={18} />
     </button>

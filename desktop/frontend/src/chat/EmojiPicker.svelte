@@ -1,6 +1,7 @@
 <script lang="ts">
   import { CATEGORY_LABELS, EMOJI, type Category } from '../lib/emoji/data';
   import { onMount } from 'svelte';
+  import { t } from '../lib/i18n/i18n.svelte';
 
   type Props = {
     open: boolean;
@@ -50,17 +51,17 @@
 </script>
 
 {#if open}
-  <button class="backdrop" onclick={onClose} aria-label="Close picker"></button>
-  <div class="picker" role="dialog" aria-label="Emoji picker">
+  <button class="backdrop" onclick={onClose} aria-label={t('Close picker')}></button>
+  <div class="picker" role="dialog" aria-label={t('Emoji picker')}>
     <input
       type="search"
       class="search"
-      placeholder="Search emoji…"
+      placeholder={t('Search emoji…')}
       bind:value={search}
     />
 
     {#if !search && recents.length > 0}
-      <div class="section-label">Recents</div>
+      <div class="section-label">{t('Recents')}</div>
       <div class="grid">
         {#each recents as e}
           <button class="emoji" onclick={() => pickEmoji(e)} aria-label={e}>{e}</button>
@@ -69,7 +70,7 @@
     {/if}
 
     {#if !search}
-      <nav class="cats" aria-label="Categories">
+      <nav class="cats" aria-label={t('Categories')}>
         {#each categories as c}
           <button
             class:active={activeCat === c}
@@ -89,7 +90,7 @@
         </button>
       {/each}
       {#if visible.length === 0}
-        <div class="empty">No emoji match.</div>
+        <div class="empty">{t('No emoji match.')}</div>
       {/if}
     </div>
   </div>

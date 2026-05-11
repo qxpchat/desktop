@@ -6,6 +6,8 @@
   type Props = { videoId: string };
   let { videoId }: Props = $props();
 
+  import { t } from '../../lib/i18n/i18n.svelte';
+
   let loaded = $state(false);
   // `i.ytimg.com` is the same CDN YouTube itself uses for thumbnails.
   // `hqdefault` (480×360) is always present; `maxresdefault` isn't.
@@ -17,7 +19,7 @@
 
 <div class="yt">
   {#if !loaded}
-    <button class="lite" onclick={() => (loaded = true)} aria-label="Play YouTube video">
+    <button class="lite" onclick={() => (loaded = true)} aria-label={t('Play YouTube video')}>
       <img src={thumb} alt="" loading="lazy" />
       <span class="play" aria-hidden="true">
         <svg viewBox="0 0 68 48" width="56" height="40">
@@ -33,7 +35,7 @@
   {:else}
     <iframe
       src={embed}
-      title="YouTube video"
+      title={t('YouTube video')}
       loading="lazy"
       allow="accelerometer; autoplay; encrypted-media; picture-in-picture; fullscreen"
       allowfullscreen

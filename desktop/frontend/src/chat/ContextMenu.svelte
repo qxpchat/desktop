@@ -7,6 +7,7 @@
   import { QUICK_REACTIONS } from '../lib/emoji/data';
   import type { Message } from '../lib/state/chat.svelte';
   import Icon, { type IconName } from '../lib/Icon.svelte';
+  import { t } from '../lib/i18n/i18n.svelte';
 
   type Action = {
     label: string;
@@ -65,13 +66,13 @@
   }
 </script>
 
-<button class="backdrop" onclick={onClose} aria-label="Close menu"></button>
+<button class="backdrop" onclick={onClose} aria-label={t('Close menu')}></button>
 <div bind:this={menu} class="menu" style={style} role="menu">
-  <div class="quick" role="group" aria-label="Quick reactions">
+  <div class="quick" role="group" aria-label={t('Quick reactions')}>
     {#each QUICK_REACTIONS as e}
       <button class="emoji" onclick={() => pick(e)} aria-label={e}>{e}</button>
     {/each}
-    <button class="emoji more" onclick={more} aria-label="More emoji">
+    <button class="emoji more" onclick={more} aria-label={t('More emoji')}>
       <Icon name="smile-plus" size={18} />
     </button>
   </div>

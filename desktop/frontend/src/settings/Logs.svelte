@@ -11,6 +11,7 @@
   import { logs, clearLogs, type LogEntry } from '../lib/state/logs.svelte';
   import Icon from '../lib/Icon.svelte';
   import Toggle from '../lib/Toggle.svelte';
+  import { t } from '../lib/i18n/i18n.svelte';
 
   let header = $state<string>('');
   let redact = $state(false);
@@ -46,7 +47,7 @@
   async function buildHeader() {
     const lines: string[] = [];
     lines.push(
-      '**This log may contain sensitive information. Examine and edit before sharing.**',
+      t('**This log may contain sensitive information. Examine and edit before sharing.**'),
     );
     lines.push('');
     lines.push(`userAgent=${navigator.userAgent}`);
@@ -110,37 +111,37 @@
   let c = $derived(counts());
 </script>
 
-<h2>Logs</h2>
+<h2>{t('Logs')}</h2>
 
 <div class="toolbar">
   <div class="filters">
     <button class:active={filter === 'all'} onclick={() => (filter = 'all')}>
-      All <span class="muted">({logs.entries.length})</span>
+      {t('All')} <span class="muted">({logs.entries.length})</span>
     </button>
     <button class:active={filter === 'info'} onclick={() => (filter = 'info')}>
-      Info <span class="muted">({c.info})</span>
+      {t('Info')} <span class="muted">({c.info})</span>
     </button>
     <button class:active={filter === 'warning'} onclick={() => (filter = 'warning')}>
-      Warning <span class="muted">({c.warning})</span>
+      {t('Warning')} <span class="muted">({c.warning})</span>
     </button>
     <button class:active={filter === 'error'} onclick={() => (filter = 'error')}>
-      Error <span class="muted">({c.error})</span>
+      {t('Error')} <span class="muted">({c.error})</span>
     </button>
   </div>
   <div class="actions">
     <label class="toggle">
-      <Toggle checked={redact} onChange={(v) => (redact = v)} label="Redact addresses" />
-      <span>Redact addresses</span>
+      <Toggle checked={redact} onChange={(v) => (redact = v)} label={t('Redact addresses')} />
+      <span>{t('Redact addresses')}</span>
     </label>
     <label class="toggle">
-      <Toggle checked={autoScroll} onChange={(v) => (autoScroll = v)} label="Auto-scroll" />
-      <span>Auto-scroll</span>
+      <Toggle checked={autoScroll} onChange={(v) => (autoScroll = v)} label={t('Auto-scroll')} />
+      <span>{t('Auto-scroll')}</span>
     </label>
-    <button class="ghost" onclick={copyAll} title="Copy all">
-      <Icon name="copy" size={14} /> Copy
+    <button class="ghost" onclick={copyAll} title={t('Copy all')}>
+      <Icon name="copy" size={14} /> {t('Copy')}
     </button>
-    <button class="ghost" onclick={clearLogs} title="Clear log buffer">
-      <Icon name="trash" size={14} /> Clear
+    <button class="ghost" onclick={clearLogs} title={t('Clear log buffer')}>
+      <Icon name="trash" size={14} /> {t('Clear')}
     </button>
   </div>
 </div>
@@ -151,7 +152,7 @@
 
 <div class="card list" bind:this={listEl}>
   {#if entries.length === 0}
-    <p class="empty">No log entries yet. Activity will appear here.</p>
+    <p class="empty">{t('No log entries yet. Activity will appear here.')}</p>
   {:else}
     {#each entries as e (e.id)}
       <div class="entry" data-level={e.level}>

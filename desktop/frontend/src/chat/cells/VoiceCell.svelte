@@ -2,6 +2,7 @@
   import { onDestroy } from 'svelte';
   import type { Message } from '../../lib/state/chat.svelte';
   import { fileUrl } from '../../lib/files';
+  import { t } from '../../lib/i18n/i18n.svelte';
 
   type Props = {
     message: Message;
@@ -159,7 +160,7 @@
 </script>
 
 <div class="voice">
-  <button class="play" onclick={toggle} aria-label={playing ? 'Pause' : 'Play'}>
+  <button class="play" onclick={toggle} aria-label={playing ? t('Pause') : t('Play')}>
     {playing ? '❚❚' : '▶'}
   </button>
   <div
@@ -171,7 +172,7 @@
     aria-valuemin="0"
     aria-valuemax="1"
     aria-valuenow={progress}
-    aria-label="Seek voice message"
+    aria-label={t('Seek voice message')}
     tabindex="0"
   >
     {#if peaks.length > 0}
@@ -193,7 +194,7 @@
     {/if}
   </div>
   <span class="time">{fmt(Math.max(0, duration - currentTime))}</span>
-  <button class="speed" onclick={cycleSpeed} aria-label="Playback speed">{speed}×</button>
+  <button class="speed" onclick={cycleSpeed} aria-label={t('Playback speed')}>{speed}×</button>
   {#if url}
     <audio
       bind:this={audio}

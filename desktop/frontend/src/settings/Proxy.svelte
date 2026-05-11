@@ -13,6 +13,7 @@
   import SettingsRow from '../lib/SettingsRow.svelte';
   import Toggle from '../lib/Toggle.svelte';
   import ShareProxy from './ShareProxy.svelte';
+  import { t } from '../lib/i18n/i18n.svelte';
 
   type Props = {
     onBack: () => void;
@@ -177,23 +178,23 @@
   }
 
   function connectionLabel(): string {
-    if (!proxyEnabled) return 'Not connected';
-    if (connectivity >= 4000) return 'Connected';
-    if (connectivity >= 3000) return 'Updating…';
-    if (connectivity >= 2000) return 'Connecting…';
-    return 'Not connected';
+    if (!proxyEnabled) return t('Not connected');
+    if (connectivity >= 4000) return t('Connected');
+    if (connectivity >= 3000) return t('Updating…');
+    if (connectivity >= 2000) return t('Connecting…');
+    return t('Not connected');
   }
 </script>
 
 <header class="topbar">
   <button class="back" onclick={onBack}>
-    <Icon name="chevron-left" size={16} /> Connectivity
+    <Icon name="chevron-left" size={16} /> {t('Connectivity')}
   </button>
-  <h2>Proxy</h2>
+  <h2>{t('Proxy')}</h2>
 </header>
 
 <SettingsSection>
-  <SettingsRow label="Use Proxy" right={useProxyToggle} />
+  <SettingsRow label={t('Use Proxy')} right={useProxyToggle} />
 </SettingsSection>
 
 {#snippet useProxyToggle()}
@@ -201,12 +202,12 @@
     checked={proxyEnabled}
     disabled={proxies.length === 0 || busy}
     onChange={(v) => void setEnabled(v)}
-    label="Use Proxy"
+    label={t('Use Proxy')}
   />
 {/snippet}
 
 {#if proxies.length > 0}
-  <SettingsSection title="Saved Proxies">
+  <SettingsSection title={t('Saved Proxies')}>
     {#each proxies as url, idx (url)}
       {@const isActive = idx === 0}
       <div class="proxy">
@@ -225,9 +226,9 @@
           </div>
         </button>
         <div class="row-actions">
-          <button class="link" disabled={busy} onclick={() => (shareTarget = url)}>Share</button>
+          <button class="link" disabled={busy} onclick={() => (shareTarget = url)}>{t('Share')}</button>
           <button class="link link-danger" disabled={busy} onclick={() => (removeTarget = url)}>
-            Delete
+            {t('Delete')}
           </button>
         </div>
       </div>
@@ -236,7 +237,7 @@
 {/if}
 
 <SettingsSection>
-  <SettingsRow label="Add Proxy" icon="plus" onClick={openAdd} />
+  <SettingsRow label={t('Add Proxy')} icon="plus" onClick={openAdd} />
 </SettingsSection>
 
 {#if errorMsg}
@@ -246,8 +247,8 @@
 {#if addOpen}
   <div class="overlay" role="dialog" aria-modal="true">
     <div class="dialog">
-      <h3>Add Proxy</h3>
-      <p>Supported proxy types: HTTP(S), SOCKS5 and Shadowsocks.</p>
+      <h3>{t('Add Proxy')}</h3>
+      <p>{t('Supported proxy types: HTTP(S), SOCKS5 and Shadowsocks.')}</p>
       <!-- svelte-ignore a11y_autofocus -->
       <input
         type="url"
@@ -259,9 +260,9 @@
         autocorrect="off"
       />
       <div class="actions">
-        <button onclick={() => (addOpen = false)} disabled={busy}>Cancel</button>
+        <button onclick={() => (addOpen = false)} disabled={busy}>{t('Cancel')}</button>
         <button class="primary" onclick={submitAdd} disabled={busy || !addValue.trim()}>
-          {busy ? 'Adding…' : 'Use Proxy'}
+          {busy ? t('Adding…') : t('Use Proxy')}
         </button>
       </div>
     </div>
@@ -271,11 +272,11 @@
 {#if removeTarget}
   <div class="overlay" role="dialog" aria-modal="true">
     <div class="dialog small">
-      <h3>Delete proxy "{hosts[removeTarget] ?? removeTarget}"?</h3>
+      <h3>{t('Delete proxy "{name}"?', { name: hosts[removeTarget] ?? removeTarget })}</h3>
       <div class="actions">
-        <button onclick={() => (removeTarget = null)} disabled={busy}>Cancel</button>
+        <button onclick={() => (removeTarget = null)} disabled={busy}>{t('Cancel')}</button>
         <button class="primary danger" onclick={confirmRemove} disabled={busy}>
-          {busy ? 'Deleting…' : 'Delete Proxy'}
+          {busy ? t('Deleting…') : t('Delete Proxy')}
         </button>
       </div>
     </div>

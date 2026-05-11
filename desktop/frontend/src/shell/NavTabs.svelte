@@ -8,6 +8,7 @@
   import Avatar from '../lib/Avatar.svelte';
   import ConnectionIndicator from './ConnectionIndicator.svelte';
   import Icon from '../lib/Icon.svelte';
+  import { t } from '../lib/i18n/i18n.svelte';
 
   type Props = {
     selectedAccountId: number;
@@ -59,13 +60,13 @@
 
   function remove(id: number) {
     menuFor = null;
-    if (!confirm('Remove this account? All local data for it will be deleted.')) return;
+    if (!confirm(t('Remove this account? All local data for it will be deleted.'))) return;
     onRemoveAccount(id);
   }
 
 </script>
 
-<aside class="nav" aria-label="Profiles">
+<aside class="nav" aria-label={t('Profiles')}>
   <!-- macOS title-bar drag zone — empty + draggable, mirrors the gutter
        in ChatListPane so the strip behind the rail is still a drag
        handle. -->
@@ -93,17 +94,17 @@
           {/if}
         </button>
         {#if menuFor === profile.id}
-          <button class="menu-backdrop" onclick={() => (menuFor = null)} aria-label="Close menu"></button>
+          <button class="menu-backdrop" onclick={() => (menuFor = null)} aria-label={t('Close menu')}></button>
           <div class="menu" role="menu">
-            <button onclick={openProfileEditor}>Edit profile</button>
-            <button onclick={() => onSelect(profile.id)}>Switch to</button>
-            <button class="danger" onclick={() => remove(profile.id)}>Remove…</button>
+            <button onclick={openProfileEditor}>{t('Edit profile')}</button>
+            <button onclick={() => onSelect(profile.id)}>{t('Switch to')}</button>
+            <button class="danger" onclick={() => remove(profile.id)}>{t('Remove…')}</button>
           </div>
         {/if}
       </div>
     {/each}
 
-    <button class="tile add" title="Add account" aria-label="Add account" onclick={onAddAccount}>
+    <button class="tile add" title={t('Add account')} aria-label={t('Add account')} onclick={onAddAccount}>
       <span class="add-avatar"><Icon name="plus" size={18} /></span>
     </button>
   </div>
@@ -112,16 +113,16 @@
     <ConnectionIndicator />
     <button
       class="footer-btn"
-      title={proxyEnabled ? 'Proxy: On' : 'Proxy: Off'}
-      aria-label={proxyEnabled ? 'Proxy on — open Proxy settings' : 'Open Proxy settings'}
+      title={proxyEnabled ? t('Proxy: On') : t('Proxy: Off')}
+      aria-label={proxyEnabled ? t('Proxy on — open Proxy settings') : t('Open Proxy settings')}
       onclick={openProxy}
     >
       <Icon name={proxyEnabled ? 'shield-fill' : 'shield'} size={20} />
     </button>
     <button
       class="footer-btn"
-      title="Show QR"
-      aria-label="Show QR"
+      title={t('Show QR')}
+      aria-label={t('Show QR')}
       class:active={mainRoute.route.kind === 'qrShow'}
       onclick={openQrShow}
     >
@@ -129,8 +130,8 @@
     </button>
     <button
       class="footer-btn"
-      title="Settings"
-      aria-label="Settings"
+      title={t('Settings')}
+      aria-label={t('Settings')}
       class:active={mainRoute.route.kind === 'settings'}
       onclick={openSettings}
     >

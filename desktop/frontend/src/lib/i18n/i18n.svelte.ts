@@ -1,30 +1,34 @@
-// Minimal i18n shell. Phase 21 lays the API; Phase 21+ delivers a script
-// that converts `references/deltachat-ios/.../Localizable.strings` into
-// per-locale JSON files we ship from the daemon's embedded assets.
+// Minimal i18n module. The translation key IS the English source string —
+// templates write `{t('Send')}` and the JSON files under `public/locales/`
+// supply per-locale overrides. Missing keys fall back to the English source,
+// so a partial translation never blocks the UI.
 //
-// For now `t()` just returns the source key (acting as the English string)
-// and ICU-style `{name}` placeholders are interpolated.
+// `state` is a Svelte `$state` so template `t()` calls re-render when the
+// active locale changes (e.g. when locale JSON finishes loading at startup).
 
 export type LocaleStrings = Record<string, string>;
 
-const DEFAULT_LOCALE: LocaleStrings = {
-  /* populate or replace via setLocale() */
+type State = {
+  strings: LocaleStrings;
+  tag: string;
 };
 
-let active: LocaleStrings = DEFAULT_LOCALE;
-let activeTag = 'en';
+const state = $state<State>({
+  strings: {},
+  tag: 'en',
+});
 
 export function setLocale(strings: LocaleStrings, tag: string): void {
-  active = strings;
-  activeTag = tag;
+  state.strings = strings;
+  state.tag = tag;
 }
 
 export function getLocaleTag(): string {
-  return activeTag;
+  return state.tag;
 }
 
 export function t(key: string, args?: Record<string, string | number>): string {
-  let s = active[key] ?? key;
+  let s = state.strings[key] ?? key;
   if (args) {
     for (const [k, v] of Object.entries(args)) {
       s = s.replaceAll(`{${k}}`, String(v));
@@ -50,21 +54,19 @@ export async function loadLocale(tag: string): Promise<void> {
   }
 }
 
-/** Best-effort: pick a locale (from prefs override or browser) and load it.
- *  Always loads English first as a baseline; if the requested locale is
- *  available it overlays on top. Returns the tag that ended up active. */
+/** Pick a locale (from prefs override or browser) and load it. English is
+ *  loaded as the baseline first; if the requested locale loads on top, the
+ *  template re-renders thanks to the runes-backed state. Returns the tag
+ *  that ended up active. */
 export async function loadPreferredLocale(override: string | null): Promise<string> {
   const wanted =
     override ??
     (typeof navigator !== 'undefined' ? navigator.language.split('-')[0] : 'en');
   await loadLocale('en');
   if (wanted !== 'en') {
-    const before = activeTag;
+    const before = state.tag;
     await loadLocale(wanted);
-    if (activeTag === before) {
-      // load failed; keep English active
-      return 'en';
-    }
+    if (state.tag === before) return 'en';
   }
-  return activeTag;
+  return state.tag;
 }

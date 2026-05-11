@@ -18,6 +18,7 @@
   } from '../lib/state/chat.svelte';
   import { uploadBlob, viewtypeForFile } from '../lib/files';
   import { jumpToMessage } from '../lib/state/jump';
+  import { t } from '../lib/i18n/i18n.svelte';
   import { chatlist } from '../lib/state/chatlist.svelte';
   import MessageBubble from './MessageBubble.svelte';
   import InfoMessage from './InfoMessage.svelte';
@@ -238,19 +239,19 @@
       disabled?: boolean;
     }[] = [];
     actions.push({
-      label: 'Reply',
+      label: t('Reply'),
       icon: 'reply',
       onSelect: () => setReplyTo(m.id),
     });
     if (m.text) {
       actions.push({
-        label: 'Copy',
+        label: t('Copy'),
         icon: 'copy',
         onSelect: () => void navigator.clipboard.writeText(m.text),
       });
     }
     actions.push({
-      label: 'Forward',
+      label: t('Forward'),
       icon: 'forward',
       onSelect: () => {
         forwardTargets = [m.id];
@@ -259,17 +260,17 @@
     });
     if (m.fromId === CONTACT_ID_SELF && m.viewType === 'Text') {
       actions.push({
-        label: 'Edit',
+        label: t('Edit'),
         icon: 'pencil',
         onSelect: () => setEditing(m.id),
       });
     }
     actions.push({
-      label: 'Delete',
+      label: t('Delete'),
       icon: 'trash-2',
       danger: true,
       onSelect: () => {
-        if (confirm('Delete this message? Other recipients will keep their copy.')) {
+        if (confirm(t('Delete this message? Other recipients will keep their copy.'))) {
           void deleteMessages([m.id]);
         }
       },
@@ -344,7 +345,7 @@
 <div
   class="chat-view"
   role="region"
-  aria-label="Conversation"
+  aria-label={t('Conversation')}
   ondragenter={onDragEnter}
   ondragover={onDragOver}
   ondragleave={onDragLeave}
@@ -354,8 +355,8 @@
     <div class="drop-overlay" role="presentation">
       <div class="drop-card">
         <div class="drop-icon" aria-hidden="true">⤓</div>
-        <div class="drop-title">{dropSending ? 'Sending…' : 'Drop to send'}</div>
-        <div class="drop-hint">Files attach as image, video, audio, or document.</div>
+        <div class="drop-title">{dropSending ? t('Sending…') : t('Drop to send')}</div>
+        <div class="drop-hint">{t('Files attach as image, video, audio, or document.')}</div>
       </div>
     </div>
   {/if}
@@ -379,10 +380,10 @@
     aria-relevant="additions"
   >
     {#if chat.loading && chat.ids.length === 0}
-      <div class="empty muted">Loading messages…</div>
+      <div class="empty muted">{t('Loading messages…')}</div>
     {:else if chat.ids.length === 0}
       <div class="empty">
-        <p class="muted">No messages yet — say hi!</p>
+        <p class="muted">{t('No messages yet — say hi!')}</p>
       </div>
     {:else}
       {#each chat.ids as id, i (id)}

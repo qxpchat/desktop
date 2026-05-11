@@ -2,6 +2,7 @@
   import { receiveBackup } from '../lib/state/onboarding.svelte';
   import ProgressOverlay from './ProgressOverlay.svelte';
   import Scanner from '../qr/Scanner.svelte';
+  import { t } from '../lib/i18n/i18n.svelte';
 
   type Props = {
     onBack: () => void;
@@ -65,14 +66,13 @@
 </script>
 
 <header class="topbar" data-tauri-drag-region>
-  <button class="back" onclick={onBack}>‹ Back</button>
-  <h1>Pair as Second Device</h1>
+  <button class="back" onclick={onBack}>‹ {t('Back')}</button>
+  <h1>{t('Pair as Second Device')}</h1>
 </header>
 
 <main class="page">
   <p class="hint">
-    On your other device, open Delta Chat and choose <em>Settings → Add Second Device</em>.
-    Point your camera at the QR code shown there.
+    {t('On your other device, open Delta Chat and choose Settings → Add Second Device. Point your camera at the QR code shown there.')}
   </p>
 
   {#key scannerKey}
@@ -88,14 +88,14 @@
     <p class="error">{scanError}</p>
   {/if}
 
-  <button class="paste" onclick={openPaste}>Paste Code Manually</button>
+  <button class="paste" onclick={openPaste}>{t('Paste Code Manually')}</button>
 </main>
 
 {#if pasteOpen}
   <div class="overlay" role="dialog" aria-modal="true">
     <div class="card">
-      <h2>Paste backup pair code</h2>
-      <p>Paste the <code>DCBACKUP…</code> code shown on the other device.</p>
+      <h2>{t('Paste backup pair code')}</h2>
+      <p>{t('Paste the DCBACKUP… code shown on the other device.')}</p>
       <!-- svelte-ignore a11y_autofocus -->
       <textarea
         bind:value={pasteValue}
@@ -107,8 +107,8 @@
         autocorrect="off"
       ></textarea>
       <div class="actions">
-        <button onclick={cancelPaste}>Cancel</button>
-        <button class="primary" onclick={submitPaste} disabled={!pasteValue.trim()}>Pair</button>
+        <button onclick={cancelPaste}>{t('Cancel')}</button>
+        <button class="primary" onclick={submitPaste} disabled={!pasteValue.trim()}>{t('Pair')}</button>
       </div>
     </div>
   </div>
@@ -117,11 +117,11 @@
 {#if confirmOpen}
   <div class="overlay" role="dialog" aria-modal="true">
     <div class="card">
-      <h2>Pair this device?</h2>
-      <p>You'll receive your account from the other device.</p>
+      <h2>{t('Pair this device?')}</h2>
+      <p>{t('You\'ll receive your account from the other device.')}</p>
       <div class="actions">
-        <button onclick={cancelConfirm}>Cancel</button>
-        <button class="primary" onclick={confirm}>Pair</button>
+        <button onclick={cancelConfirm}>{t('Cancel')}</button>
+        <button class="primary" onclick={confirm}>{t('Pair')}</button>
       </div>
     </div>
   </div>

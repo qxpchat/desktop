@@ -1,6 +1,7 @@
 <script lang="ts">
   import type { Message } from '../../lib/state/chat.svelte';
   import { fileUrl } from '../../lib/files';
+  import { t } from '../../lib/i18n/i18n.svelte';
 
   type Props = {
     message: Message;
@@ -16,7 +17,7 @@
     <track kind="captions" />
   </video>
 {:else}
-  <div class="missing">Video missing — try downloading</div>
+  <div class="missing">{t('Video missing — try downloading')}</div>
 {/if}
 
 <style>

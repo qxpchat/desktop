@@ -9,6 +9,7 @@
   import { accounts } from '../lib/state/accounts.svelte';
   import ContactRow from './ContactRow.svelte';
   import Avatar from '../lib/Avatar.svelte';
+  import { t } from '../lib/i18n/i18n.svelte';
 
   type Props = {
     mode: { kind: 'chooseMembers'; flow: 'group' | 'channel'; selected: number[] };
@@ -48,8 +49,8 @@
     setPaneMode({ kind: 'setGroupMetadata', flow: mode.flow, selected });
   }
 
-  let headerLabel = $derived(mode.flow === 'group' ? 'New Group' : 'New Channel');
-  let actionLabel = $derived(`Next${selected.length > 0 ? ` · ${selected.length}` : ''}`);
+  let headerLabel = $derived(mode.flow === 'group' ? t('New Group') : t('New Channel'));
+  let actionLabel = $derived(`${t('Next')}${selected.length > 0 ? ` · ${selected.length}` : ''}`);
 
   let selectedContacts = $derived(
     contacts.contacts.filter((c) => selected.includes(c.id)),
@@ -58,7 +59,7 @@
 
 <div class="pane">
   <header class="header">
-    <button class="back" onclick={backToInbox} aria-label="Cancel">‹</button>
+    <button class="back" onclick={backToInbox} aria-label={t('Cancel')}>‹</button>
     <h2>{headerLabel}</h2>
     <div class="spacer"></div>
     <button class="next" disabled={selected.length === 0} onclick={next}>{actionLabel}</button>
@@ -68,16 +69,16 @@
     <input
       class="search"
       type="search"
-      placeholder="Search contacts…"
-      aria-label="Search contacts"
+      placeholder={t('Search contacts…')}
+      aria-label={t('Search contacts')}
       bind:value={search}
     />
   </div>
 
   {#if selectedContacts.length > 0}
-    <div class="pills" role="list" aria-label="Selected contacts">
+    <div class="pills" role="list" aria-label={t('Selected contacts')}>
       {#each selectedContacts as c (c.id)}
-        <button class="pill" onclick={() => toggle(c.id)} aria-label="Remove {c.displayName}">
+        <button class="pill" onclick={() => toggle(c.id)} aria-label={t('Remove {name}', { name: c.displayName })}>
           <Avatar name={c.displayName || '?'} color={c.color} imagePath={c.profileImage} size={20} />
           <span class="pill-name">{c.displayName || c.address}</span>
           <span class="x" aria-hidden="true">×</span>
@@ -98,7 +99,7 @@
       </li>
     {/each}
     {#if !contacts.loading && contacts.contacts.length === 0}
-      <li class="empty">{search.length > 0 ? 'No contacts match.' : 'No contacts yet.'}</li>
+      <li class="empty">{search.length > 0 ? t('No contacts match.') : t('No contacts yet.')}</li>
     {/if}
   </ul>
 </div>

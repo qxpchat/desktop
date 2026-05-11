@@ -1,6 +1,7 @@
 <script lang="ts">
   import { onMount, onDestroy } from 'svelte';
   import { lightbox, closeLightbox } from '../lib/state/lightbox.svelte';
+  import { t } from '../lib/i18n/i18n.svelte';
 
   function onKey(e: KeyboardEvent) {
     if (e.key === 'Escape') closeLightbox();
@@ -19,7 +20,7 @@
     class="overlay"
     role="dialog"
     aria-modal="true"
-    aria-label="Image viewer"
+    aria-label={t('Image viewer')}
     tabindex="-1"
     onclick={(e) => {
       if (e.target === e.currentTarget) closeLightbox();
@@ -42,7 +43,7 @@
     {#if lightbox.item.caption}
       <div class="caption">{lightbox.item.caption}</div>
     {/if}
-    <button class="close" onclick={closeLightbox} aria-label="Close">✕</button>
+    <button class="close" onclick={closeLightbox} aria-label={t('Close')}>✕</button>
   </div>
 {/if}
 
