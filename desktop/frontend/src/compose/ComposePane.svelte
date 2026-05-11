@@ -205,6 +205,11 @@
   .list {
     overflow-y: auto;
     flex: 1;
+    /* Leave breathing room below the last contact — without this the
+       final row gets clipped at the viewport bottom when the list
+       overflows. A full row-height (~48px) of padding mirrors what iOS
+       Settings does on long lists. */
+    padding-bottom: 48px;
   }
   .empty {
     padding: var(--space-5) var(--space-4);
