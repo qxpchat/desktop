@@ -102,6 +102,37 @@
       message.hasLocation,
   );
 
+  // Jumbomoji — drop the bubble chrome and scale the text up when the
+  // message is purely emoji (≤5 clusters, no attachment, no quote). Mirrors
+  // the iOS predicate in `TextMessageCell.isEmojiOnly`.
+  const EMOJI_RE = /\p{Extended_Pictographic}/u;
+  let jumboCount = $derived.by(() => {
+    if (mediaBubble || cellOwnsText) return 0;
+    if (quote) return 0;
+    const stripped = (message.text ?? '').replace(/\s+/g, '');
+    if (!stripped) return 0;
+    const segmenter = new Intl.Segmenter(undefined, { granularity: 'grapheme' });
+    const clusters: string[] = [];
+    for (const s of segmenter.segment(stripped)) {
+      clusters.push(s.segment);
+      if (clusters.length > 5) return 0;
+    }
+    if (clusters.length === 0) return 0;
+    if (!clusters.every((c) => EMOJI_RE.test(c))) return 0;
+    return clusters.length;
+  });
+  let jumbo = $derived(jumboCount > 0);
+  // Multipliers mirror iOS — single-emoji is the biggest, 5+ stays compact.
+  let jumboScale = $derived.by(() => {
+    switch (jumboCount) {
+      case 1: return 3.5;
+      case 2: return 3.0;
+      case 3: return 2.75;
+      case 4: return 2.5;
+      default: return 2.25;
+    }
+  });
+
   // Group-or-broadcast — only show sender name on incoming.
   let _ = chatlist; // referenced for future name lookups in groups
   void _;
@@ -115,7 +146,9 @@
       class:failed={message.state === MSG_STATE.OutFailed}
       class:media={mediaBubble}
       class:media-only={mediaOnly}
+      class:jumbo
       class:flash={highlighted}
+      style:--jumbo-scale={jumboScale}
       oncontextmenu={handleContext}
       role="article"
     >
@@ -243,6 +276,30 @@
   }
   .bubble.media > .meta {
     padding: 4px 12px 8px;
+  }
+  /* Jumbomoji — pure emoji messages drop the bubble chrome entirely and
+   * scale the text by `--jumbo-scale` × the body font size. Mirrors iOS. */
+  .bubble.jumbo {
+    background: transparent !important;
+    color: var(--color-fg) !important;
+    box-shadow: none;
+    padding: 0;
+    border-radius: 0;
+  }
+  .row.outgoing .bubble.jumbo {
+    /* Outgoing bubbles normally use the accent fill — the !important on
+     * `.bubble.jumbo` above already strips it, but the accent text colour
+     * leaks through and washes out the emoji on coloured backgrounds. */
+    color: var(--color-fg) !important;
+  }
+  .bubble.jumbo > .text {
+    font-size: calc(var(--text-lg) * var(--jumbo-scale, 2.5));
+    line-height: 1.1;
+    user-select: text;
+  }
+  .bubble.jumbo > .meta {
+    padding: 4px 0 0;
+    justify-content: flex-end;
   }
   /* Caption-less media: meta floats bottom-right with a translucent backdrop
    * so it stays legible against the image. */
