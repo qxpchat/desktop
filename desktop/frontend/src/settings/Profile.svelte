@@ -222,9 +222,7 @@
   }
   .field input:focus,
   .field textarea:focus {
-    outline: 2px solid var(--color-accent);
-    outline-offset: -1px;
-    border-color: transparent;
+    outline: none;
   }
   .actions {
     margin-top: var(--space-4);

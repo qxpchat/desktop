@@ -509,8 +509,7 @@
     display: none;
   }
   textarea:focus {
-    outline: 1px solid var(--color-accent);
-    outline-offset: -1px;
+    outline: none;
   }
   textarea:disabled {
     opacity: 0.6;

@@ -152,7 +152,6 @@
     color: var(--color-fg);
   }
   input:focus {
-    border-color: var(--color-accent);
     outline: none;
   }
   .count {

@@ -290,8 +290,7 @@
   }
   .field input:focus,
   .field select:focus {
-    outline: 2px solid var(--color-accent);
-    outline-offset: -1px;
+    outline: none;
   }
   .field input:disabled {
     color: var(--color-fg-tertiary);

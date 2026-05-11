@@ -379,8 +379,7 @@
     min-width: 0;
   }
   .search:focus {
-    border-color: var(--color-accent);
-    background: var(--color-bg-pane);
+    outline: none;
   }
   .compose {
     width: 32px;

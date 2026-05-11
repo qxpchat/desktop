@@ -132,8 +132,6 @@
     font-size: var(--text-md);
   }
   .search:focus {
-    border-color: var(--color-accent);
-    background: var(--color-bg);
     outline: none;
   }
   .list {

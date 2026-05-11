@@ -130,7 +130,6 @@
   }
   .name:focus {
     outline: none;
-    border-color: var(--color-accent);
   }
   .hint {
     color: var(--color-fg-secondary);

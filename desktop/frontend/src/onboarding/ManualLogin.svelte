@@ -177,7 +177,6 @@
   input:focus,
   select:focus {
     outline: none;
-    border-color: var(--color-accent);
   }
   .advanced-toggle {
     align-self: flex-start;

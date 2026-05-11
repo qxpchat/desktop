@@ -6,7 +6,18 @@
       "Bash(nix-shell --run \"npm run check 2>&1 | tail -60\" /home/anon/qxp/desktop/shell.nix)",
       "Bash(nix-shell --run \"cd frontend && npm run check 2>&1 | tail -30\" /home/anon/qxp/desktop/shell.nix)",
       "Bash(nix-shell --run \"npm run check 2>&1 | tail -30\" /home/anon/qxp/desktop/shell.nix)",
-      "Bash(nix-shell --run \"npm run check 2>&1 | tail -20\" /home/anon/qxp/desktop/shell.nix)"
+      "Bash(nix-shell --run \"npm run check 2>&1 | tail -20\" /home/anon/qxp/desktop/shell.nix)",
+      "Bash(nix-shell --run \"cd frontend && npm install 2>&1 | tail -5 && find node_modules/@tauri-apps -name '*.d.ts' | head -10\" /home/anon/qxp/desktop/shell.nix)",
+      "Bash(nix-shell --run \"cd frontend && npm install 2>&1 | tail -5 && find node_modules/@tauri-apps -name '*.d.ts' | head -10\")",
+      "Bash(nix-shell --run \"cd frontend && npm run check 2>&1 | tail -20\")",
+      "WebSearch",
+      "WebFetch(domain:github.com)",
+      "Bash(gh api *)",
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "WebFetch(domain:docs.rs)",
+      "Bash(nix-shell --run \"cd frontend && npm run check 2>&1 | tail -15\")",
+      "Bash(nix-shell --run \"cd src-tauri && cargo check 2>&1 | tail -30\")",
+      "Bash(nix-shell --run \"cd frontend && npm run check 2>&1 | tail -10\")"
     ]
   }
 }

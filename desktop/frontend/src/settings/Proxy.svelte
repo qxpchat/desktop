@@ -429,8 +429,7 @@
     font-size: var(--text-sm);
   }
   .dialog input:focus {
-    outline: 2px solid var(--color-accent);
-    outline-offset: -1px;
+    outline: none;
   }
   .actions {
     display: flex;

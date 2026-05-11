@@ -193,7 +193,6 @@
   }
   .field input:focus,
   .field textarea:focus {
-    border-color: var(--color-accent);
     outline: none;
   }
   .toggle {
