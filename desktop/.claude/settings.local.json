@@ -17,7 +17,9 @@
       "WebFetch(domain:docs.rs)",
       "Bash(nix-shell --run \"cd frontend && npm run check 2>&1 | tail -15\")",
       "Bash(nix-shell --run \"cd src-tauri && cargo check 2>&1 | tail -30\")",
-      "Bash(nix-shell --run \"cd frontend && npm run check 2>&1 | tail -10\")"
+      "Bash(nix-shell --run \"cd frontend && npm run check 2>&1 | tail -10\")",
+      "WebFetch(domain:js.jsonrpc.delta.chat)",
+      "WebFetch(domain:rs.delta.chat)"
     ]
   }
 }

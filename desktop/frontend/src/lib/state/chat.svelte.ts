@@ -385,7 +385,11 @@ onEvent('MsgsChanged', (ev) => {
   }
 });
 
-for (const kind of ['MsgDelivered', 'MsgRead', 'MsgFailed'] as const) {
+// `ReactionsChanged` carries `chatId` + `msgId` like the delivery-state
+// events, and the reactions blob is part of the message payload re-fetched
+// by `patchMessage`. Without this, peer reactions only showed after a
+// chat reopen because no other event in the rotation touches the bubble.
+for (const kind of ['MsgDelivered', 'MsgRead', 'MsgFailed', 'ReactionsChanged'] as const) {
   onEvent(kind, (ev) => {
     if (!isForActiveChat(ev)) return;
     const msgId = ev.event.msgId;
