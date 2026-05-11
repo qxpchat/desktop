@@ -12,7 +12,7 @@
     setMessageSearchQuery,
   } from '../lib/state/messageSearch.svelte';
   import { selectChat } from '../lib/state/selection.svelte';
-  import { flashMessage } from '../lib/state/chat.svelte';
+  import { jumpToMessage } from '../lib/state/jump';
   import { accounts } from '../lib/state/accounts.svelte';
   import ChatListRow from './ChatListRow.svelte';
   import ChatRowMenu from './ChatRowMenu.svelte';
@@ -54,12 +54,7 @@
   });
 
   function jumpToHit(chatId: number, msgId: number) {
-    selectChat(chatId);
-    queueMicrotask(() => {
-      flashMessage(msgId);
-      const el = document.getElementById(`msg-${msgId}`);
-      el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    });
+    jumpToMessage(msgId, { chatId });
   }
 
   let hasResults = $derived(chatlist.ids.length > 0);

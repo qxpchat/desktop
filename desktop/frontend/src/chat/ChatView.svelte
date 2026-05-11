@@ -12,12 +12,12 @@
     forwardMessages,
     setReplyTo,
     setEditing,
-    flashMessage,
     loadOlder,
     CONTACT_ID_SELF,
     type Message,
   } from '../lib/state/chat.svelte';
   import { uploadBlob, viewtypeForFile } from '../lib/files';
+  import { jumpToMessage } from '../lib/state/jump';
   import { chatlist } from '../lib/state/chatlist.svelte';
   import MessageBubble from './MessageBubble.svelte';
   import InfoMessage from './InfoMessage.svelte';
@@ -289,11 +289,7 @@
 
   function jumpTo(msgId: number) {
     if (!chat.ids.includes(msgId)) return;
-    flashMessage(msgId);
-    queueMicrotask(() => {
-      const el = document.getElementById(`msg-${msgId}`);
-      el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    });
+    jumpToMessage(msgId);
   }
 
   // -------- drag and drop --------

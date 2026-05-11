@@ -33,7 +33,10 @@
 
   let { mode, existing, onSubmit, onCancel }: Props = $props();
 
-  const isEdit = mode === 'edit';
+  const isEdit = $derived(mode === 'edit');
+  // `p` only feeds the `$state(...)` initializers below, which run once
+  // at mount — capturing the initial value is intentional.
+  // svelte-ignore state_referenced_locally
   const p: LoginParam | undefined = existing;
 
   let email = $state(p?.addr ?? '');

@@ -14,10 +14,38 @@
   let playing = $state(false);
   let progress = $state(0);
   let duration = $state(0);
+  let currentTime = $state(0);
   $effect(() => {
     if (message.duration > 0 && duration === 0) duration = message.duration;
   });
   let speed = $state<1 | 1.5 | 2>(1);
+
+  // Waveform — decoded once per cell. We sample the audio buffer into a
+  // fixed number of buckets so the bar count is consistent regardless of
+  // clip length (otherwise short clips would have ten bars and long clips
+  // would have hundreds).
+  const BAR_COUNT = 48;
+  let peaks = $state<number[]>([]);
+  let peaksError = $state(false);
+
+  $effect(() => {
+    const u = url;
+    if (!u) return;
+    peaks = [];
+    peaksError = false;
+    let cancelled = false;
+    void (async () => {
+      try {
+        const samples = await decodePeaks(u, BAR_COUNT);
+        if (!cancelled) peaks = samples;
+      } catch {
+        if (!cancelled) peaksError = true;
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  });
 
   onDestroy(() => {
     if (audio) {
@@ -40,6 +68,7 @@
 
   function onTimeUpdate() {
     if (!audio || !audio.duration) return;
+    currentTime = audio.currentTime;
     progress = audio.currentTime / audio.duration;
     if (audio.duration > duration) duration = audio.duration;
   }
@@ -83,12 +112,59 @@
   }
 </script>
 
+<script lang="ts" module>
+  // Single shared AudioContext — Safari/WKWebView caps the number of
+  // concurrent contexts at ~6, so allocating one per cell crashes the page
+  // after a handful of voice messages.
+  let _ctx: AudioContext | null = null;
+  function ctx(): AudioContext {
+    if (!_ctx) {
+      const Ctor =
+        (window as unknown as { AudioContext?: typeof AudioContext; webkitAudioContext?: typeof AudioContext })
+          .AudioContext ??
+        (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+      if (!Ctor) throw new Error('Web Audio not supported');
+      _ctx = new Ctor();
+    }
+    return _ctx;
+  }
+
+  /** Fetch the audio file, decode it, and bucket the samples into `bars`
+   *  peaks normalised to [0, 1]. Lightweight — only used to draw the
+   *  waveform, never to play. */
+  export async function decodePeaks(url: string, bars: number): Promise<number[]> {
+    const res = await fetch(url);
+    if (!res.ok) throw new Error(`fetch failed: ${res.status}`);
+    const buf = await res.arrayBuffer();
+    const decoded = await ctx().decodeAudioData(buf);
+    const channel = decoded.getChannelData(0);
+    const samplesPerBar = Math.max(1, Math.floor(channel.length / bars));
+    const out = new Array<number>(bars);
+    let max = 0;
+    for (let i = 0; i < bars; i++) {
+      let peak = 0;
+      const start = i * samplesPerBar;
+      const end = Math.min(channel.length, start + samplesPerBar);
+      for (let j = start; j < end; j++) {
+        const v = Math.abs(channel[j]);
+        if (v > peak) peak = v;
+      }
+      out[i] = peak;
+      if (peak > max) max = peak;
+    }
+    // Normalise to fill the available height without clipping silence to 0.
+    if (max > 0) for (let i = 0; i < bars; i++) out[i] = out[i] / max;
+    return out;
+  }
+</script>
+
 <div class="voice">
   <button class="play" onclick={toggle} aria-label={playing ? 'Pause' : 'Play'}>
     {playing ? '❚❚' : '▶'}
   </button>
   <div
-    class="bar"
+    class="wave"
+    class:fallback={peaks.length === 0}
     onclick={onSeek}
     onkeydown={onSeekKey}
     role="slider"
@@ -98,9 +174,25 @@
     aria-label="Seek voice message"
     tabindex="0"
   >
-    <div class="fill" style:width={`${progress * 100}%`}></div>
+    {#if peaks.length > 0}
+      {#each peaks as p, i (i)}
+        {@const played = i / peaks.length < progress}
+        <span
+          class="wave-bar"
+          class:played
+          style:height={`${Math.max(8, Math.round(p * 100))}%`}
+        ></span>
+      {/each}
+    {:else if peaksError}
+      <!-- Decode failed (CSP / unsupported codec) — keep the cell usable
+           with a thin progress bar instead of a stretched empty box. -->
+      <div class="fill" style:width={`${progress * 100}%`}></div>
+    {:else}
+      <!-- Decoding — placeholder bar so the cell doesn't jump in size. -->
+      <div class="fill" style:width={`${progress * 100}%`}></div>
+    {/if}
   </div>
-  <span class="time">{fmt(audio?.currentTime ?? 0)}/{fmt(duration)}</span>
+  <span class="time">{fmt(Math.max(0, duration - currentTime))}</span>
   <button class="speed" onclick={cycleSpeed} aria-label="Playback speed">{speed}×</button>
   {#if url}
     <audio
@@ -141,13 +233,43 @@
     flex: 0 0 auto;
     justify-content: center;
   }
-  .bar {
+  .wave {
     flex: 1;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 2px;
+    cursor: pointer;
+    /* Keyboard-focus ring; click-driven so the visual outline-on-mousedown
+     * is ugly. Only show on `focus-visible`. */
+    outline: none;
+  }
+  .wave:focus-visible {
+    outline: 2px solid var(--color-accent);
+    outline-offset: 2px;
+    border-radius: 3px;
+  }
+  .wave-bar {
+    flex: 1;
+    min-width: 2px;
+    max-width: 4px;
+    background: color-mix(in srgb, var(--color-fg) 30%, transparent);
+    border-radius: 2px;
+    transition: background 0.05s linear;
+  }
+  .wave-bar.played {
+    background: var(--color-accent);
+  }
+  /* When decoding hasn't finished yet (or failed), the wave host degrades
+   * to the original thin progress bar. */
+  .wave.fallback {
     height: 6px;
     background: rgba(0, 0, 0, 0.15);
     border-radius: 3px;
     overflow: hidden;
-    cursor: pointer;
+    display: block;
+    padding: 0;
   }
   .fill {
     height: 100%;

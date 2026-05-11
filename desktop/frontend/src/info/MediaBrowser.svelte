@@ -5,11 +5,10 @@
   import { onMount } from 'svelte';
   import { rpc } from '../lib/rpc';
   import { accounts } from '../lib/state/accounts.svelte';
-  import { backToChat } from '../lib/state/mainRoute.svelte';
-  import { selectChat } from '../lib/state/selection.svelte';
-  import { flashMessage } from '../lib/state/chat.svelte';
+  import { jumpToMessage } from '../lib/state/jump';
   import { fileUrl, formatBytes } from '../lib/files';
   import { onEvent } from '../lib/events';
+  import Icon from '../lib/Icon.svelte';
 
   type Props = { chatId: number };
   let { chatId }: Props = $props();
@@ -88,14 +87,8 @@
     if (ev.contextId === accounts.selectedId) void load();
   });
 
-  function jumpToMessage(msgId: number) {
-    selectChat(chatId);
-    backToChat();
-    queueMicrotask(() => {
-      flashMessage(msgId);
-      const el = document.getElementById(`msg-${msgId}`);
-      el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    });
+  function jump(msgId: number) {
+    jumpToMessage(msgId, { chatId, returnToChat: true });
   }
 
   async function deleteItem(msgId: number) {
@@ -132,7 +125,7 @@
     {:else if tab === 'gallery'}
       <div class="grid">
         {#each items as m (m.id)}
-          <button class="thumb" onclick={() => jumpToMessage(m.id)} oncontextmenu={(e) => { e.preventDefault(); void deleteItem(m.id); }}>
+          <button class="thumb" onclick={() => jump(m.id)} oncontextmenu={(e) => { e.preventDefault(); void deleteItem(m.id); }}>
             {#if m.viewType === 'Video'}
               <span class="play" aria-hidden="true">▶</span>
             {/if}
@@ -146,12 +139,14 @@
       <ul class="list">
         {#each items as m (m.id)}
           <li>
-            <span class="icon">{m.viewType === 'Voice' ? '🎤' : '🎵'}</span>
+            <span class="icon" aria-hidden="true">
+              <Icon name={m.viewType === 'Voice' ? 'mic' : 'music'} size={18} stroke={2} />
+            </span>
             <span class="meta">
               <span class="name">{m.fileName ?? (m.viewType === 'Voice' ? 'Voice message' : 'Audio')}</span>
               <span class="sub">{new Date(m.timestamp * 1000).toLocaleString()} · {formatBytes(m.fileBytes)}</span>
             </span>
-            <button class="link" onclick={() => jumpToMessage(m.id)}>Show</button>
+            <button class="link" onclick={() => jump(m.id)}>Show</button>
             <button class="link danger" onclick={() => void deleteItem(m.id)}>Delete</button>
           </li>
         {/each}
@@ -160,13 +155,15 @@
       <ul class="list">
         {#each items as m (m.id)}
           <li>
-            <span class="icon">📎</span>
+            <span class="icon" aria-hidden="true">
+              <Icon name="paperclip" size={18} stroke={2} />
+            </span>
             <span class="meta">
               <span class="name">{m.fileName ?? 'file'}</span>
               <span class="sub">{new Date(m.timestamp * 1000).toLocaleString()} · {formatBytes(m.fileBytes)}</span>
             </span>
             <a class="link" href={fileUrl(m.file ?? undefined)} download={m.fileName ?? undefined}>Download</a>
-            <button class="link" onclick={() => jumpToMessage(m.id)}>Show</button>
+            <button class="link" onclick={() => jump(m.id)}>Show</button>
             <button class="link danger" onclick={() => void deleteItem(m.id)}>Delete</button>
           </li>
         {/each}
