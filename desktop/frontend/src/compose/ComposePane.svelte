@@ -11,6 +11,7 @@
   import { accounts } from '../lib/state/accounts.svelte';
   import { rpc } from '../lib/rpc';
   import ContactRow from './ContactRow.svelte';
+  import Icon from '../lib/Icon.svelte';
   import { t } from '../lib/i18n/i18n.svelte';
 
   type Props = {
@@ -77,20 +78,20 @@
   <ul class="actions">
     <li>
       <button class="action" onclick={newContact}>
-        <span class="icon" aria-hidden="true">＋</span>
+        <span class="icon" aria-hidden="true"><Icon name="user-plus" size={18} /></span>
         <span class="label">{t('New Contact')}</span>
         <span class="hint">{t('Scan a QR code')}</span>
       </button>
     </li>
     <li>
       <button class="action" onclick={newGroup}>
-        <span class="icon" aria-hidden="true">⌬</span>
+        <span class="icon" aria-hidden="true"><Icon name="users" size={18} /></span>
         <span class="label">{t('New Group')}</span>
       </button>
     </li>
     <li>
       <button class="action" onclick={newChannel}>
-        <span class="icon" aria-hidden="true">📣</span>
+        <span class="icon" aria-hidden="true"><Icon name="megaphone" size={18} /></span>
         <span class="label">{t('New Channel')}</span>
       </button>
     </li>
