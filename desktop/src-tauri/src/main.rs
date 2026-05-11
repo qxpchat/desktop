@@ -23,6 +23,7 @@ fn main() {
 
     tauri::Builder::default()
         .plugin(tauri_plugin_notification::init())
+        .plugin(tauri_plugin_opener::init())
         .invoke_handler(tauri::generate_handler![set_badge])
         .setup(|app| {
             // Per-OS app data dir — `~/.local/share/chat.qxp.desktop` on Linux,
