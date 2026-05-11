@@ -102,11 +102,24 @@ export type ActiveChat = {
 
 export type ChatState = {
   active: ActiveChat | null;
-  /** Display-order ids (oldest first). */
+  /** Full ordered list of every message id in the chat (oldest first).
+   *  Cheap to fetch — just integers from `get_message_ids`. We don't render
+   *  these directly; rendering is gated by `ids`. */
+  allIds: number[];
+  /** Loaded slice of `allIds` — the messages whose payload is in `messages`
+   *  and whose bubbles are currently rendered. Starts as the newest
+   *  `INITIAL_WINDOW`, grows backwards via `loadOlder()` as the user scrolls
+   *  up. Always a contiguous suffix of `allIds`. */
   ids: number[];
   /** Message payload by id. */
   messages: Map<number, Message>;
   loading: boolean;
+  /** True while a `loadOlder` RPC is in flight — used to debounce
+   *  scroll-triggered loads. */
+  loadingOlder: boolean;
+  /** Whether `ids` covers `allIds` from the start. False = there are older
+   *  messages still to fetch. */
+  hasMoreOlder: boolean;
   /** Most recent error from a load/send. Cleared on next successful load. */
   error: string | null;
   /** Composer state: id of message being replied to (quote-reply). */
@@ -117,11 +130,20 @@ export type ChatState = {
   highlightId: number | null;
 };
 
+// Initial render window + pagination step. 50 keeps the first paint cheap;
+// scrolling up loads the next 50. Big enough that most chats fit in one
+// page, small enough that opening a 10k-message chat is instant.
+const INITIAL_WINDOW = 50;
+const PAGE_SIZE = 50;
+
 export const chat = $state<ChatState>({
   active: null,
+  allIds: [],
   ids: [],
   messages: new Map(),
   loading: false,
+  loadingOlder: false,
+  hasMoreOlder: false,
   error: null,
   replyToId: null,
   editingId: null,
@@ -150,13 +172,16 @@ let loadGen = 0;
 export function setActiveChat(active: ActiveChat | null): void {
   if (sameChat(active, chat.active)) return;
   chat.active = active;
+  chat.allIds = [];
   chat.ids = [];
   chat.messages = new Map();
+  chat.hasMoreOlder = false;
+  chat.loadingOlder = false;
   chat.error = null;
   chat.replyToId = null;
   chat.editingId = null;
   chat.highlightId = null;
-  if (active != null) void loadAll();
+  if (active != null) void loadInitial();
 }
 
 function sameChat(a: ActiveChat | null, b: ActiveChat | null): boolean {
@@ -164,13 +189,14 @@ function sameChat(a: ActiveChat | null, b: ActiveChat | null): boolean {
   return a.accountId === b.accountId && a.chatId === b.chatId;
 }
 
-async function loadAll(): Promise<void> {
+/** Fetch all ids (cheap) + the newest INITIAL_WINDOW messages. */
+async function loadInitial(): Promise<void> {
   const active = chat.active;
   if (active == null) return;
   const gen = ++loadGen;
   chat.loading = true;
   try {
-    const ids = await rpc.call<number[]>('get_message_ids', [
+    const allIds = await rpc.call<number[]>('get_message_ids', [
       active.accountId,
       active.chatId,
       false,
@@ -178,28 +204,120 @@ async function loadAll(): Promise<void> {
     ]);
     if (gen !== loadGen || !sameChat(active, chat.active)) return;
 
+    const window = allIds.slice(Math.max(0, allIds.length - INITIAL_WINDOW));
     const map = await rpc.call<Record<number, MessageLoadResult>>('get_messages', [
       active.accountId,
-      ids,
+      window,
     ]);
     if (gen !== loadGen || !sameChat(active, chat.active)) return;
 
     const messages = new Map<number, Message>();
     const visibleIds: number[] = [];
-    for (const id of ids) {
+    for (const id of window) {
       const r = map[id];
       if (r && r.kind === 'message') {
         messages.set(id, r as unknown as Message);
         visibleIds.push(id);
       }
     }
+    chat.allIds = allIds;
     chat.ids = visibleIds;
     chat.messages = messages;
+    chat.hasMoreOlder = visibleIds.length < allIds.length;
     chat.error = null;
   } catch (err) {
     if (gen === loadGen) chat.error = errString(err);
   } finally {
     if (gen === loadGen) chat.loading = false;
+  }
+}
+
+/** Convenience for code paths that previously called `loadAll()` — fetches
+ *  every id and reloads the full window. Used after a full-reload event
+ *  (`MsgsChanged` with msgId=0). The current visible window keeps its
+ *  size when possible so the user's scroll position is preserved. */
+async function loadAll(): Promise<void> {
+  const active = chat.active;
+  if (active == null) return;
+  const gen = ++loadGen;
+  chat.loading = true;
+  try {
+    const allIds = await rpc.call<number[]>('get_message_ids', [
+      active.accountId,
+      active.chatId,
+      false,
+      false,
+    ]);
+    if (gen !== loadGen || !sameChat(active, chat.active)) return;
+
+    const targetCount = Math.max(INITIAL_WINDOW, chat.ids.length);
+    const window = allIds.slice(Math.max(0, allIds.length - targetCount));
+    const map = await rpc.call<Record<number, MessageLoadResult>>('get_messages', [
+      active.accountId,
+      window,
+    ]);
+    if (gen !== loadGen || !sameChat(active, chat.active)) return;
+
+    const messages = new Map<number, Message>();
+    const visibleIds: number[] = [];
+    for (const id of window) {
+      const r = map[id];
+      if (r && r.kind === 'message') {
+        messages.set(id, r as unknown as Message);
+        visibleIds.push(id);
+      }
+    }
+    chat.allIds = allIds;
+    chat.ids = visibleIds;
+    chat.messages = messages;
+    chat.hasMoreOlder = visibleIds.length < allIds.length;
+    chat.error = null;
+  } catch (err) {
+    if (gen === loadGen) chat.error = errString(err);
+  } finally {
+    if (gen === loadGen) chat.loading = false;
+  }
+}
+
+/** Extend the loaded window backwards by `PAGE_SIZE`. Returns the number of
+ *  newly loaded ids — callers (ChatView) use this to preserve scroll
+ *  position when the prepended bubbles change `scrollHeight`. */
+export async function loadOlder(): Promise<number> {
+  const active = chat.active;
+  if (active == null || !chat.hasMoreOlder || chat.loadingOlder) return 0;
+  chat.loadingOlder = true;
+  const gen = loadGen;
+  try {
+    const startInAll = chat.allIds.length - chat.ids.length;
+    const from = Math.max(0, startInAll - PAGE_SIZE);
+    const toLoad = chat.allIds.slice(from, startInAll);
+    if (toLoad.length === 0) {
+      chat.hasMoreOlder = false;
+      return 0;
+    }
+    const map = await rpc.call<Record<number, MessageLoadResult>>('get_messages', [
+      active.accountId,
+      toLoad,
+    ]);
+    if (gen !== loadGen || !sameChat(active, chat.active)) return 0;
+    const next = new Map(chat.messages);
+    const prepended: number[] = [];
+    for (const id of toLoad) {
+      const r = map[id];
+      if (r && r.kind === 'message') {
+        next.set(id, r as unknown as Message);
+        prepended.push(id);
+      }
+    }
+    chat.messages = next;
+    chat.ids = [...prepended, ...chat.ids];
+    chat.hasMoreOlder = chat.ids.length < chat.allIds.length;
+    return prepended.length;
+  } catch (err) {
+    chat.error = errString(err);
+    return 0;
+  } finally {
+    if (gen === loadGen) chat.loadingOlder = false;
   }
 }
 
@@ -222,8 +340,13 @@ async function patchMessage(msgId: number, opts: { appendIfNew: boolean }): Prom
     const next = new Map(chat.messages);
     next.set(msgId, m);
     chat.messages = next;
-    if (opts.appendIfNew && !chat.ids.includes(msgId)) {
-      chat.ids = [...chat.ids, msgId];
+    if (opts.appendIfNew) {
+      if (!chat.allIds.includes(msgId)) {
+        chat.allIds = [...chat.allIds, msgId];
+      }
+      if (!chat.ids.includes(msgId)) {
+        chat.ids = [...chat.ids, msgId];
+      }
     }
   } catch (err) {
     console.warn('chat.patchMessage failed:', err);
@@ -326,9 +449,11 @@ export async function deleteMessages(ids: number[]): Promise<void> {
   try {
     await rpc.call('delete_messages', [active.accountId, ids]);
     const next = new Map(chat.messages);
+    const toDelete = new Set(ids);
     for (const id of ids) next.delete(id);
     chat.messages = next;
-    chat.ids = chat.ids.filter((id) => !ids.includes(id));
+    chat.ids = chat.ids.filter((id) => !toDelete.has(id));
+    chat.allIds = chat.allIds.filter((id) => !toDelete.has(id));
   } catch (err) {
     chat.error = errString(err);
   }

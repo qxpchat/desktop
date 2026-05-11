@@ -10,6 +10,7 @@
     setReplyTo,
     setEditing,
     flashMessage,
+    loadOlder,
     CONTACT_ID_SELF,
     type Message,
   } from '../lib/state/chat.svelte';
@@ -76,12 +77,45 @@
     document.removeEventListener('visibilitychange', onVisibility);
   });
 
+  // `tick` flushes Svelte's reconciliation, but layout/paint can still
+  // grow afterwards as images and avatars load. We re-pin to the bottom
+  // across a handful of animation frames so the initial scroll doesn't
+  // strand the user mid-feed. Idempotent — subsequent calls just keep
+  // pinning until the layout stops growing.
   async function scrollToBottom(): Promise<void> {
     if (!scroller) return;
     await tick();
+    if (!scroller) return;
     scroller.scrollTop = scroller.scrollHeight;
+    for (let i = 0; i < 6; i++) {
+      await new Promise<void>((r) => requestAnimationFrame(() => r()));
+      if (!scroller) return;
+      scroller.scrollTop = scroller.scrollHeight;
+    }
     atBottom = true;
     newSinceScroll = 0;
+  }
+
+  // Distance from the top below which we trigger pagination. Set high
+  // enough that a fast scroll-up flings load older messages *before* the
+  // user hits the absolute top (so they don't see an empty top-state).
+  const LOAD_OLDER_THRESHOLD_PX = 240;
+
+  async function maybeLoadOlder(): Promise<void> {
+    if (!scroller) return;
+    if (chat.loadingOlder || !chat.hasMoreOlder) return;
+    if (scroller.scrollTop > LOAD_OLDER_THRESHOLD_PX) return;
+    // Capture viewport anchor so the user's view stays put after older
+    // messages are prepended — without this, scrollTop stays at the same
+    // pixel offset, but `scrollHeight` grows, so the visible content jumps.
+    const beforeHeight = scroller.scrollHeight;
+    const beforeTop = scroller.scrollTop;
+    const added = await loadOlder();
+    if (!scroller || added === 0) return;
+    await tick();
+    if (!scroller) return;
+    const delta = scroller.scrollHeight - beforeHeight;
+    scroller.scrollTop = beforeTop + delta;
   }
 
   function onScroll() {
@@ -92,6 +126,7 @@
       atBottom = next;
       if (atBottom) newSinceScroll = 0;
     }
+    void maybeLoadOlder();
     // Show the scrollbar thumb while the user is actively scrolling, hide it
     // again ~800 ms after they stop. Mirrors the macOS/iOS overlay-scrollbar
     // behaviour without relying on the deprecated `overflow: overlay`.
