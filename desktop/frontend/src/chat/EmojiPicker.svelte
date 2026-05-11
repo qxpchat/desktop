@@ -1,6 +1,6 @@
 <script lang="ts">
   import { CATEGORY_LABELS, EMOJI, type Category } from '../lib/emoji/data';
-  import { onMount } from 'svelte';
+  import { emojiRecents, recordEmojiUse } from '../lib/emoji/recents.svelte';
   import { t } from '../lib/i18n/i18n.svelte';
 
   type Props = {
@@ -14,29 +14,8 @@
   let search = $state('');
   let activeCat = $state<Category>('smileys');
 
-  const RECENTS_KEY = 'qxp.web.emojiRecents';
-  let recents = $state<string[]>([]);
-
-  onMount(() => {
-    try {
-      const raw = localStorage.getItem(RECENTS_KEY);
-      if (raw) recents = JSON.parse(raw) as string[];
-    } catch {
-      /* ignore corrupted */
-    }
-  });
-
-  function persistRecents() {
-    try {
-      localStorage.setItem(RECENTS_KEY, JSON.stringify(recents.slice(0, 32)));
-    } catch {
-      /* ignore */
-    }
-  }
-
   function pickEmoji(c: string) {
-    recents = [c, ...recents.filter((x) => x !== c)].slice(0, 32);
-    persistRecents();
+    recordEmojiUse(c);
     onPick(c);
     onClose();
   }
@@ -60,10 +39,10 @@
       bind:value={search}
     />
 
-    {#if !search && recents.length > 0}
+    {#if !search && emojiRecents.list.length > 0}
       <div class="section-label">{t('Recents')}</div>
       <div class="grid">
-        {#each recents as e}
+        {#each emojiRecents.list as e (e)}
           <button class="emoji" onclick={() => pickEmoji(e)} aria-label={e}>{e}</button>
         {/each}
       </div>

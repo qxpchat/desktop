@@ -4,7 +4,7 @@
   // callbacks (reply / forward / edit / delete / copy); for Phase 9 the
   // reaction row is the primary surface and "more" opens the emoji picker.
 
-  import { QUICK_REACTIONS } from '../lib/emoji/data';
+  import { quickRowEmojis, recordEmojiUse } from '../lib/emoji/recents.svelte';
   import type { Message } from '../lib/state/chat.svelte';
   import Icon, { type IconName } from '../lib/Icon.svelte';
   import { t } from '../lib/i18n/i18n.svelte';
@@ -51,7 +51,14 @@
     style = `top: ${Math.max(8, top)}px; left: ${Math.max(8, left)}px;`;
   });
 
+  // Quick row mirrors the user's recents (filled with QUICK_REACTIONS until
+  // they've used enough emoji). Reactive: re-derives if recents change
+  // while the menu is open — though in practice the menu unmounts on every
+  // pick.
+  let quickEmojis = $derived(quickRowEmojis());
+
   function pick(emoji: string) {
+    recordEmojiUse(emoji);
     onPickEmoji(emoji);
     onClose();
   }
@@ -69,7 +76,7 @@
 <button class="backdrop" onclick={onClose} aria-label={t('Close menu')}></button>
 <div bind:this={menu} class="menu" style={style} role="menu">
   <div class="quick" role="group" aria-label={t('Quick reactions')}>
-    {#each QUICK_REACTIONS as e}
+    {#each quickEmojis as e (e)}
       <button class="emoji" onclick={() => pick(e)} aria-label={e}>{e}</button>
     {/each}
     <button class="emoji more" onclick={more} aria-label={t('More emoji')}>
