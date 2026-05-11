@@ -22,6 +22,8 @@ fn main() {
         .init();
 
     tauri::Builder::default()
+        .plugin(tauri_plugin_notification::init())
+        .invoke_handler(tauri::generate_handler![set_badge])
         .setup(|app| {
             // Per-OS app data dir — `~/.local/share/chat.qxp.desktop` on Linux,
             // `~/Library/Application Support/chat.qxp.desktop` on macOS,
@@ -37,6 +39,37 @@ fn main() {
         })
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
+}
+
+/// Set the macOS dock-tile badge to `label` (e.g. "3", "99+", or empty to
+/// clear). The frontend calls this every time the unread total changes.
+/// No-op on non-macOS — the badge concept doesn't exist on Linux/Windows
+/// taskbars in a portable way; flashing the icon would be a separate path.
+#[tauri::command]
+fn set_badge(label: Option<String>) {
+    #[cfg(target_os = "macos")]
+    {
+        use objc2::msg_send;
+        use objc2_app_kit::NSApplication;
+        use objc2_foundation::{MainThreadMarker, NSString};
+
+        // dockTile must be touched on the main thread. The Tauri invoke
+        // handler already runs on the main thread for `#[tauri::command]`
+        // fns by default, but we re-prove it to satisfy MainThreadMarker.
+        let Some(mtm) = MainThreadMarker::new() else {
+            tracing::warn!("set_badge invoked off the main thread; skipping");
+            return;
+        };
+        let app = NSApplication::sharedApplication(mtm);
+        let dock_tile = app.dockTile();
+        let text = label.as_deref().unwrap_or("");
+        let ns = NSString::from_str(text);
+        unsafe {
+            let _: () = msg_send![&*dock_tile, setBadgeLabel: &*ns];
+        }
+    }
+    // Silence unused-arg warning on non-macOS.
+    let _ = label;
 }
 
 /// Spawn the qxp-web daemon in its own OS thread on a dedicated multi-thread

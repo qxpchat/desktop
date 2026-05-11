@@ -3,5 +3,5 @@
   "identifier": "default",
   "description": "Capabilities the main qxp webview needs.",
   "windows": ["main"],
-  "permissions": ["core:default"]
+  "permissions": ["core:default", "notification:default"]
 }

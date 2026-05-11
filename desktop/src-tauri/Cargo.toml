@@ -10,6 +10,7 @@ tauri-build = { version = "2", features = [] }
 
 [dependencies]
 tauri = { version = "2", features = [] }
+tauri-plugin-notification = "2"
 
 # Daemon is a sibling crate; we spawn it in-process on its own tokio runtime.
 qxp-web = { path = "../server" }
@@ -18,6 +19,14 @@ tokio = { version = "1", features = ["rt-multi-thread", "macros"] }
 anyhow = "1"
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+
+# macOS dock-tile badge. objc2 + objc2-foundation + objc2-app-kit are already
+# pulled in transitively by tauri/wry; declaring them as direct deps here
+# only affects compile-time, not link size.
+[target.'cfg(target_os = "macos")'.dependencies]
+objc2 = "0.6"
+objc2-foundation = "0.3"
+objc2-app-kit = "0.3"
 
 # Same dev-profile dance as the daemon — deltachat-core's transitive async
 # functions need opt-level >= 1 to fit on tokio's default 2 MB worker stacks.
