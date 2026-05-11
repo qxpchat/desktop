@@ -12,6 +12,7 @@
   import ReactionsRow from './ReactionsRow.svelte';
   import Icon, { type IconName } from '../lib/Icon.svelte';
   import { linkify } from '../lib/format/linkify';
+  import { openChatByEmail } from '../lib/chatActions';
   import { detectYouTubeId } from '../lib/format/youtube';
   import { t } from '../lib/i18n/i18n.svelte';
 
@@ -209,6 +210,13 @@
           {#each linkify(message.text) as seg, i (i)}
             {#if seg.kind === 'link'}
               <a href={seg.href} target="_blank" rel="noopener noreferrer">{seg.text}</a>
+            {:else if seg.kind === 'email'}
+              <button
+                type="button"
+                class="email-link"
+                onclick={() => void openChatByEmail(seg.address)}
+                title={t('Start chat with {addr}', { addr: seg.address })}
+              >{seg.text}</button>
             {:else}
               {seg.text}
             {/if}
@@ -382,6 +390,21 @@
     text-decoration: underline;
     text-underline-offset: 2px;
     word-break: break-word;
+  }
+  /* Bare email addresses get the same underlined-in-flow treatment as
+     URLs, but as a <button> so we can hijack the click and open an in-app
+     chat with that address instead of handing off to the OS mail client. */
+  .text .email-link {
+    background: transparent;
+    border: 0;
+    padding: 0;
+    margin: 0;
+    color: inherit;
+    font: inherit;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+    word-break: break-word;
+    cursor: pointer;
   }
   .quote {
     display: flex;
