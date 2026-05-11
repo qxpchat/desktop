@@ -7,7 +7,8 @@
   import { accounts } from '../lib/state/accounts.svelte';
   import { backToChat, setMainRoute } from '../lib/state/mainRoute.svelte';
   import { selectChat } from '../lib/state/selection.svelte';
-  import { fileUrl } from '../lib/files';
+  import Avatar from '../lib/Avatar.svelte';
+  import Icon from '../lib/Icon.svelte';
 
   type Props = { chatId: number };
   let { chatId }: Props = $props();
@@ -41,8 +42,16 @@
     isBlocked: boolean;
   };
 
+  type SharedChat = {
+    id: number;
+    name: string;
+    color: string;
+    profileImage: string | null;
+  };
+
   let chat = $state<FullChat | null>(null);
   let members = $state<Contact[]>([]);
+  let sharedChats = $state<SharedChat[]>([]);
   let loaded = $state(false);
   let editingName = $state(false);
   let nameInput = $state('');
@@ -67,7 +76,60 @@
     } else {
       members = [];
     }
+    sharedChats = await loadSharedChats(id, chat);
     loaded = true;
+  }
+
+  // Fetches the other chats this contact is in (iOS calls it "Shared Chats").
+  // Only meaningful for 1:1 chats — for groups there's no single "other".
+  // Filters out the current chat so we don't list ourselves.
+  async function loadSharedChats(accountId: number, c: FullChat): Promise<SharedChat[]> {
+    if (c.chatType !== 'Single') return [];
+    const other = c.contactIds.find((cid) => cid !== 1);
+    if (other == null) return [];
+    try {
+      // `queryContactId` filters the chatlist to chats containing this
+      // contact — same trick deltachat-ios uses (see `dc_get_chatlist`).
+      const ids = await rpc.call<number[]>('get_chatlist_entries', [
+        accountId,
+        null,
+        null,
+        other,
+      ]);
+      const otherIds = ids.filter((id) => id !== c.id && id !== 0);
+      if (otherIds.length === 0) return [];
+      // `ChatListItemFetchResult` has no enum-level `rename_all` in
+      // deltachat-jsonrpc, so the discriminator stays PascalCase (unlike
+      // `QrObject` which is camelCased). Same convention as `event.kind`
+      // in events.ts.
+      type FetchItem =
+        | { kind: 'ChatListItem'; id: number; name: string; color: string; avatarPath?: string | null }
+        | { kind: 'ArchiveLink' }
+        | { kind: 'Error' };
+      const map = await rpc.call<Record<number, FetchItem>>('get_chatlist_items_by_entries', [
+        accountId,
+        otherIds,
+      ]);
+      const out: SharedChat[] = [];
+      for (const id of otherIds) {
+        const item = map[id];
+        if (!item || item.kind !== 'ChatListItem') continue;
+        out.push({
+          id: item.id,
+          name: item.name,
+          color: item.color,
+          profileImage: item.avatarPath ?? null,
+        });
+      }
+      return out;
+    } catch {
+      return [];
+    }
+  }
+
+  function openSharedChat(id: number) {
+    selectChat(id);
+    backToChat();
   }
 
   let isSingle = $derived(chat?.chatType === 'Single');
@@ -83,26 +145,11 @@
     await load();
   }
 
-  async function toggleMute() {
-    if (!chat || accounts.selectedId == null) return;
-    const dur = chat.isMuted ? { kind: 'notMuted' } : { kind: 'forever' };
-    await rpc.call('set_chat_mute_duration', [accounts.selectedId, chat.id, dur]);
-    await load();
-  }
-
-  async function togglePin() {
-    if (!chat || accounts.selectedId == null) return;
-    const vis = chat.pinned ? 'normal' : 'pinned';
-    await rpc.call('set_chat_visibility', [accounts.selectedId, chat.id, vis]);
-    await load();
-  }
-
-  async function toggleArchive() {
-    if (!chat || accounts.selectedId == null) return;
-    const vis = chat.archived ? 'normal' : 'archived';
-    await rpc.call('set_chat_visibility', [accounts.selectedId, chat.id, vis]);
-    await load();
-  }
+  // Pin / mute / archive moved to the chat-list row right-click menu
+  // (see `shell/ChatRowMenu.svelte`) — iOS keeps mute & archive here too,
+  // but the user wants the contact page to focus on contact-shaped
+  // affordances (media, members, encryption, block, delete) rather than
+  // chat-list housekeeping.
 
   async function setEphemeral(seconds: number) {
     if (!chat || accounts.selectedId == null) return;
@@ -172,13 +219,12 @@
     <p class="muted">Loading…</p>
   {:else}
     <div class="header">
-      <span class="avatar" style:background={chat.color}>
-        {#if chat.profileImage}
-          <img src={fileUrl(chat.profileImage)} alt="" />
-        {:else}
-          {(chat.name[0] ?? '?').toUpperCase()}
-        {/if}
-      </span>
+      <Avatar
+        name={chat.name || '?'}
+        color={chat.color}
+        imagePath={chat.profileImage}
+        size={96}
+      />
       {#if editingName}
         <input bind:value={nameInput} placeholder="Name" />
         <div class="actions">
@@ -196,53 +242,78 @@
       {/if}
     </div>
 
-    <div class="actions-grid">
-      <button onclick={togglePin}>{chat.pinned ? 'Unpin' : 'Pin'}</button>
-      <button onclick={toggleMute}>{chat.isMuted ? 'Unmute' : 'Mute'}</button>
-      <button onclick={toggleArchive}>{chat.archived ? 'Unarchive' : 'Archive'}</button>
-      <button onclick={showMedia}>Media</button>
+    <div class="group">
+      <button class="row link" onclick={showMedia}>
+        <span class="label">Media, Audio &amp; Files</span>
+        <Icon name="chevron-right" size={14} />
+      </button>
       {#if (isGroup || isBroadcast) && chat.isEncrypted}
-        <button onclick={showQr}>Invite QR</button>
+        <button class="row link" onclick={showQr}>
+          <span class="label">Invite QR</span>
+          <Icon name="chevron-right" size={14} />
+        </button>
       {/if}
     </div>
 
-    <div class="row">
-      <span class="label">Disappearing messages</span>
-      <select onchange={(e) => void setEphemeral(Number((e.currentTarget as HTMLSelectElement).value))} value={chat.ephemeralTimer}>
-        {#each EPHEMERAL_OPTIONS as o}
-          <option value={o.v}>{o.l}</option>
-        {/each}
-      </select>
+    <div class="group">
+      <div class="row">
+        <span class="label">Disappearing messages</span>
+        <select onchange={(e) => void setEphemeral(Number((e.currentTarget as HTMLSelectElement).value))} value={chat.ephemeralTimer}>
+          {#each EPHEMERAL_OPTIONS as o}
+            <option value={o.v}>{o.l}</option>
+          {/each}
+        </select>
+      </div>
     </div>
+
+    {#if isSingle && sharedChats.length > 0}
+      <h3>Shared Chats</h3>
+      <div class="group">
+        {#each sharedChats as s (s.id)}
+          <button class="row link" onclick={() => openSharedChat(s.id)}>
+            <Avatar name={s.name} color={s.color} imagePath={s.profileImage} size={32} />
+            <span class="label shared-name">{s.name || '(no name)'}</span>
+            <Icon name="chevron-right" size={14} />
+          </button>
+        {/each}
+      </div>
+    {/if}
 
     {#if isGroup || isBroadcast}
       <h3>Members ({members.length})</h3>
       <ul class="members">
         {#each members as m (m.id)}
           <li>
-            <span class="m-avatar" style:background={m.color}>
-              {(m.displayName[0] ?? '?').toUpperCase()}
-            </span>
+            <Avatar name={m.displayName} color={m.color} imagePath={m.profileImage} size={32} />
             <span class="m-meta">
               <span class="m-name">{m.displayName}</span>
               <span class="m-addr">{m.address}</span>
             </span>
             {#if m.id !== 1 && chat.selfInGroup}
-              <button class="link danger" onclick={() => void removeMember(m.id)}>Remove</button>
+              <button class="link-danger" onclick={() => void removeMember(m.id)}>Remove</button>
             {/if}
           </li>
         {/each}
       </ul>
     {/if}
 
-    <div class="footer-actions">
-      {#if isSingle && other}
-        <button class="danger" onclick={blockContact}>Block contact</button>
-      {/if}
+    {#if isSingle && other}
+      <div class="group">
+        <button class="row danger-row" onclick={blockContact}>
+          <span class="label">Block contact</span>
+        </button>
+      </div>
+    {/if}
+
+    <div class="group">
       {#if (isGroup || isBroadcast) && chat.selfInGroup}
-        <button class="danger" onclick={leave}>Leave</button>
+        <button class="row danger-row" onclick={leave}>
+          <span class="label">Leave</span>
+        </button>
       {/if}
-      <button class="danger" onclick={deleteChat}>Delete chat</button>
+      <button class="row danger-row" onclick={deleteChat}>
+        <span class="label">Delete chat</span>
+      </button>
     </div>
   {/if}
 </section>
@@ -281,25 +352,10 @@
   .header {
     text-align: center;
     padding: var(--space-5);
-    border-bottom: 1px solid var(--color-border);
-  }
-  .avatar {
-    display: inline-flex;
-    width: 96px;
-    height: 96px;
-    border-radius: 50%;
-    color: white;
-    font-size: 36px;
-    font-weight: 600;
+    display: flex;
+    flex-direction: column;
     align-items: center;
-    justify-content: center;
-    overflow: hidden;
-    margin-bottom: 12px;
-  }
-  .avatar img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
+    gap: var(--space-2);
   }
   h2 {
     margin: 0 0 4px;
@@ -323,29 +379,30 @@
     padding: 6px 12px;
     border-radius: var(--radius-md);
   }
-  .actions-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
-    gap: 8px;
-    padding: var(--space-4);
-    border-bottom: 1px solid var(--color-border);
-  }
-  .actions-grid button {
-    padding: 8px;
+  .group {
+    margin: var(--space-3) var(--space-4);
+    border: 1px solid var(--color-border);
     border-radius: var(--radius-md);
-    background: var(--color-bg-hover);
-    color: var(--color-fg);
-    font-weight: 500;
-  }
-  .actions-grid button:hover {
-    background: var(--color-border);
+    background: var(--color-bg-elevated);
+    overflow: hidden;
   }
   .row {
     display: flex;
     align-items: center;
     gap: 8px;
     padding: var(--space-3) var(--space-4);
-    border-bottom: 1px solid var(--color-border);
+    width: 100%;
+    background: transparent;
+    color: var(--color-fg);
+  }
+  .row + .row {
+    border-top: 1px solid var(--color-border);
+  }
+  .row.link {
+    cursor: pointer;
+  }
+  .row.link:hover {
+    background: var(--color-bg-hover);
   }
   .label {
     flex: 1;
@@ -358,6 +415,16 @@
   }
   h3 {
     margin: var(--space-4) var(--space-4) var(--space-2);
+    font-size: var(--text-xs);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--color-fg-tertiary);
+    font-weight: 600;
+  }
+  .shared-name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
   .members {
     padding: 0 var(--space-4) var(--space-3);
@@ -368,16 +435,6 @@
     gap: 10px;
     padding: 8px 0;
     border-bottom: 1px solid var(--color-border);
-  }
-  .m-avatar {
-    width: 32px;
-    height: 32px;
-    border-radius: 50%;
-    color: white;
-    font-weight: 600;
-    display: flex;
-    align-items: center;
-    justify-content: center;
   }
   .m-meta {
     flex: 1;
@@ -397,24 +454,18 @@
     color: var(--color-accent);
     padding: 0;
   }
-  .link.danger {
-    color: var(--color-danger);
-  }
-  .footer-actions {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-    padding: var(--space-4);
-  }
-  .footer-actions .danger {
-    padding: 10px;
-    border-radius: var(--radius-md);
+  .link-danger {
     background: transparent;
     color: var(--color-danger);
-    text-align: center;
+    padding: 0;
+    font-size: var(--text-sm);
+  }
+  .danger-row {
+    color: var(--color-danger);
+    cursor: pointer;
     font-weight: 500;
   }
-  .footer-actions .danger:hover {
+  .danger-row:hover {
     background: var(--color-bg-hover);
   }
   .primary {

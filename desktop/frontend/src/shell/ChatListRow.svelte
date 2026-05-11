@@ -10,9 +10,10 @@
     selected: boolean;
     narrow: boolean;
     onSelect: (id: number) => void;
+    onContextMenu?: (chat: ChatListItem, x: number, y: number) => void;
   };
 
-  let { chat, selected, narrow, onSelect }: Props = $props();
+  let { chat, selected, narrow, onSelect, onContextMenu }: Props = $props();
 
   let displayName = $derived(chat.name.length > 0 ? chat.name : '(no name)');
   let timestamp = $derived(formatRelativeTimestamp(chat.lastUpdated));
@@ -53,6 +54,11 @@
   class:selected
   class:muted={chat.isMuted}
   onclick={() => onSelect(chat.id)}
+  oncontextmenu={(e) => {
+    if (!onContextMenu) return;
+    e.preventDefault();
+    onContextMenu(chat, e.clientX, e.clientY);
+  }}
   {title}
   aria-label={displayName}
   aria-pressed={selected}

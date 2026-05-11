@@ -14,6 +14,9 @@
   import { flashMessage } from '../lib/state/chat.svelte';
   import { accounts } from '../lib/state/accounts.svelte';
   import ChatListRow from './ChatListRow.svelte';
+  import ChatRowMenu from './ChatRowMenu.svelte';
+  import { rpc } from '../lib/rpc';
+  import type { ChatListItem } from '../lib/state/chatlist.svelte';
   import Icon from '../lib/Icon.svelte';
   import ComposePane from '../compose/ComposePane.svelte';
   import ChooseMembers from '../compose/ChooseMembers.svelte';
@@ -54,6 +57,40 @@
 
   function openCompose() {
     setPaneMode({ kind: 'compose' });
+  }
+
+  // Context-menu state: one menu per pane, populated on row right-click.
+  // Actions hit the core directly and mutate the existing chatlist state
+  // via its event-driven refresh (deltachat-core emits ChatModified after
+  // each call, which the chatlist runes pick up).
+  let menu = $state<{ chat: ChatListItem; x: number; y: number } | null>(null);
+
+  async function togglePin(chat: ChatListItem) {
+    if (accounts.selectedId == null) return;
+    const vis = chat.isPinned ? 'normal' : 'pinned';
+    try {
+      await rpc.call('set_chat_visibility', [accounts.selectedId, chat.id, vis]);
+    } catch {
+      /* core surfaces failure via its own event/error path */
+    }
+  }
+  async function toggleMute(chat: ChatListItem) {
+    if (accounts.selectedId == null) return;
+    const dur = chat.isMuted ? { kind: 'notMuted' } : { kind: 'forever' };
+    try {
+      await rpc.call('set_chat_mute_duration', [accounts.selectedId, chat.id, dur]);
+    } catch {
+      /* same */
+    }
+  }
+  async function toggleArchive(chat: ChatListItem) {
+    if (accounts.selectedId == null) return;
+    const vis = chat.isArchived ? 'normal' : 'archived';
+    try {
+      await rpc.call('set_chat_visibility', [accounts.selectedId, chat.id, vis]);
+    } catch {
+      /* same */
+    }
   }
 
   function openArchive() {
@@ -133,6 +170,7 @@
               selected={id === selectedChatId}
               {narrow}
               onSelect={onSelectChat}
+              onContextMenu={(c, x, y) => (menu = { chat: c, x, y })}
             />
           </li>
         {/if}
@@ -166,6 +204,18 @@
     <GroupMetadata mode={paneMode.mode} {onSelectChat} />
   {/if}
 </aside>
+
+{#if menu}
+  <ChatRowMenu
+    chat={menu.chat}
+    x={menu.x}
+    y={menu.y}
+    onClose={() => (menu = null)}
+    onTogglePin={() => void togglePin(menu!.chat)}
+    onToggleMute={() => void toggleMute(menu!.chat)}
+    onToggleArchive={() => void toggleArchive(menu!.chat)}
+  />
+{/if}
 
 <style>
   .pane {
