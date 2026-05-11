@@ -82,24 +82,6 @@
     onContextMenu(message, e.clientX, e.clientY);
   }
 
-  // Swipe-to-reply on touch / pointer drag.
-  let swipeStart: { x: number; t: number } | null = null;
-  let swipeOffset = $state(0);
-  function onPointerDown(e: PointerEvent) {
-    if (e.pointerType === 'mouse' && e.button !== 0) return;
-    swipeStart = { x: e.clientX, t: Date.now() };
-  }
-  function onPointerMove(e: PointerEvent) {
-    if (!swipeStart) return;
-    const dx = e.clientX - swipeStart.x;
-    if (dx > 0 && dx < 120) swipeOffset = dx;
-  }
-  function onPointerUp() {
-    const ok = swipeOffset > 60;
-    swipeOffset = 0;
-    swipeStart = null;
-    if (ok) onContextMenu(message, 0, 0);
-  }
 
   // Bubble width / shape for media-only.
   let mediaBubble = $derived(
@@ -126,15 +108,7 @@
 </script>
 
 <div class="row" class:outgoing class:incoming={!outgoing}>
-  <!-- svelte-ignore a11y_no_static_element_interactions -->
-  <div
-    class="bubble-wrap"
-    style:transform={swipeOffset > 0 ? `translateX(${swipeOffset}px)` : ''}
-    onpointerdown={onPointerDown}
-    onpointermove={onPointerMove}
-    onpointerup={onPointerUp}
-    onpointercancel={onPointerUp}
-  >
+  <div class="bubble-wrap">
     <div
       class="bubble"
       class:edited={message.isEdited}
@@ -235,8 +209,6 @@
      * lets the bubble inside expand up to 80% of the row width before
      * the text starts wrapping. */
     max-width: min(560px, 80%);
-    transition: transform 0.15s ease;
-    touch-action: pan-y;
   }
   .bubble {
     padding: 8px 12px;
@@ -248,7 +220,6 @@
        actually read, so it deserves a bit more bulk than --text-md (14px). */
     font-size: var(--text-lg);
     box-shadow: 0 1px 0 var(--color-shadow);
-    cursor: context-menu;
   }
   /* Media bubbles let images/videos bleed to the top/left/right edges. The
    * inner padding is reapplied to whatever non-image content sits inside —

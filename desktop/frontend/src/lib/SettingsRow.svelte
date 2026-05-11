@@ -96,7 +96,10 @@
     gap: 2px;
   }
   .label {
-    font-size: var(--text-md);
+    /* One step larger than the rest of the UI for the same reason chat
+     * bubbles use --text-lg — settings rows are the primary readable
+     * content on these screens. Descriptions stay smaller for hierarchy. */
+    font-size: var(--text-lg);
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -105,7 +108,7 @@
     color: var(--color-danger);
   }
   .desc {
-    font-size: var(--text-sm);
+    font-size: var(--text-md);
     color: var(--color-fg-secondary);
   }
   .value {

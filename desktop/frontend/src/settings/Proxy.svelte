@@ -325,6 +325,10 @@
     border-radius: var(--radius-sm);
     display: flex;
     flex-direction: column;
+    /* Reset gives every button `align-items: center`. In a flex column
+     * that's cross-axis = horizontal, which pushes the host/scheme/state
+     * to the centre. Override to left-align. */
+    align-items: flex-start;
     gap: 2px;
   }
   .proxy-main:hover:not(:disabled) {

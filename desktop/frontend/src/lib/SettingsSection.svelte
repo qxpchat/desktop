@@ -25,9 +25,21 @@
 
 <style>
   .section {
+    /* `<fieldset>` is a special form element whose contents render
+     * inside an anonymous "fieldset content" box that doesn't always
+     * honour normal width / stretch rules. Forcing it to act as a flex
+     * column (with `min-inline-size: 0` so it can shrink, and an
+     * explicit width) makes children — legend, body, footer — stretch
+     * across the full Settings content pane. Without this the section
+     * collapsed to its widest row's intrinsic width and looked centred. */
     border: 0;
     padding: 0;
     margin: 0;
+    min-inline-size: 0;
+    width: 100%;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
   }
   .section + :global(.section) {
     padding-top: var(--space-5);
@@ -37,7 +49,7 @@
   .title {
     display: block;
     font-weight: 600;
-    font-size: var(--text-md);
+    font-size: var(--text-lg);
     margin: 0 0 var(--space-3);
     padding: 0;
     color: var(--color-fg);

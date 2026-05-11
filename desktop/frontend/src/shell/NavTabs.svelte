@@ -1,6 +1,10 @@
 <script lang="ts">
+  import { onMount } from 'svelte';
   import { profiles } from '../lib/state/profiles.svelte';
   import { setMainRoute, mainRoute } from '../lib/state/mainRoute.svelte';
+  import { accounts } from '../lib/state/accounts.svelte';
+  import { rpc } from '../lib/rpc';
+  import { onEvent } from '../lib/events';
   import Avatar from '../lib/Avatar.svelte';
   import ConnectionIndicator from './ConnectionIndicator.svelte';
   import Icon from '../lib/Icon.svelte';
@@ -22,6 +26,29 @@
   }: Props = $props();
 
   let menuFor = $state<number | null>(null);
+  let proxyEnabled = $state(false);
+
+  // Collapse is meaningful only when the main pane is showing a chat.
+  // When the user is in Settings / QrShow / QrScan, hiding the profile
+  // rail strands them with no way back to it (the expand button lives on
+  // the chat-list pane's header, which is itself hidden by the
+  // fullscreenRoute logic).
+  let collapseDisabled = $derived.by(() => {
+    const k = mainRoute.route.kind;
+    return k === 'settings' || k === 'qrShow' || k === 'qrScan' || k === 'profileEditor';
+  });
+
+  async function refreshProxyState() {
+    if (accounts.selectedId == null) return;
+    try {
+      const v = await rpc.call<string | null>('get_config', [accounts.selectedId, 'proxy_enabled']);
+      proxyEnabled = v === '1';
+    } catch {
+      /* nothing — the icon falls back to the outline form */
+    }
+  }
+  onMount(refreshProxyState);
+  onEvent('ConnectivityChanged', () => void refreshProxyState());
 
   function rightClick(e: MouseEvent, id: number) {
     e.preventDefault();
@@ -37,6 +64,9 @@
   }
   function openQrShow() {
     setMainRoute({ kind: 'qrShow' });
+  }
+  function openProxy() {
+    setMainRoute({ kind: 'settings', section: 'connectivity', subView: 'proxy' });
   }
 
   function remove(id: number) {
@@ -95,6 +125,14 @@
     <ConnectionIndicator />
     <button
       class="footer-btn"
+      title={proxyEnabled ? 'Proxy: On' : 'Proxy: Off'}
+      aria-label={proxyEnabled ? 'Proxy on — open Proxy settings' : 'Open Proxy settings'}
+      onclick={openProxy}
+    >
+      <Icon name={proxyEnabled ? 'shield-fill' : 'shield'} size={20} />
+    </button>
+    <button
+      class="footer-btn"
       title="Show QR"
       aria-label="Show QR"
       class:active={mainRoute.route.kind === 'qrShow'}
@@ -115,6 +153,7 @@
       class="collapse"
       title="Collapse profile rail"
       aria-label="Collapse profile rail"
+      disabled={collapseDisabled}
       onclick={onCollapse}
     >
       <Icon name="chevron-left" size={18} />
@@ -241,9 +280,13 @@
     line-height: 1;
     justify-content: center;
   }
-  .collapse:hover {
+  .collapse:hover:not(:disabled) {
     background: var(--color-bg-hover);
     color: var(--color-fg);
+  }
+  .collapse:disabled {
+    opacity: 0.35;
+    cursor: default;
   }
   .menu-backdrop {
     position: fixed;

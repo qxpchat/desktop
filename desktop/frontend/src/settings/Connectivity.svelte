@@ -398,15 +398,27 @@
           {/if}
         </button>
         <div class="row-actions">
-          <button class="link" disabled={busy} onclick={() => (editForm = r.param)} aria-label="Edit">
+          <button class="icon-btn" disabled={busy} onclick={() => (editForm = r.param)} aria-label="Edit" title="Edit">
             <Icon name="pencil" size={14} />
           </button>
           {#if r.addr !== defaultAddr}
-            <button class="link" disabled={busy} onclick={() => void toggleHidden(r)}>
-              {r.isUnpublished ? 'Show' : 'Hide'}
+            <button
+              class="icon-btn"
+              disabled={busy}
+              onclick={() => void toggleHidden(r)}
+              aria-label={r.isUnpublished ? 'Show on contacts' : 'Hide from contacts'}
+              title={r.isUnpublished ? 'Show on contacts' : 'Hide from contacts'}
+            >
+              <Icon name={r.isUnpublished ? 'lightbulb' : 'lightbulb-off'} size={14} />
             </button>
-            <button class="link link-danger" disabled={busy} onclick={() => (removeTarget = r)}>
-              Remove
+            <button
+              class="icon-btn danger"
+              disabled={busy}
+              onclick={() => (removeTarget = r)}
+              aria-label="Remove"
+              title="Remove"
+            >
+              <Icon name="trash" size={14} />
             </button>
           {/if}
         </div>
@@ -555,6 +567,11 @@
     border-radius: var(--radius-sm);
     display: flex;
     flex-direction: column;
+    /* Cross-axis = horizontal here. The global button reset sets
+     * `align-items: center` (great for icon+text row buttons), but in a
+     * flex *column* button that pushes every child to the centre — which
+     * is exactly the relay-row content being centred. Override to start. */
+    align-items: flex-start;
     gap: 4px;
   }
   .relay-main:hover:not(:disabled) {
@@ -635,20 +652,26 @@
     gap: var(--space-2);
     flex: 0 0 auto;
   }
-  .link {
-    background: transparent;
-    color: var(--color-accent);
-    font-size: var(--text-sm);
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
+  .icon-btn {
+    width: 28px;
+    height: 28px;
+    border-radius: var(--radius-sm);
+    color: var(--color-fg-secondary);
+    justify-content: center;
   }
-  .link:disabled {
-    opacity: 0.5;
-    cursor: default;
+  .icon-btn:hover:not(:disabled) {
+    background: var(--color-bg-hover);
+    color: var(--color-fg);
   }
-  .link-danger {
+  .icon-btn.danger {
     color: var(--color-danger);
+  }
+  .icon-btn.danger:hover:not(:disabled) {
+    background: color-mix(in srgb, var(--color-danger) 12%, transparent);
+  }
+  .icon-btn:disabled {
+    opacity: 0.4;
+    cursor: default;
   }
   .muted-row {
     color: var(--color-fg-tertiary);

@@ -40,6 +40,25 @@ pre,
   -webkit-user-select: text;
 }
 
+/* Window-drag regions. The Tauri JS API listens for mousedown on elements
+ * with the data-attr, but the legacy `-webkit-app-region: drag` CSS prop
+ * is what macOS's WKWebView itself honors for the native drag affordance —
+ * setting both makes the gutter work whether or not wry's JS hook is
+ * active for this build. Interactive children opt out so buttons inside
+ * a drag region still click. */
+[data-tauri-drag-region] {
+  -webkit-app-region: drag;
+  app-region: drag;
+}
+[data-tauri-drag-region] button,
+[data-tauri-drag-region] a,
+[data-tauri-drag-region] input,
+[data-tauri-drag-region] textarea,
+[data-tauri-drag-region] select {
+  -webkit-app-region: no-drag;
+  app-region: no-drag;
+}
+
 #app {
   height: 100%;
 }

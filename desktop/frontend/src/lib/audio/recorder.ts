@@ -1,15 +1,34 @@
 // Microphone recorder backed by `MediaRecorder`. Picks the most
-// deltachat-compatible Opus container the browser actually supports:
-//   - Firefox / older Safari → `audio/ogg;codecs=opus`
-//   - Chrome / Edge          → `audio/webm;codecs=opus`
-// The deltachat core ingests both as `viewtype: Voice` without remuxing —
-// modern Delta Chat clients decode webm/opus fine.
+// universally-playable container the browser actually supports.
+//
+// Order matters: WebM/Opus is the *least* compatible because iOS and
+// macOS Delta Chat can't decode WebM containers natively, even though
+// the codec (Opus) is supported when wrapped in Ogg. AAC-in-MP4 plays
+// everywhere — every Delta Chat client knows .m4a. Ogg/Opus is the
+// fallback for Firefox (no MediaRecorder MP4 support). WebM is last
+// resort and almost certainly won't be playable on the other side, but
+// at least the recording works.
+//
+//   - WKWebView / Safari 14.1+ → `audio/mp4;codecs=mp4a.40.2`  (.m4a)
+//   - Firefox                  → `audio/ogg;codecs=opus`        (.ogg)
+//   - Chrome / Chromium        → `audio/webm;codecs=opus`       (.weba)
 
 const candidates = [
+  'audio/mp4;codecs=mp4a.40.2',
+  'audio/mp4',
   'audio/ogg;codecs=opus',
   'audio/webm;codecs=opus',
   'audio/webm',
 ] as const;
+
+/** Maps a chosen MIME to a deltachat-friendly file extension. */
+export function extensionForMime(mime: string): string {
+  if (mime.includes('mp4')) return 'm4a';
+  if (mime.includes('ogg')) return 'ogg';
+  // `.weba` (audio webm) instead of `.webm` so deltachat-core's mime
+  // sniffer doesn't tag it as `video/webm`.
+  return 'weba';
+}
 
 export function pickMimeType(): string | null {
   if (typeof MediaRecorder === 'undefined') return null;

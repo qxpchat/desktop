@@ -11,7 +11,7 @@
   import { accounts } from '../lib/state/accounts.svelte';
   import { rpc } from '../lib/rpc';
   import { uploadBlob } from '../lib/files';
-  import { VoiceRecorder, pickMimeType } from '../lib/audio/recorder';
+  import { VoiceRecorder, pickMimeType, extensionForMime } from '../lib/audio/recorder';
   import AttachMenu from './AttachMenu.svelte';
   import ContactPickerModal from './ContactPickerModal.svelte';
   import QuoteBar from './QuoteBar.svelte';
@@ -236,13 +236,13 @@
     sending = true;
     try {
       const result = await recorder.stop();
-      // `.webm` would be sniffed as `video/webm` by deltachat-core
-      // (message.rs: "webm" => (Viewtype::File, "video/webm")), so the
-      // receiving client renders the bubble as a video — even though we
-      // pass `viewtype: 'Voice'`. The audio-only WebM extension is
-      // `.weba`, which maps to `audio/webm` (line above in the same
-      // table). Same bytes, different hint.
-      const ext = result.mimeType.includes('ogg') ? 'ogg' : 'weba';
+      // Extension follows the actual recorded container. WKWebView /
+      // Safari → AAC-in-MP4 (.m4a, plays everywhere). Firefox →
+      // Ogg/Opus (.ogg). Chromium → WebM/Opus (.weba). The recorder's
+      // candidate ordering prefers the most universal containers, so on
+      // qxp's typical desktop targets the receiving Delta Chat client
+      // gets a file it can actually play.
+      const ext = extensionForMime(result.mimeType);
       const path = await uploadBlob(result.blob, ext);
       await sendMessage({
         viewtype: 'Voice',
@@ -405,8 +405,10 @@
     background: var(--color-bg-pane);
     color: var(--color-fg);
     font-family: inherit;
-    font-size: var(--text-md);
-    line-height: 22px;
+    /* Match the bubble body so you don't get a step-down when reading
+     * what you just typed vs. what you sent. */
+    font-size: var(--text-lg);
+    line-height: 1.4;
     resize: none;
     outline: none;
     /* The native scrollbar that appears when the textarea grows past

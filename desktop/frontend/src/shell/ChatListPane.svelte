@@ -339,6 +339,7 @@
   .hit {
     display: flex;
     flex-direction: column;
+    align-items: flex-start;
     width: 100%;
     padding: var(--space-2) var(--space-3);
     text-align: left;

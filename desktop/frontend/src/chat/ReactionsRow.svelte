@@ -44,11 +44,12 @@
     display: flex;
     flex-wrap: wrap;
     gap: 4px;
-    /* Chips sit just below the bubble with a small gap. Previously they
-     * overlapped via `margin-top: -12px` for an iMessage stacking effect,
-     * but on short messages the overlap region collided with the bubble's
-     * own bottom-right `.meta` row (timestamp + state glyph). */
-    margin-top: 4px;
+    /* Tiny overlap into the bubble's bottom border-radius so the chip
+     * looks attached, not "hanging below". The previous full -12px
+     * overlap collided with the in-bubble timestamp on short messages;
+     * -2px sits inside the rounded corner zone only, well below the
+     * meta row's vertical position. */
+    margin-top: -8px;
     margin-right: 6px;
     margin-left: 6px;
   }
