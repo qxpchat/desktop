@@ -2,7 +2,9 @@
   import { onMount } from 'svelte';
   import { rpc } from '../lib/rpc';
   import { accounts } from '../lib/state/accounts.svelte';
-  import { backToChat } from '../lib/state/mainRoute.svelte';
+  import { backToChat, setMainRoute } from '../lib/state/mainRoute.svelte';
+  import { onEvent } from '../lib/events';
+  import Icon from '../lib/Icon.svelte';
 
   type Props = {
     /** When set, the QR is a group/broadcast invite for this chat. */
@@ -15,6 +17,23 @@
   let url = $state<string | null>(null);
   let error = $state<string | null>(null);
   let copied = $state(false);
+  let proxyEnabled = $state(false);
+
+  async function refreshProxyState() {
+    if (accounts.selectedId == null) return;
+    try {
+      const v = await rpc.call<string | null>('get_config', [accounts.selectedId, 'proxy_enabled']);
+      proxyEnabled = v === '1';
+    } catch {
+      /* nothing — the icon just shows the outline form */
+    }
+  }
+
+  onEvent('ConnectivityChanged', () => void refreshProxyState());
+
+  function openProxySettings() {
+    setMainRoute({ kind: 'settings', section: 'connectivity', subView: 'proxy' });
+  }
 
   async function load() {
     if (accounts.selectedId == null) return;
@@ -32,7 +51,10 @@
     }
   }
 
-  onMount(load);
+  onMount(() => {
+    void load();
+    void refreshProxyState();
+  });
   $effect(() => {
     void chatId;
     void load();
@@ -86,6 +108,14 @@
       <p class="error">{error}</p>
     {:else if svg}
       <div class="card">
+        <button
+          class="proxy-shield"
+          onclick={openProxySettings}
+          aria-label={proxyEnabled ? 'Proxy on — open Proxy settings' : 'Open Proxy settings'}
+          title={proxyEnabled ? 'Proxy: On' : 'Proxy: Off'}
+        >
+          <Icon name={proxyEnabled ? 'shield-fill' : 'shield'} size={20} />
+        </button>
         <!-- daemon-trusted SVG; safe to render -->
         <div class="svg-wrap">{@html svg}</div>
         {#if url}
@@ -138,6 +168,7 @@
     align-items: center;
   }
   .card {
+    position: relative;
     width: min(420px, 100%);
     padding: var(--space-5);
     border-radius: var(--radius-lg);
@@ -148,6 +179,21 @@
     flex-direction: column;
     align-items: center;
     gap: var(--space-3);
+  }
+  .proxy-shield {
+    position: absolute;
+    top: var(--space-3);
+    right: var(--space-3);
+    background: transparent;
+    color: var(--color-accent);
+    padding: 4px;
+    border-radius: var(--radius-sm);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .proxy-shield:hover {
+    background: var(--color-bg-hover);
   }
   .svg-wrap {
     width: 280px;

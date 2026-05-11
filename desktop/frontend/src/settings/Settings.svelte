@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { backToChat } from '../lib/state/mainRoute.svelte';
+  import { backToChat, mainRoute } from '../lib/state/mainRoute.svelte';
   import { rpc } from '../lib/rpc';
   import { accounts, refreshAccounts } from '../lib/state/accounts.svelte';
   import { profiles, refreshProfiles } from '../lib/state/profiles.svelte';
@@ -9,7 +9,7 @@
   import BlockedContacts from './BlockedContacts.svelte';
   import Backup from './Backup.svelte';
   import About from './About.svelte';
-  import Relays from './Relays.svelte';
+  import Connectivity from './Connectivity.svelte';
   import Icon, { type IconName } from '../lib/Icon.svelte';
 
   type Section =
@@ -18,19 +18,25 @@
     | 'chats'
     | 'blocked'
     | 'backup'
-    | 'relays'
+    | 'connectivity'
     | 'about';
 
-  let active = $state<Section>('profile');
+  // Initial section + sub-view come from the route, so external callers can
+  // deep-link (e.g. the shield icon on QrShow drops the user straight into
+  // Connectivity > Proxy). We snapshot once on mount — afterwards the user
+  // is steering with the sidebar and we don't want the route to override.
+  const initial = mainRoute.route.kind === 'settings' ? mainRoute.route : null;
+  let active = $state<Section>(((initial?.section as Section) ?? 'profile'));
+  let connectivitySubView = $state<string | undefined>(initial?.subView);
   let loggingOut = $state(false);
 
   const sections: { id: Section; label: string; icon: IconName }[] = [
     { id: 'profile', label: 'Profile', icon: 'user' },
     { id: 'appearance', label: 'Appearance', icon: 'palette' },
     { id: 'chats', label: 'Chats & Media', icon: 'message-circle' },
+    { id: 'connectivity', label: 'Connectivity', icon: 'globe' },
     { id: 'blocked', label: 'Blocked', icon: 'ban' },
     { id: 'backup', label: 'Backup', icon: 'hard-drive' },
-    { id: 'relays', label: 'Relays', icon: 'globe' },
     { id: 'about', label: 'About', icon: 'info' },
   ];
 
@@ -72,7 +78,10 @@
       {#each sections as s}
         <button
           class:active={active === s.id}
-          onclick={() => (active = s.id)}
+          onclick={() => {
+            active = s.id;
+            connectivitySubView = undefined;
+          }}
           aria-current={active === s.id ? 'page' : undefined}
         >
           <span class="icon" aria-hidden="true"><Icon name={s.icon} size={18} /></span>
@@ -93,8 +102,8 @@
           <BlockedContacts />
         {:else if active === 'backup'}
           <Backup />
-        {:else if active === 'relays'}
-          <Relays />
+        {:else if active === 'connectivity'}
+          <Connectivity initialView={connectivitySubView} />
         {:else if active === 'about'}
           <About />
         {/if}

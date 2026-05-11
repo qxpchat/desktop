@@ -148,7 +148,6 @@
   .chat-title {
     font-weight: 600;
     font-size: var(--text-lg);
-    color: var(--color-fg-secondary);
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;

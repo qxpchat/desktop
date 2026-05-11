@@ -7,7 +7,7 @@ export type MainRoute =
   | { kind: 'chat' }
   | { kind: 'qrScan'; purpose: 'newContact' | 'general' }
   | { kind: 'qrShow'; chatId?: number }
-  | { kind: 'settings'; section?: string }
+  | { kind: 'settings'; section?: string; subView?: string }
   | { kind: 'chatInfo'; chatId: number }
   | { kind: 'mediaBrowser'; chatId: number }
   | { kind: 'profileEditor' }
