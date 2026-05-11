@@ -72,13 +72,14 @@ button {
   margin: 0;
   cursor: pointer;
   user-select: none;
-  /* Default to inline-flex with vertical + horizontal centering and a
-   * small gap so icon and icon+text buttons line up correctly without
-   * each callsite having to redeclare it. Row-style buttons (sidebar
-   * items, menus, list rows) override with `justify-content: flex-start`. */
+  /* Default to inline-flex with vertical centering + a small gap so
+   * icon+text buttons line up correctly without each callsite having to
+   * redeclare it. We deliberately don't set `justify-content` here —
+   * leaving it as `normal` (flex-start) keeps row-style left-aligned
+   * buttons working without an override. Icon-only fixed-size buttons
+   * add `justify-content: center` themselves. */
   display: inline-flex;
   align-items: center;
-  justify-content: center;
   gap: 6px;
 }
 

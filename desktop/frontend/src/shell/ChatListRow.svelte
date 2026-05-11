@@ -160,8 +160,19 @@
     gap: 4px;
   }
   .mute {
-    font-size: 11px;
-    opacity: 0.7;
+    display: inline-flex;
+    align-items: center;
+    line-height: 1;
+    color: var(--color-fg-tertiary);
+    opacity: 0.85;
+    flex: 0 0 auto;
+  }
+  /* SVG defaults to `display: inline` which reserves space for descenders
+   * below its baseline — that pushes the icon visually low relative to the
+   * adjacent uppercase letters of the name. Forcing block strips that gap
+   * and the icon sits on the actual optical centre line. */
+  .mute :global(svg) {
+    display: block;
   }
   .ts {
     font-size: var(--text-xs);

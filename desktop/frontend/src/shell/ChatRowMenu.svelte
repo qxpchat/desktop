@@ -7,6 +7,12 @@
   import Icon from '../lib/Icon.svelte';
   import { t } from '../lib/i18n/i18n.svelte';
 
+  // Mirrors deltachat-jsonrpc's `MuteDuration` (PascalCase tags — the enum
+  // has no `rename_all` so variant names pass through verbatim).
+  export type MuteDuration =
+    | { kind: 'Forever' }
+    | { kind: 'Until'; duration: number };
+
   type Props = {
     chat: ChatListItem;
     /** Page-coordinate anchor for the menu's top-left. */
@@ -14,15 +20,18 @@
     y: number;
     onClose: () => void;
     onTogglePin: () => void;
-    onToggleMute: () => void;
+    onMute: (duration: MuteDuration) => void;
+    onUnmute: () => void;
     onToggleArchive: () => void;
   };
 
-  let { chat, x, y, onClose, onTogglePin, onToggleMute, onToggleArchive }: Props = $props();
+  let { chat, x, y, onClose, onTogglePin, onMute, onUnmute, onToggleArchive }: Props = $props();
 
   let menu: HTMLDivElement | undefined = $state();
   // svelte-ignore state_referenced_locally
   let style = $state(`top: ${y}px; left: ${x}px;`);
+  // 'main' shows pin / mute / archive; 'mute' replaces with duration picks.
+  let view = $state<'main' | 'mute'>('main');
 
   // Clamp into viewport once the menu's rect is known.
   $effect(() => {
@@ -40,8 +49,28 @@
     onClose();
   }
 
+  function pickMute(duration: MuteDuration) {
+    onMute(duration);
+    onClose();
+  }
+
+  // Durations the mobile app offers — `Until` takes a second-count, so we
+  // stash the seconds inline and let the daemon do the SystemTime math.
+  const HOUR = 3600;
+  const DAY = 86400;
+  const MUTE_OPTIONS: { label: () => string; duration: MuteDuration }[] = [
+    { label: () => t('For 1 hour'), duration: { kind: 'Until', duration: HOUR } },
+    { label: () => t('For 8 hours'), duration: { kind: 'Until', duration: 8 * HOUR } },
+    { label: () => t('For 1 day'), duration: { kind: 'Until', duration: DAY } },
+    { label: () => t('For 1 week'), duration: { kind: 'Until', duration: 7 * DAY } },
+    { label: () => t('Forever'), duration: { kind: 'Forever' } },
+  ];
+
   function onKey(e: KeyboardEvent) {
-    if (e.key === 'Escape') onClose();
+    if (e.key === 'Escape') {
+      if (view === 'mute') view = 'main';
+      else onClose();
+    }
   }
 </script>
 
@@ -52,18 +81,37 @@
 <button class="backdrop" aria-label={t('Close menu')} onclick={onClose}></button>
 
 <div bind:this={menu} class="menu" role="menu" {style}>
-  <button role="menuitem" onclick={() => fire(onTogglePin)}>
-    <Icon name="pin" size={14} />
-    {chat.isPinned ? t('Unpin') : t('Pin')}
-  </button>
-  <button role="menuitem" onclick={() => fire(onToggleMute)}>
-    <Icon name="bell-off" size={14} />
-    {chat.isMuted ? t('Unmute') : t('Mute')}
-  </button>
-  <button role="menuitem" onclick={() => fire(onToggleArchive)}>
-    <Icon name="archive" size={14} />
-    {chat.isArchived ? t('Unarchive') : t('Archive')}
-  </button>
+  {#if view === 'main'}
+    <button role="menuitem" onclick={() => fire(onTogglePin)}>
+      <Icon name="pin" size={14} />
+      {chat.isPinned ? t('Unpin') : t('Pin')}
+    </button>
+    {#if chat.isMuted}
+      <button role="menuitem" onclick={() => fire(onUnmute)}>
+        <Icon name="bell" size={14} />
+        {t('Unmute')}
+      </button>
+    {:else}
+      <button role="menuitem" onclick={() => (view = 'mute')}>
+        <Icon name="bell-off" size={14} />
+        {t('Mute…')}
+      </button>
+    {/if}
+    <button role="menuitem" onclick={() => fire(onToggleArchive)}>
+      <Icon name="archive" size={14} />
+      {chat.isArchived ? t('Unarchive') : t('Archive')}
+    </button>
+  {:else}
+    <button class="sub-back" role="menuitem" onclick={() => (view = 'main')}>
+      <Icon name="chevron-left" size={14} />
+      {t('Mute')}
+    </button>
+    {#each MUTE_OPTIONS as opt (opt.label())}
+      <button role="menuitem" onclick={() => pickMute(opt.duration)}>
+        {opt.label()}
+      </button>
+    {/each}
+  {/if}
 </div>
 
 <style>
@@ -100,5 +148,9 @@
   }
   .menu button:hover {
     background: var(--color-bg-hover);
+  }
+  .sub-back {
+    color: var(--color-fg-secondary);
+    font-weight: 600;
   }
 </style>

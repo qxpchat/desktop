@@ -94,15 +94,18 @@
       /* core surfaces failure via its own event/error path */
     }
   }
-  async function toggleMute(chat: ChatListItem) {
+  async function setMute(chat: ChatListItem, dur: unknown) {
     if (accounts.selectedId == null) return;
-    const dur = chat.isMuted ? { kind: 'notMuted' } : { kind: 'forever' };
     try {
       await rpc.call('set_chat_mute_duration', [accounts.selectedId, chat.id, dur]);
-    } catch {
-      /* same */
+    } catch (err) {
+      console.warn('set_chat_mute_duration failed', err);
     }
   }
+  // PascalCase variant tags — see ChatRowMenu's `MuteDuration` type.
+  const muteChat = (chat: ChatListItem, dur: { kind: 'Forever' } | { kind: 'Until'; duration: number }) =>
+    setMute(chat, dur);
+  const unmuteChat = (chat: ChatListItem) => setMute(chat, { kind: 'NotMuted' });
   async function toggleArchive(chat: ChatListItem) {
     if (accounts.selectedId == null) return;
     const vis = chat.isArchived ? 'normal' : 'archived';
@@ -227,7 +230,8 @@
     y={menu.y}
     onClose={() => (menu = null)}
     onTogglePin={() => void togglePin(menu!.chat)}
-    onToggleMute={() => void toggleMute(menu!.chat)}
+    onMute={(dur) => void muteChat(menu!.chat, dur)}
+    onUnmute={() => void unmuteChat(menu!.chat)}
     onToggleArchive={() => void toggleArchive(menu!.chat)}
   />
 {/if}
