@@ -14,6 +14,7 @@
   import { VoiceRecorder, pickMimeType, extensionForMime } from '../lib/audio/recorder';
   import AttachMenu from './AttachMenu.svelte';
   import ContactPickerModal from './ContactPickerModal.svelte';
+  import EmojiPicker from './EmojiPicker.svelte';
   import QuoteBar from './QuoteBar.svelte';
   import Icon from '../lib/Icon.svelte';
 
@@ -21,7 +22,24 @@
   let sending = $state(false);
   let textarea: HTMLTextAreaElement | undefined = $state();
   let attachOpen = $state(false);
+  let emojiOpen = $state(false);
   let contactPickerOpen = $state(false);
+
+  function insertEmoji(c: string) {
+    const ta = textarea;
+    if (!ta) {
+      text = text + c;
+      return;
+    }
+    const start = ta.selectionStart ?? text.length;
+    const end = ta.selectionEnd ?? text.length;
+    text = text.slice(0, start) + c + text.slice(end);
+    void tick().then(() => {
+      ta.focus();
+      const caret = start + c.length;
+      ta.setSelectionRange(caret, caret);
+    });
+  }
 
   let fileInput: HTMLInputElement | undefined = $state();
 
@@ -331,6 +349,25 @@
     disabled={chat.active == null}
   ></textarea>
 
+  <div class="emoji-wrap">
+    <button
+      class="emoji-btn"
+      class:active={emojiOpen}
+      onclick={() => (emojiOpen = !emojiOpen)}
+      aria-label="Insert emoji"
+      aria-expanded={emojiOpen}
+      title="Emoji"
+      disabled={chat.active == null}
+    >
+      <Icon name="smile" size={20} />
+    </button>
+    <EmojiPicker
+      open={emojiOpen}
+      onPick={insertEmoji}
+      onClose={() => (emojiOpen = false)}
+    />
+  </div>
+
   {#if text.trim().length === 0}
     {#if voiceSupported}
       <button
@@ -443,6 +480,32 @@
   }
   .send:not(:disabled):hover {
     filter: brightness(1.05);
+  }
+  .emoji-wrap {
+    position: relative;
+    flex: 0 0 auto;
+  }
+  .emoji-btn {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    color: var(--color-fg-secondary);
+    font-size: 18px;
+  }
+  .emoji-btn:hover:not(:disabled),
+  .emoji-btn.active {
+    background: var(--color-bg-hover);
+    color: var(--color-fg);
+  }
+  .emoji-btn:disabled {
+    opacity: 0.4;
+  }
+  /* The picker is rendered inside `.emoji-wrap` (which is itself
+   * `position: relative`); pin it above the button so it floats over the
+   * chat list instead of pushing the composer up. */
+  .emoji-wrap :global(.picker) {
+    bottom: calc(100% + var(--space-2));
+    right: 0;
   }
   .mic {
     flex: 0 0 auto;
