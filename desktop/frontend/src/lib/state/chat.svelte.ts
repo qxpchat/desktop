@@ -459,6 +459,25 @@ export async function deleteMessages(ids: number[]): Promise<void> {
   }
 }
 
+// "Delete for everyone" — sends a recall request to recipients in addition
+// to removing the message locally. Core enforces that only own, already-sent
+// messages can be recalled.
+export async function deleteMessagesForAll(ids: number[]): Promise<void> {
+  const active = chat.active;
+  if (active == null) return;
+  try {
+    await rpc.call('delete_messages_for_all', [active.accountId, ids]);
+    const next = new Map(chat.messages);
+    const toDelete = new Set(ids);
+    for (const id of ids) next.delete(id);
+    chat.messages = next;
+    chat.ids = chat.ids.filter((id) => !toDelete.has(id));
+    chat.allIds = chat.allIds.filter((id) => !toDelete.has(id));
+  } catch (err) {
+    chat.error = errString(err);
+  }
+}
+
 export async function forwardMessages(ids: number[], targetChatId: number): Promise<void> {
   const active = chat.active;
   if (active == null) return;

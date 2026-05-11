@@ -9,11 +9,13 @@
     sendMessage,
     toggleReaction,
     deleteMessages,
+    deleteMessagesForAll,
     forwardMessages,
     setReplyTo,
     setEditing,
     loadOlder,
     CONTACT_ID_SELF,
+    MSG_STATE,
     type Message,
   } from '../lib/state/chat.svelte';
   import { uploadBlob, viewtypeForFile } from '../lib/files';
@@ -25,6 +27,7 @@
   import Composer from './Composer.svelte';
   import ScrollToLatest from './ScrollToLatest.svelte';
   import ContextMenu from './ContextMenu.svelte';
+  import DeleteMessageDialog from './DeleteMessageDialog.svelte';
   import EmojiPicker from './EmojiPicker.svelte';
   import ChatPicker from './ChatPicker.svelte';
   import InChatSearch from './InChatSearch.svelte';
@@ -193,6 +196,7 @@
   let forwardOpen = $state(false);
   let forwardTargets = $state<number[]>([]);
   let findOpen = $state(false);
+  let deleteTarget = $state<{ id: number; canDeleteForAll: boolean } | null>(null);
 
   onMount(() => {
     const offFind = onShortcut('in-chat-search', () => (findOpen = true));
@@ -270,9 +274,13 @@
       icon: 'trash-2',
       danger: true,
       onSelect: () => {
-        if (confirm(t('Delete this message? Other recipients will keep their copy.'))) {
-          void deleteMessages([m.id]);
-        }
+        // Core only accepts a recall for own messages that already left the
+        // outbox. Anything else (incoming, draft, pending, failed) can only
+        // be removed locally — match iOS by hiding the for-everyone option.
+        const canDeleteForAll =
+          m.fromId === CONTACT_ID_SELF &&
+          (m.state === MSG_STATE.OutDelivered || m.state === MSG_STATE.OutMdnRcvd);
+        deleteTarget = { id: m.id, canDeleteForAll };
       },
     });
     return actions;
@@ -453,6 +461,18 @@
     forwardOpen = false;
     forwardTargets = [];
   }}
+/>
+
+<DeleteMessageDialog
+  open={deleteTarget != null}
+  canDeleteForAll={deleteTarget?.canDeleteForAll ?? false}
+  onDeleteForMe={() => {
+    if (deleteTarget) void deleteMessages([deleteTarget.id]);
+  }}
+  onDeleteForAll={() => {
+    if (deleteTarget) void deleteMessagesForAll([deleteTarget.id]);
+  }}
+  onClose={() => (deleteTarget = null)}
 />
 
 <style>

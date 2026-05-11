@@ -5,10 +5,12 @@
   import { onMount } from 'svelte';
   import { rpc } from '../lib/rpc';
   import { accounts } from '../lib/state/accounts.svelte';
+  import { CONTACT_ID_SELF, MSG_STATE } from '../lib/state/chat.svelte';
   import { jumpToMessage } from '../lib/state/jump';
   import { fileUrl, formatBytes } from '../lib/files';
   import { onEvent } from '../lib/events';
   import Icon from '../lib/Icon.svelte';
+  import DeleteMessageDialog from '../chat/DeleteMessageDialog.svelte';
   import { t } from '../lib/i18n/i18n.svelte';
 
   type Props = { chatId: number };
@@ -20,6 +22,8 @@
   type Message = {
     id: number;
     chatId: number;
+    fromId: number;
+    state: number;
     viewType: string;
     file: string | null;
     fileName: string | null;
@@ -92,9 +96,21 @@
     jumpToMessage(msgId, { chatId, returnToChat: true });
   }
 
-  async function deleteItem(msgId: number) {
-    if (!confirm('Delete this item?') || accounts.selectedId == null) return;
-    await rpc.call('delete_messages', [accounts.selectedId, [msgId]]);
+  let deleteTarget = $state<{ id: number; canDeleteForAll: boolean } | null>(null);
+
+  function deleteItem(msgId: number) {
+    const m = items.find((it) => it.id === msgId);
+    const canDeleteForAll =
+      m != null &&
+      m.fromId === CONTACT_ID_SELF &&
+      (m.state === MSG_STATE.OutDelivered || m.state === MSG_STATE.OutMdnRcvd);
+    deleteTarget = { id: msgId, canDeleteForAll };
+  }
+
+  async function performDelete(forAll: boolean) {
+    if (deleteTarget == null || accounts.selectedId == null) return;
+    const method = forAll ? 'delete_messages_for_all' : 'delete_messages';
+    await rpc.call(method, [accounts.selectedId, [deleteTarget.id]]);
     await load();
   }
 </script>
@@ -172,6 +188,14 @@
     {/if}
   </div>
 </section>
+
+<DeleteMessageDialog
+  open={deleteTarget != null}
+  canDeleteForAll={deleteTarget?.canDeleteForAll ?? false}
+  onDeleteForMe={() => void performDelete(false)}
+  onDeleteForAll={() => void performDelete(true)}
+  onClose={() => (deleteTarget = null)}
+/>
 
 <style>
   .media {
