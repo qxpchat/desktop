@@ -88,16 +88,22 @@
 
   $effect(() => {
     void chat.active;
+    // Opening a chat is a deliberate user action — they just clicked the
+    // row, the window must be focused, so always mark noticed here even
+    // before the focus-state listeners spin up.
     void markNoticed();
   });
-  function onVisibility() {
-    if (!document.hidden) void markNoticed();
+  // Re-mark on window focus only — being merely *visible* (window in the
+  // background but not minimized) doesn't mean the user has actually read
+  // anything, so the badge should persist until they click back in.
+  function onWindowFocus() {
+    void markNoticed();
   }
   onMount(() => {
-    document.addEventListener('visibilitychange', onVisibility);
+    window.addEventListener('focus', onWindowFocus);
   });
   onDestroy(() => {
-    document.removeEventListener('visibilitychange', onVisibility);
+    window.removeEventListener('focus', onWindowFocus);
   });
 
   // `tick` flushes Svelte's reconciliation, but layout/paint can still

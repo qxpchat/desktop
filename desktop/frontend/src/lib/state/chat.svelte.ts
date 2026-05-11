@@ -15,6 +15,7 @@
 
 import { rpc } from '../rpc';
 import { onEvent, type DcEvent } from '../events';
+import { windowFocus } from './windowFocus.svelte';
 
 /** Self contact id in deltachat-core (always 1). */
 export const CONTACT_ID_SELF = 1;
@@ -364,6 +365,14 @@ onEvent('IncomingMsg', (ev) => {
   if (!isForActiveChat(ev)) return;
   const msgId = ev.event.msgId;
   if (typeof msgId === 'number') void patchMessage(msgId, { appendIfNew: true });
+  // Mark noticed eagerly only when the window has *focus* — being merely
+  // visible (in the background but not minimized) doesn't mean the user
+  // has actually read the new message. The chat-row badge stays until
+  // they click back in, at which point the `focus` listener in ChatView
+  // fires markNoticed.
+  if (windowFocus.focused) {
+    void markNoticed();
+  }
 });
 
 onEvent('MsgsChanged', (ev) => {

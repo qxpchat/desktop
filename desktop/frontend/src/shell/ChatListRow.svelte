@@ -5,6 +5,7 @@
   import Avatar from '../lib/Avatar.svelte';
   import Icon, { type IconName } from '../lib/Icon.svelte';
   import { liveLocations } from '../lib/state/liveLocations.svelte';
+  import { windowFocus } from '../lib/state/windowFocus.svelte';
   import { t } from '../lib/i18n/i18n.svelte';
 
   type Props = {
@@ -29,6 +30,15 @@
   let title = $derived(narrow ? `${displayName}${preview ? ' — ' + preview : ''}` : '');
 
   let unreadLabel = $derived(chat.freshMessageCounter > 99 ? '99+' : String(chat.freshMessageCounter));
+  // Suppress the unread indicator (badge + accent timestamp + narrow-mode
+  // dot) only when this chat is *currently open AND the window has OS
+  // focus* — i.e. the user really is reading. If they've tabbed away to
+  // another app the chat may still be "selected" but they haven't
+  // actually seen the new messages, so we keep the badge visible so a
+  // glance back at the dock/taskbar still tells them what's new.
+  let showUnread = $derived(
+    chat.freshMessageCounter > 0 && !(selected && windowFocus.focused),
+  );
   let peerStreaming = $derived(liveLocations.chatIds.has(chat.id));
 
   // Mirror of iOS ChatListRow's stateGlyph — only shown for outgoing message
@@ -89,7 +99,7 @@
           {/if}
         </span>
         {#if timestamp}
-          <span class="ts" class:accent={chat.freshMessageCounter > 0}>{timestamp}</span>
+          <span class="ts" class:accent={showUnread}>{timestamp}</span>
         {/if}
       </span>
       <span class="row-bottom">
@@ -99,14 +109,14 @@
             <Icon name={stateGlyph.icon} size={12} stroke={2} />
           </span>
         {/if}
-        {#if chat.freshMessageCounter > 0}
+        {#if showUnread}
           <span class="unread">{unreadLabel}</span>
         {:else if chat.isPinned}
           <span class="pin" aria-label={t('pinned')} title={t('Pinned')}><Icon name="pin" size={12} /></span>
         {/if}
       </span>
     </span>
-  {:else if chat.freshMessageCounter > 0}
+  {:else if showUnread}
     <span class="unread-dot"></span>
   {/if}
 </button>
