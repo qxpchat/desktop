@@ -8,9 +8,11 @@
   import LocationCell from './cells/LocationCell.svelte';
   import AudioCell from './cells/AudioCell.svelte';
   import VoiceCell from './cells/VoiceCell.svelte';
+  import YouTubeEmbed from './cells/YouTubeEmbed.svelte';
   import ReactionsRow from './ReactionsRow.svelte';
   import Icon, { type IconName } from '../lib/Icon.svelte';
   import { linkify } from '../lib/format/linkify';
+  import { detectYouTubeId } from '../lib/format/youtube';
 
   type Props = {
     message: Message;
@@ -133,6 +135,13 @@
     }
   });
 
+  // Surface an inline player for any YouTube link found in the body. We
+  // only embed when the bubble isn't itself a media bubble — image/video
+  // attachments already dominate, and showing both would be noisy.
+  let youtubeId = $derived(
+    mediaBubble || jumbo ? null : detectYouTubeId(message.text ?? ''),
+  );
+
   // Group-or-broadcast — only show sender name on incoming.
   let _ = chatlist; // referenced for future name lookups in groups
   void _;
@@ -188,6 +197,10 @@
         <FileCell {message} />
       {:else if message.hasLocation}
         <LocationCell {message} />
+      {/if}
+
+      {#if youtubeId}
+        <YouTubeEmbed videoId={youtubeId} />
       {/if}
 
       {#if message.text && !cellOwnsText}
