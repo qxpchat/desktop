@@ -6,3 +6,13 @@ ios/libs/libdeltachat.xcframework/
 xcuserdata/
 *.xcuserstate
 target
+
+# Platform-specific copies of the derivatives canonical in `assets/generated/`
+# (and `assets/logo.svg`). Populated on `make icons` — never edit directly.
+ios/qxp/Assets.xcassets/Logo.imageset/logo.svg
+ios/qxp/Assets.xcassets/AppIcon.appiconset/logo.png
+ios/qxp/Views/LogoShape.swift
+desktop/frontend/src/lib/qxpLogoPath.ts
+desktop/frontend/public/icon.svg
+desktop/src-tauri/icons/icon.png
+
