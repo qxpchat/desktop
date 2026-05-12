@@ -536,7 +536,9 @@
   .scroll {
     flex: 1;
     overflow-y: auto;
-    padding: var(--space-3) 0;
+    /* Extra bottom padding so the newest bubble's reaction chips (which
+       overlap ~16px below the bubble) clear the composer bar. */
+    padding: var(--space-3) 0 var(--space-5);
     display: flex;
     flex-direction: column;
     gap: 2px;
