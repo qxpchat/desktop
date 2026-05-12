@@ -5,12 +5,12 @@ User instructions **always** override this file.
 
 ## Repository layout
 
-- `ios/` — iOS app (SwiftUI), share extension, tests, Xcode project, iOS-only build scripts. **For iOS work, also read `ios/AGENTS.md`** — it has iOS-specific project state, layout, and active plans.
+- `ios/` — iOS app (SwiftUI), share extension, tests, Xcode project, iOS-only build scripts. Currently on hold. **For iOS work, also read `ios/AGENTS.md`** — it has iOS-specific project state, layout, and active plans.
 - `desktop/` — Tauri 2 desktop app: Rust daemon (`server/`, `qxp-web` crate bridging `deltachat-jsonrpc` over a loopback WebSocket), Svelte 5 + Vite SPA (`frontend/`), Tauri shell (`src-tauri/`). Builds to a single native binary per OS (Linux / macOS / Windows); also runnable headless via `make server` + `make ui`. See `desktop/README.md` for run / build / account-data layout.
 - `libs/` — Rust core (`deltachat-core-rust` submodule), patches, and the `notifiers` submodule.
 - `notifier/`, `relay/` — server-side: notifier deploy scaffold and chatmail relay.
 - `references/` — third-party reference implementations (read-only inspiration).
-- `plans/`, `PLAN.md` — plan history and active plan.
+- `plans/`, `PLAN.md` — plan history and active plan. Only read on explicit requests.
 
 ## Approach
 

@@ -1,11 +1,9 @@
 <script lang="ts">
-  // Ports `ios/qxp/Views/ConnectivityView.swift`. Four logical sections in
-  // the iOS UI we mirror here: Relays (transports + add/edit/remove/set
-  // default), Outgoing Messages (SMTP status parsed from the core's
-  // connectivity HTML), Status (raw text fallback when the parser misses),
-  // and Proxy (navigates to a sub-view). Per-transport status lines + quota
-  // bars come from the same HTML parser as iOS uses — fragile but the only
-  // way to surface deltachat-core's diagnostic info without a structured RPC.
+  // Three logical sections: Relays (transports + add/edit/remove/set default),
+  // Outgoing Messages (SMTP status), and Proxy (navigates to a sub-view).
+  // Per-transport status lines + quota bars come from the qxp-only
+  // `get_connectivity_report` RPC — a structured equivalent of core's HTML
+  // diagnostics. Strings inside the report are pre-localized by core.
   import { onMount } from 'svelte';
   import { rpc } from '../lib/rpc';
   import { accounts } from '../lib/state/accounts.svelte';
@@ -36,17 +34,23 @@
 
   type Dot = 'green' | 'yellow' | 'red' | 'gray';
 
-  type ConnectivityLine = { text: string; dot: Dot };
+  type ConnectivityLine = { dot: Dot; text: string };
 
-  type IncomingTransport = {
-    domain: string;
+  type QuotaInfo = { percent: number; label: string };
+
+  // Mirrors `ConnectivityReport` from libs/deltachat-core-rust/src/scheduler/
+  // connectivity_report.rs (exposed via deltachat-jsonrpc as
+  // `get_connectivity_report`). Field names are serde-camelCased; the Dot
+  // enum is serialized in lowercase.
+  type TransportReport = {
+    addr: string;
     lines: ConnectivityLine[];
-    quota: { percent: number; label: string } | null;
+    quota: QuotaInfo | null;
   };
 
-  type ParsedConnectivity = {
-    incoming: IncomingTransport[];
-    smtp: ConnectivityLine | null;
+  type ConnectivityReport = {
+    transports: TransportReport[];
+    smtp: ConnectivityLine;
   };
 
   type RelayInfo = {
@@ -54,7 +58,7 @@
     domain: string;
     isUnpublished: boolean;
     connections: ConnectivityLine[];
-    quota: { percent: number; label: string } | null;
+    quota: QuotaInfo | null;
     param: EnteredLoginParam;
   };
 
@@ -69,7 +73,6 @@
   let relays = $state<RelayInfo[]>([]);
   let defaultAddr = $state('');
   let smtp = $state<ConnectivityLine | null>(null);
-  let rawStatus = $state<string | null>(null);
   let proxyEnabled = $state(false);
   let loaded = $state(false);
   let busy = $state(false);
@@ -94,19 +97,20 @@
     if (accounts.selectedId == null) return;
     const id = accounts.selectedId;
     try {
-      const [list, addr, proxyOn, html] = await Promise.all([
+      const [list, addr, proxyOn, report] = await Promise.all([
         rpc.call<TransportListEntry[]>('list_transports_ex', [id]),
         rpc.call<string | null>('get_config', [id, 'configured_addr']),
         rpc.call<string | null>('get_config', [id, 'proxy_enabled']),
-        rpc.call<string>('get_connectivity_html', [id]),
+        rpc.call<ConnectivityReport>('get_connectivity_report', [id]),
       ]);
       defaultAddr = addr ?? '';
       proxyEnabled = proxyOn === '1';
 
-      const parsed = parseConnectivityHtml(html);
       relays = list.map((t) => {
         const domain = t.param.addr.split('@').at(-1) ?? t.param.addr;
-        const match = parsed.incoming.find((i) => i.domain.toLowerCase() === domain.toLowerCase());
+        // Exact addr join — the report carries the transport addr verbatim,
+        // so there's no ambiguity for accounts sharing a domain.
+        const match = report.transports.find((tr) => tr.addr === t.param.addr);
         return {
           addr: t.param.addr,
           domain,
@@ -116,16 +120,7 @@
           param: t.param,
         };
       });
-      smtp = parsed.smtp;
-
-      // Fallback when the parser finds neither incoming nor outgoing — still
-      // surface *something* so users aren't left guessing.
-      if (parsed.incoming.length === 0 && !parsed.smtp) {
-        const stripped = stripTags(html).replace(/\s+/g, ' ').trim();
-        rawStatus = stripped || null;
-      } else {
-        rawStatus = null;
-      }
+      smtp = report.smtp;
     } catch (err) {
       errorMsg = err instanceof Error ? err.message : String(err);
     } finally {
@@ -243,112 +238,6 @@
     }
   }
 
-  // HTML parser -----------------------------------------------------------
-  //
-  // Ported from ConnectivityView.swift's parseConnectivityHtml. The core
-  // emits HTML in `get_connectivity_html`; this teases out the structured
-  // bits (per-transport status + quota, SMTP line) so we can render them in
-  // native rows instead of a blob of HTML.
-
-  function parseConnectivityHtml(html: string): ParsedConnectivity {
-    const result: ParsedConnectivity = { incoming: [], smtp: null };
-
-    const h3Regex = /<h3>([\s\S]*?)<\/h3>/g;
-    const headings: { title: string; tagStart: number; contentStart: number }[] = [];
-    let m: RegExpExecArray | null;
-    while ((m = h3Regex.exec(html)) != null) {
-      headings.push({
-        title: stripTags(m[1]).toLowerCase(),
-        tagStart: m.index,
-        contentStart: m.index + m[0].length,
-      });
-    }
-    if (headings.length === 0) return result;
-
-    for (let i = 0; i < headings.length; i++) {
-      const start = headings[i].contentStart;
-      const end = i + 1 < headings.length ? headings[i + 1].tagStart : html.length;
-      const content = html.slice(start, end);
-      const title = headings[i].title;
-      if (title.includes('incoming')) {
-        result.incoming = parseIncoming(content);
-      } else if (title.includes('outgoing')) {
-        result.smtp = parseSmtp(content);
-      }
-    }
-    return result;
-  }
-
-  function parseIncoming(content: string): IncomingTransport[] {
-    const transportRegex = /<li class="transport">([\s\S]*?)<\/li>\s*<\/ul>/g;
-    const out: IncomingTransport[] = [];
-    let m: RegExpExecArray | null;
-    while ((m = transportRegex.exec(content)) != null) {
-      const block = m[1];
-      const [statusPart, quotaPart] = block.split('<ul class="quota-list">');
-
-      const boldMatch = /<b>(.*?):<\/b>/.exec(statusPart);
-      if (!boldMatch) continue;
-      const domain = stripTags(boldMatch[1]).trim();
-
-      const lines: ConnectivityLine[] = [];
-      for (const raw of statusPart.split('<br')) {
-        const dot = dotColor(raw);
-        const text = stripTags(raw)
-          .replace(/^\s*\/>/, '')
-          .trim()
-          .replace(/\s+/g, ' ');
-        if (text) lines.push({ text, dot });
-      }
-
-      let quota: IncomingTransport['quota'] = null;
-      if (quotaPart) {
-        const pctMatch = /<div class="progress[^"]*"[^>]*>(\d+)%<\/div>/.exec(quotaPart);
-        if (pctMatch) {
-          const pct = parseInt(pctMatch[1], 10) || 0;
-          const barIdx = quotaPart.indexOf('<div class="bar"');
-          const before = barIdx >= 0 ? quotaPart.slice(0, barIdx) : quotaPart;
-          quota = { percent: pct, label: stripTags(before).trim() };
-        }
-      }
-
-      out.push({ domain, lines, quota });
-    }
-    return out;
-  }
-
-  function parseSmtp(content: string): ConnectivityLine | null {
-    const liRegex = /<li[^>]*>([\s\S]*?)<\/li>/;
-    const m = liRegex.exec(content);
-    if (!m) return null;
-    const text = stripTags(m[1]).trim().replace(/\s+/g, ' ');
-    if (!text) return null;
-    return { text, dot: dotColor(m[1]) };
-  }
-
-  function dotColor(html: string): Dot {
-    if (html.includes('green')) return 'green';
-    if (html.includes('yellow')) return 'yellow';
-    if (html.includes('red')) return 'red';
-    return 'gray';
-  }
-
-  function stripTags(html: string): string {
-    // The core's connectivity HTML carries a style block at the top (CSS
-    // for the progress bar, dot colors, etc.). A bare tag-stripping regex
-    // leaves the CSS rules behind as plain text — drop the contents of
-    // style/script blocks first. Built from runtime concatenation so the
-    // file's source bytes never literally contain `</` + `script>`, which
-    // would otherwise confuse Svelte's parser into closing the surrounding
-    // <script lang="ts"> block prematurely.
-    const tag = (name: string) =>
-      new RegExp('<' + name + '\\b[^>]*>[\\s\\S]*?<\\/' + name + '>', 'gi');
-    return html
-      .replace(tag('style'), '')
-      .replace(tag('script'), '')
-      .replace(/<[^>]+>/g, '');
-  }
-
   function quotaTint(percent: number): Dot {
     if (percent >= 95) return 'red';
     if (percent >= 80) return 'yellow';
@@ -439,12 +328,6 @@
         <span class="dot" data-dot={smtp.dot}></span>
         <span>{smtp.text}</span>
       </div>
-    </SettingsSection>
-  {/if}
-
-  {#if rawStatus}
-    <SettingsSection title={t('Status')}>
-      <p class="raw">{rawStatus}</p>
     </SettingsSection>
   {/if}
 
@@ -680,12 +563,6 @@
     font-size: var(--text-sm);
     padding: 8px 0;
     margin: 0;
-  }
-  .raw {
-    margin: 0;
-    color: var(--color-fg-secondary);
-    font-size: var(--text-sm);
-    user-select: text;
   }
   .row-line {
     padding: 8px 0;
