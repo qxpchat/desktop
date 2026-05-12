@@ -26,10 +26,18 @@
     onContextMenu: (msg: Message, x: number, y: number) => void;
     /** Jump to and highlight a quoted message. */
     onJumpToMessage: (msgId: number) => void;
+    /** Open the reactor detail sheet for the tapped message. */
+    onShowReactors: (messageId: number) => void;
   };
 
-  let { message, showSender, showReactionCount, onContextMenu, onJumpToMessage }: Props =
-    $props();
+  let {
+    message,
+    showSender,
+    showReactionCount,
+    onContextMenu,
+    onJumpToMessage,
+    onShowReactors,
+  }: Props = $props();
 
   let outgoing = $derived(message.fromId === CONTACT_ID_SELF);
   let highlighted = $derived(chat.highlightId === message.id);
@@ -238,7 +246,12 @@
         {/if}
       </div>
     </div>
-    <ReactionsRow {message} showCount={showReactionCount} />
+    <ReactionsRow
+      {message}
+      showCount={showReactionCount}
+      isGroup={showReactionCount}
+      {onShowReactors}
+    />
   </div>
   {#if message.error && message.state === MSG_STATE.OutFailed}
     <div class="error">{message.error}</div>

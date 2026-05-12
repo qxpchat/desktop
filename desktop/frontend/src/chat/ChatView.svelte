@@ -31,6 +31,7 @@
   import EmojiPicker from './EmojiPicker.svelte';
   import ChatPicker from './ChatPicker.svelte';
   import InChatSearch from './InChatSearch.svelte';
+  import ReactionDetailSheet from './ReactionDetailSheet.svelte';
   import { onShortcut } from '../lib/shortcuts';
 
   type Props = {
@@ -203,6 +204,7 @@
   let forwardTargets = $state<number[]>([]);
   let findOpen = $state(false);
   let deleteTarget = $state<{ id: number; canDeleteForAll: boolean } | null>(null);
+  let reactorsTarget = $state<number | null>(null);
 
   onMount(() => {
     const offFind = onShortcut('in-chat-search', () => (findOpen = true));
@@ -421,6 +423,7 @@
                 showReactionCount={isGroupOrBroadcast}
                 onContextMenu={openContext}
                 onJumpToMessage={jumpTo}
+                onShowReactors={(id) => (reactorsTarget = id)}
               />
             {/if}
           </div>
@@ -479,6 +482,12 @@
     if (deleteTarget) void deleteMessagesForAll([deleteTarget.id]);
   }}
   onClose={() => (deleteTarget = null)}
+/>
+
+<ReactionDetailSheet
+  open={reactorsTarget != null}
+  messageId={reactorsTarget}
+  onClose={() => (reactorsTarget = null)}
 />
 
 <style>
