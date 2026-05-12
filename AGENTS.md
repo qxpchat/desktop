@@ -16,7 +16,7 @@ User instructions **always** override this file.
 
 - Be very concise in output but thorough in reasoning.
 - Think before acting and make absolutely sure you understand the problem before trying to solve it. 
-- Always ask for clarifications in case of doubts. Never guess.
+- Always ask for clarifications in case of doubts. Never guess. Check reference apps.
 - Challenge the user if their inputs are inconsistent with your reasoning.
 - Avoid dependencies at any costs as long as they are not strictly necessary. If you need to use a library, make sure it is widely used and well maintained.
 - Do not re-read files you have already read unless the file may have changed.
@@ -25,7 +25,7 @@ User instructions **always** override this file.
 ## Control
 
 - Never execute mutable Git commands: the user needs to review all your changes.
-- **Never** exeucute mutable system commands without user's explicit confirmation unless they asked you to do so.
+- **Never** execute mutable system commands without user's explicit confirmation unless they asked you to do so.
 
 ## Efficiency
 

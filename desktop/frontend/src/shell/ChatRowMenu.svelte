@@ -24,10 +24,24 @@
     onMute: (duration: MuteDuration) => void;
     onUnmute: () => void;
     onToggleArchive: () => void;
+    onMarkUnread: () => void;
+    onMarkRead: () => void;
     onDelete: () => void;
   };
 
-  let { chat, x, y, onClose, onTogglePin, onMute, onUnmute, onToggleArchive, onDelete }: Props = $props();
+  let {
+    chat,
+    x,
+    y,
+    onClose,
+    onTogglePin,
+    onMute,
+    onUnmute,
+    onToggleArchive,
+    onMarkUnread,
+    onMarkRead,
+    onDelete,
+  }: Props = $props();
 
   // For groups/channels you're still a member of, "delete" upstream is a
   // leave + delete combo — surface that intent in the label so the user
@@ -92,6 +106,17 @@
 
 <div bind:this={menu} class="menu" role="menu" {style}>
   {#if view === 'main'}
+    {#if chat.freshMessageCounter > 0}
+      <button role="menuitem" onclick={() => fire(onMarkRead)}>
+        <Icon name="check" size={14} />
+        {t('Mark as Read')}
+      </button>
+    {:else}
+      <button role="menuitem" onclick={() => fire(onMarkUnread)}>
+        <Icon name="message-circle" size={14} />
+        {t('Mark as Unread')}
+      </button>
+    {/if}
     <button role="menuitem" onclick={() => fire(onTogglePin)}>
       <Icon name="pin" size={14} />
       {chat.isPinned ? t('Unpin') : t('Pin')}

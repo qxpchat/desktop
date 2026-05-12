@@ -83,6 +83,30 @@ export const chatlist = $state<ChatlistState>({
   hasArchive: false,
 });
 
+/** Mark a chat as unread by reverting the last incoming message back to
+ *  fresh. Mirrors `deltachat-desktop`'s ChatContextMenu — the row's
+ *  numeric badge ticks up to 1, just like a real new arrival. The caller
+ *  is responsible for unselecting the chat first if it's currently open
+ *  (otherwise `markNoticed` from the chat view immediately undoes this). */
+export async function markChatUnread(chatId: number): Promise<void> {
+  if (chatlist.accountId == null) return;
+  try {
+    await rpc.call('markfresh_chat', [chatlist.accountId, chatId]);
+  } catch (err) {
+    console.warn('markfresh_chat failed', err);
+  }
+}
+
+/** Mark a chat as read from the chatlist context menu (without opening it). */
+export async function markChatRead(chatId: number): Promise<void> {
+  if (chatlist.accountId == null) return;
+  try {
+    await rpc.call('marknoticed_chat', [chatlist.accountId, chatId]);
+  } catch (err) {
+    console.warn('marknoticed_chat failed', err);
+  }
+}
+
 /** DC_GCL_ARCHIVED_ONLY — `get_chatlist_entries` flag to scope to archived. */
 const GCL_ARCHIVED_ONLY = 0x01;
 

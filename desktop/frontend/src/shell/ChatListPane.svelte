@@ -3,6 +3,8 @@
     chatlist,
     setSearchQuery,
     setArchivedOnly,
+    markChatUnread,
+    markChatRead,
   } from '../lib/state/chatlist.svelte';
   import { paneMode, setPaneMode, backToInbox } from '../lib/state/paneMode.svelte';
   import { mainRoute } from '../lib/state/mainRoute.svelte';
@@ -277,6 +279,15 @@
     onMute={(dur) => void muteChat(menu!.chat, dur)}
     onUnmute={() => void unmuteChat(menu!.chat)}
     onToggleArchive={() => void toggleArchive(menu!.chat)}
+    onMarkUnread={() => {
+      // If the chat is currently open, ChatView's `markNoticed` would
+      // immediately undo the markfresh as soon as the window re-focuses.
+      // Drop the selection first — same approach as
+      // references/deltachat-desktop/.../ChatContextMenu.tsx.
+      if (selectedChatId === menu!.chat.id) selectChat(null);
+      void markChatUnread(menu!.chat.id);
+    }}
+    onMarkRead={() => void markChatRead(menu!.chat.id)}
     onDelete={() => requestDelete(menu!.chat)}
   />
 {/if}

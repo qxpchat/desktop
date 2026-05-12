@@ -29,7 +29,6 @@
 
   let title = $derived(narrow ? `${displayName}${preview ? ' — ' + preview : ''}` : '');
 
-  let unreadLabel = $derived(chat.freshMessageCounter > 99 ? '99+' : String(chat.freshMessageCounter));
   // Suppress the unread indicator (badge + accent timestamp + narrow-mode
   // dot) only when this chat is *currently open AND the window has OS
   // focus* — i.e. the user really is reading. If they've tabbed away to
@@ -110,7 +109,7 @@
           </span>
         {/if}
         {#if showUnread}
-          <span class="unread">{unreadLabel}</span>
+          <span class="unread" aria-label={t('Unread')}></span>
         {:else if chat.isPinned}
           <span class="pin" aria-label={t('pinned')} title={t('Pinned')}><Icon name="pin" size={12} /></span>
         {/if}
@@ -214,17 +213,10 @@
   }
   .unread {
     flex: 0 0 auto;
-    min-width: 20px;
-    height: 20px;
-    padding: 0 6px;
-    border-radius: 10px;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
     background: var(--color-accent);
-    color: var(--color-accent-fg);
-    font-size: var(--text-xs);
-    font-weight: 700;
-    display: flex;
-    align-items: center;
-    justify-content: center;
   }
   .pin {
     font-size: 12px;
