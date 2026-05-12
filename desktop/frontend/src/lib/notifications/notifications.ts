@@ -253,13 +253,15 @@ function updateFavicon(unread: number) {
   const ctx = canvas.getContext('2d');
   if (!ctx) return;
 
-  const accent =
-    getComputedStyle(document.documentElement).getPropertyValue('--color-accent').trim() ||
-    '#22ccaa';
-
   ctx.save();
   ctx.scale(size / QXP_LOGO_VIEWBOX_SIZE, size / QXP_LOGO_VIEWBOX_SIZE);
-  ctx.fillStyle = accent;
+  // Brand vertical gradient, mirroring the iOS AppIcon. The fixed colors
+  // are intentional — the user-picked accent (`--color-accent`) styles
+  // chrome, not the brand mark itself.
+  const grad = ctx.createLinearGradient(0, 0, 0, QXP_LOGO_VIEWBOX_SIZE);
+  grad.addColorStop(0, '#00FF9D');
+  grad.addColorStop(1, '#22CCAA');
+  ctx.fillStyle = grad;
   ctx.fill(getLogoPath());
   ctx.restore();
 

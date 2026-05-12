@@ -84,7 +84,6 @@
     margin-top: 6vh;
   }
   .logo-wrap {
-    color: var(--color-accent);
     line-height: 0;
     display: flex;
     justify-content: center;

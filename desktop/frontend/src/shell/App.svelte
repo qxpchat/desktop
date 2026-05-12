@@ -295,7 +295,6 @@
     gap: var(--space-3);
   }
   .boot-logo {
-    color: var(--color-accent);
     line-height: 0;
   }
   .boot-title {
