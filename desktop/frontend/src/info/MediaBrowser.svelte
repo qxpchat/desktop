@@ -94,7 +94,7 @@
   });
 
   function jump(msgId: number) {
-    jumpToMessage(msgId, { chatId, returnToChat: true });
+    void jumpToMessage(msgId, { chatId, returnToChat: true });
   }
 
   let deleteTarget = $state<{ id: number; canDeleteForAll: boolean } | null>(null);

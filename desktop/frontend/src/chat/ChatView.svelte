@@ -6,6 +6,7 @@
     chat,
     setActiveChat,
     markNoticed,
+    flashMessage,
     sendMessage,
     toggleReaction,
     deleteMessages,
@@ -73,7 +74,20 @@
     const newCount = ids.length - lastSeenIds.length;
     const newAppended = newCount > 0 && lastSeenIds.every((id, i) => ids[i] === id);
     lastSeenIds = ids.slice();
-    if (atBottom) {
+    // Suppress the bottom-pin loop while a jump is in flight — `loadInitial`
+    // and `loadUntilInWindow` both grow `chat.ids`, and the 6-frame
+    // `scrollToBottom` would otherwise swallow the jump's scrollIntoView.
+    // The `untrack` is load-bearing: if we read `chat.jumpTargetId`
+    // reactively, then clearing it (the jump-target effect below does
+    // this after scrolling) re-fires this effect within the same
+    // microtask — before the programmatic scroll has settled onscroll
+    // and flipped `atBottom`. Result: `scrollToBottom` runs and clobbers
+    // the jump. Reading without tracking severs that feedback loop.
+    let jumpInFlight = false;
+    untrack(() => {
+      jumpInFlight = chat.jumpTargetId != null;
+    });
+    if (atBottom && !jumpInFlight) {
       void scrollToBottom();
     } else if (newAppended && newCount > 0) {
       newSinceScroll += newCount;
@@ -86,6 +100,59 @@
   });
   onDestroy(() => {
     if (firstPaintTimer != null) clearTimeout(firstPaintTimer);
+  });
+
+  // Jump-to-message: `jumpToMessage` (lib/state/jump.ts) sets
+  // `chat.jumpTargetId`, then runs the switch-chat + paginate pipeline.
+  // We own the scroll: when the target lands in `chat.ids`, flash +
+  // scroll from inside the same render cycle that mounted the bubble.
+  // Doing it here (rather than in jump.ts) avoids the race where the
+  // external scroll fires before Svelte commits the new bubble, or
+  // where the bottom-pin loop is still running when we try to scroll.
+  $effect(() => {
+    const target = chat.jumpTargetId;
+    if (target == null) return;
+    if (!chat.ids.includes(target)) return;
+    untrack(() => {
+      void (async () => {
+        // Brief poll for the DOM element: an extra microtask gives the
+        // `{#each}` block a chance to commit the appended/prepended
+        // bubble, and a few rAF ticks cover any deferred work (image
+        // decoding, fly-in transition, etc.) that might keep the
+        // initial mount partial.
+        let el: HTMLElement | null = null;
+        for (let i = 0; i < 30; i++) {
+          await tick();
+          if (scroller) {
+            const found = document.getElementById(`msg-${target}`);
+            if (found) {
+              el = found;
+              break;
+            }
+          }
+          await new Promise((r) => setTimeout(r, 30));
+        }
+        if (!el || !scroller) {
+          chat.jumpTargetId = null;
+          return;
+        }
+        flashMessage(target);
+        // Explicit scrollTop: scrollIntoView's smooth animation can be
+        // clobbered by sibling renders / image-decode reflows. Compute
+        // the offset within the scroller and pin scrollTop directly,
+        // then let scrollIntoView do its smooth pass on top.
+        const containerRect = scroller.getBoundingClientRect();
+        const elRect = el.getBoundingClientRect();
+        const offsetWithinScroller = elRect.top - containerRect.top + scroller.scrollTop;
+        const desiredScrollTop = Math.max(
+          0,
+          offsetWithinScroller - scroller.clientHeight / 2 + elRect.height / 2,
+        );
+        scroller.scrollTop = desiredScrollTop;
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        chat.jumpTargetId = null;
+      })();
+    });
   });
 
   $effect(() => {
@@ -403,8 +470,11 @@
   }
 
   function jumpTo(msgId: number) {
-    if (!chat.ids.includes(msgId)) return;
-    jumpToMessage(msgId);
+    // Quote-tap: caller may target a message outside the current loaded
+    // window (chats grow long, quotes reach far back). `jumpToMessage`
+    // paginates the gap before scrolling, and silently no-ops if the
+    // target isn't in this chat at all (e.g. a reply-privately quote).
+    void jumpToMessage(msgId);
   }
 
   // -------- drag and drop --------

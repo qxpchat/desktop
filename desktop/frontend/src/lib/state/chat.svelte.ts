@@ -129,6 +129,12 @@ export type ChatState = {
   editingId: number | null;
   /** Highlight pulse target — ChatView animates the bubble briefly on jump. */
   highlightId: number | null;
+  /** Active jump-to-message target. Set by `jumpToMessage` for the
+   *  duration of the switch-chat / paginate / scroll pipeline; ChatView
+   *  suppresses its auto-scroll-to-bottom while this is non-null so the
+   *  scroll-into-view of the target bubble isn't swallowed by the
+   *  bottom-pin loop that runs after each `chat.ids` change. */
+  jumpTargetId: number | null;
 };
 
 // Initial render window + pagination step. 50 keeps the first paint cheap;
@@ -149,6 +155,7 @@ export const chat = $state<ChatState>({
   replyToId: null,
   editingId: null,
   highlightId: null,
+  jumpTargetId: null,
 });
 
 export function setReplyTo(id: number | null): void {
@@ -182,6 +189,11 @@ export function setActiveChat(active: ActiveChat | null): void {
   chat.replyToId = null;
   chat.editingId = null;
   chat.highlightId = null;
+  // `jumpTargetId` deliberately *not* cleared here: when a search hit
+  // for a different chat fires the jump, `selectChat` → `setActiveChat`
+  // runs *before* the jump pipeline reaches its scroll step, and clearing
+  // here would re-enable the auto-scroll-to-bottom that we set the flag
+  // to suppress in the first place. `jumpToMessage` owns the lifecycle.
   if (active != null) void loadInitial();
 }
 
@@ -317,6 +329,53 @@ export async function loadOlder(): Promise<number> {
   } catch (err) {
     chat.error = errString(err);
     return 0;
+  } finally {
+    if (gen === loadGen) chat.loadingOlder = false;
+  }
+}
+
+/** Extend the loaded window backwards until `msgId` is part of `chat.ids`.
+ *  Returns true when the message ends up in (or already was in) the window;
+ *  false if it isn't in this chat at all. Used by the jump-to-message
+ *  pipeline to handle quote-taps / search hits / media-browser entries
+ *  that point at messages older than the currently rendered window. */
+export async function loadUntilInWindow(msgId: number): Promise<boolean> {
+  const active = chat.active;
+  if (active == null) return false;
+  if (chat.ids.includes(msgId)) return true;
+
+  const idx = chat.allIds.indexOf(msgId);
+  if (idx === -1) return false; // not in this chat
+  const startInAll = chat.allIds.length - chat.ids.length;
+  if (idx >= startInAll) return true; // already covered (race-safe re-check)
+
+  const toLoad = chat.allIds.slice(idx, startInAll);
+  if (toLoad.length === 0) return true;
+
+  chat.loadingOlder = true;
+  const gen = loadGen;
+  try {
+    const map = await rpc.call<Record<number, MessageLoadResult>>('get_messages', [
+      active.accountId,
+      toLoad,
+    ]);
+    if (gen !== loadGen || !sameChat(active, chat.active)) return false;
+    const next = new Map(chat.messages);
+    const prepended: number[] = [];
+    for (const id of toLoad) {
+      const r = map[id];
+      if (r && r.kind === 'message') {
+        next.set(id, r as unknown as Message);
+        prepended.push(id);
+      }
+    }
+    chat.messages = next;
+    chat.ids = [...prepended, ...chat.ids];
+    chat.hasMoreOlder = chat.ids.length < chat.allIds.length;
+    return chat.ids.includes(msgId);
+  } catch (err) {
+    chat.error = errString(err);
+    return false;
   } finally {
     if (gen === loadGen) chat.loadingOlder = false;
   }

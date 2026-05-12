@@ -82,7 +82,7 @@
   });
 
   function jumpToHit(chatId: number, msgId: number) {
-    jumpToMessage(msgId, { chatId });
+    void jumpToMessage(msgId, { chatId });
   }
 
   let hasResults = $derived(chatlist.ids.length > 0);

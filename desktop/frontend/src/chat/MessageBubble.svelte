@@ -423,12 +423,21 @@
   .bubble.media-only > .meta .state.failed {
     color: #ffb3b3;
   }
+  /* Jump-to-message flash ring. Colour adapts so the pulse stays
+   * visible on both bubble fills: accent on the elevated incoming
+   * background, white on the accent-filled outgoing bubble. */
+  .row.incoming .bubble.flash {
+    --flash-color: var(--color-accent);
+  }
+  .row.outgoing .bubble.flash {
+    --flash-color: #fff;
+  }
   .bubble.flash {
     animation: flash 1.2s ease;
   }
   @keyframes flash {
     0% {
-      box-shadow: 0 0 0 4px var(--color-accent-soft);
+      box-shadow: 0 0 0 4px var(--flash-color);
     }
     100% {
       box-shadow: 0 1px 0 var(--color-shadow);
