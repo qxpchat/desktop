@@ -28,6 +28,9 @@
     onJumpToMessage: (msgId: number) => void;
     /** Open the reactor detail sheet for the tapped message. */
     onShowReactors: (messageId: number) => void;
+    /** When non-null, the row is in selection mode: a circle is shown on
+     *  the leading edge and clicking anywhere on the row toggles. */
+    selection?: { selected: boolean; onToggle: () => void } | null;
   };
 
   let {
@@ -37,6 +40,7 @@
     onContextMenu,
     onJumpToMessage,
     onShowReactors,
+    selection = null,
   }: Props = $props();
 
   let outgoing = $derived(message.fromId === CONTACT_ID_SELF);
@@ -90,8 +94,21 @@
   }
 
   function handleContext(e: MouseEvent) {
+    if (selection) return;
     e.preventDefault();
     onContextMenu(message, e.clientX, e.clientY);
+  }
+
+  function handleRowClick() {
+    if (selection) selection.onToggle();
+  }
+
+  function handleRowKey(e: KeyboardEvent) {
+    if (!selection) return;
+    if (e.key === ' ' || e.key === 'Enter') {
+      e.preventDefault();
+      selection.onToggle();
+    }
   }
 
 
@@ -157,7 +174,24 @@
   void _;
 </script>
 
-<div class="row" class:outgoing class:incoming={!outgoing}>
+<!-- svelte-ignore a11y_no_noninteractive_tabindex -->
+<div
+  class="row"
+  class:outgoing
+  class:incoming={!outgoing}
+  class:selecting={selection != null}
+  class:selected={selection?.selected}
+  onclick={handleRowClick}
+  onkeydown={handleRowKey}
+  role={selection ? 'checkbox' : undefined}
+  aria-checked={selection?.selected}
+  tabindex={selection ? 0 : undefined}
+>
+  {#if selection}
+    <span class="selection-circle" class:checked={selection.selected} aria-hidden="true">
+      {#if selection.selected}<Icon name="check" size={14} stroke={3} />{/if}
+    </span>
+  {/if}
   <div class="bubble-wrap">
     <div
       class="bubble"
@@ -264,12 +298,48 @@
     flex-direction: column;
     padding: 2px var(--space-4);
     max-width: 100%;
+    position: relative;
+    transition: padding-left 180ms ease, background-color 180ms ease;
   }
   .row.outgoing {
     align-items: flex-end;
   }
   .row.incoming {
     align-items: flex-start;
+  }
+  .row.selecting {
+    padding-left: calc(var(--space-4) + 32px);
+    cursor: pointer;
+  }
+  .row.selecting .bubble-wrap {
+    /* Let the row swallow the click — inner cells (images, links, etc.)
+     * would otherwise eat it before the toggle handler runs. */
+    pointer-events: none;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+  .row.selected {
+    background: var(--color-accent-soft);
+  }
+  .selection-circle {
+    position: absolute;
+    left: var(--space-4);
+    top: 50%;
+    transform: translateY(-50%);
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    border: 2px solid var(--color-fg-tertiary);
+    background: transparent;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--color-accent-fg);
+    transition: background-color 120ms ease, border-color 120ms ease;
+  }
+  .selection-circle.checked {
+    background: var(--color-accent);
+    border-color: var(--color-accent);
   }
   .bubble-wrap {
     /* Flex column with align-items: flex-{start,end} makes children

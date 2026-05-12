@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { onMount, onDestroy, tick } from 'svelte';
+  import { onMount, onDestroy, tick, untrack } from 'svelte';
   import { fly } from 'svelte/transition';
   import { cubicOut } from 'svelte/easing';
   import {
@@ -32,6 +32,7 @@
   import ChatPicker from './ChatPicker.svelte';
   import InChatSearch from './InChatSearch.svelte';
   import ReactionDetailSheet from './ReactionDetailSheet.svelte';
+  import Icon from '../lib/Icon.svelte';
   import { onShortcut } from '../lib/shortcuts';
 
   type Props = {
@@ -203,8 +204,99 @@
   let forwardOpen = $state(false);
   let forwardTargets = $state<number[]>([]);
   let findOpen = $state(false);
-  let deleteTarget = $state<{ id: number; canDeleteForAll: boolean } | null>(null);
+  let deleteTarget = $state<{ ids: number[]; canDeleteForAll: boolean } | null>(null);
   let reactorsTarget = $state<number | null>(null);
+
+  // -------- multi-message selection --------
+  // Mirrors `ChatViewModel.isSelecting` / `selectedMessageIds` from iOS. The
+  // selection bar replaces the composer; bulk Forward / Copy / Delete use
+  // the chronologically-ordered subset of `chat.ids`.
+  let isSelecting = $state(false);
+  let selectedIds = $state(new Set<number>());
+  let selectedCount = $derived(selectedIds.size);
+  let orderedSelected = $derived(chat.ids.filter((id) => selectedIds.has(id)));
+  // "Delete for everyone" is offered only when every selected message is the
+  // user's own outgoing message that already left the outbox (matches the
+  // single-message path in `actionsFor`).
+  let canDeleteSelectedForAll = $derived.by(() => {
+    if (selectedIds.size === 0) return false;
+    for (const id of selectedIds) {
+      const m = chat.messages.get(id);
+      if (!m) return false;
+      if (m.fromId !== CONTACT_ID_SELF) return false;
+      if (m.state !== MSG_STATE.OutDelivered && m.state !== MSG_STATE.OutMdnRcvd) return false;
+    }
+    return true;
+  });
+
+  function enterSelection(seedId: number) {
+    closeContext();
+    isSelecting = true;
+    selectedIds = new Set([seedId]);
+  }
+  function exitSelection() {
+    isSelecting = false;
+    selectedIds = new Set();
+  }
+  function toggleSelection(id: number) {
+    const next = new Set(selectedIds);
+    if (next.has(id)) next.delete(id);
+    else next.add(id);
+    selectedIds = next;
+  }
+
+  // Drop the selection when the active chat changes — selected ids only
+  // make sense within the chat that produced them. `untrack` keeps the
+  // effect's dependency limited to `chat.active`; without it, the read of
+  // `isSelecting` makes this effect re-fire after `enterSelection` flips it
+  // to true, immediately undoing the very state change we want to keep.
+  $effect(() => {
+    void chat.active;
+    untrack(() => {
+      if (isSelecting) exitSelection();
+    });
+  });
+
+  function onForwardSelected() {
+    if (orderedSelected.length === 0) return;
+    forwardTargets = orderedSelected;
+    forwardOpen = true;
+  }
+  function onCopySelected() {
+    const ids = orderedSelected;
+    if (ids.length === 0) return;
+    const items = ids
+      .map((id) => chat.messages.get(id))
+      .filter((m): m is Message => m != null);
+    if (items.length === 0) return;
+    let text: string;
+    if (items.length === 1) {
+      text = items[0].text ?? '';
+    } else {
+      // Multi-message: prefix each contiguous-sender run with "Sender:" and
+      // join entries with blank lines. Mirrors deltachat-ios's clipboard
+      // format (`copySelectedMessages` in `ChatViewModel`).
+      const lines: string[] = [];
+      let lastSender = '';
+      for (const m of items) {
+        const sender = m.overrideSenderName || m.sender?.displayName || '';
+        if (sender !== lastSender) {
+          if (lines.length > 0) lines.push('');
+          if (sender) lines.push(`${sender}:`);
+          lastSender = sender;
+        }
+        lines.push(m.text ?? '');
+      }
+      text = lines.join('\n');
+    }
+    void navigator.clipboard.writeText(text);
+    exitSelection();
+  }
+  function onDeleteSelected() {
+    const ids = orderedSelected;
+    if (ids.length === 0) return;
+    deleteTarget = { ids, canDeleteForAll: canDeleteSelectedForAll };
+  }
 
   onMount(() => {
     const offFind = onShortcut('in-chat-search', () => (findOpen = true));
@@ -288,8 +380,13 @@
         const canDeleteForAll =
           m.fromId === CONTACT_ID_SELF &&
           (m.state === MSG_STATE.OutDelivered || m.state === MSG_STATE.OutMdnRcvd);
-        deleteTarget = { id: m.id, canDeleteForAll };
+        deleteTarget = { ids: [m.id], canDeleteForAll };
       },
+    });
+    actions.push({
+      label: t('Select More'),
+      icon: 'check-square',
+      onSelect: () => enterSelection(m.id),
     });
     return actions;
   }
@@ -302,6 +399,7 @@
       alert(`Forward failed: ${err instanceof Error ? err.message : String(err)}`);
     }
     forwardTargets = [];
+    if (isSelecting) exitSelection();
   }
 
   function jumpTo(msgId: number) {
@@ -424,6 +522,9 @@
                 onContextMenu={openContext}
                 onJumpToMessage={jumpTo}
                 onShowReactors={(id) => (reactorsTarget = id)}
+                selection={isSelecting
+                  ? { selected: selectedIds.has(m.id), onToggle: () => toggleSelection(m.id) }
+                  : null}
               />
             {/if}
           </div>
@@ -439,7 +540,42 @@
     />
   </div>
 
-  <Composer />
+  {#if isSelecting}
+    <div class="selection-bar" role="toolbar" aria-label={t('Selection actions')}>
+      <button class="cancel" onclick={exitSelection}>{t('Cancel')}</button>
+      <span class="count">
+        {selectedCount === 1 ? t('1 selected') : t('{n} selected', { n: selectedCount })}
+      </span>
+      <div class="actions">
+        <button
+          class="action"
+          disabled={selectedCount === 0}
+          onclick={onForwardSelected}
+          aria-label={t('Forward')}
+        >
+          <Icon name="forward" size={18} />
+        </button>
+        <button
+          class="action"
+          disabled={selectedCount === 0}
+          onclick={onCopySelected}
+          aria-label={t('Copy')}
+        >
+          <Icon name="copy" size={18} />
+        </button>
+        <button
+          class="action danger"
+          disabled={selectedCount === 0}
+          onclick={onDeleteSelected}
+          aria-label={t('Delete')}
+        >
+          <Icon name="trash-2" size={18} />
+        </button>
+      </div>
+    </div>
+  {:else}
+    <Composer />
+  {/if}
 </div>
 
 {#if contextOpen}
@@ -475,11 +611,18 @@
 <DeleteMessageDialog
   open={deleteTarget != null}
   canDeleteForAll={deleteTarget?.canDeleteForAll ?? false}
+  count={deleteTarget?.ids.length ?? 1}
   onDeleteForMe={() => {
-    if (deleteTarget) void deleteMessages([deleteTarget.id]);
+    if (deleteTarget) {
+      void deleteMessages(deleteTarget.ids);
+      if (isSelecting) exitSelection();
+    }
   }}
   onDeleteForAll={() => {
-    if (deleteTarget) void deleteMessagesForAll([deleteTarget.id]);
+    if (deleteTarget) {
+      void deleteMessagesForAll(deleteTarget.ids);
+      if (isSelecting) exitSelection();
+    }
   }}
   onClose={() => (deleteTarget = null)}
 />
@@ -594,6 +737,54 @@
     display: flex;
     justify-content: center;
     margin: var(--space-3) 0;
+  }
+  .selection-bar {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    padding: var(--space-3) var(--space-4);
+    background: var(--color-bg-elevated);
+    border-top: 1px solid var(--color-border);
+  }
+  .selection-bar .cancel {
+    background: transparent;
+    color: var(--color-accent);
+    font-size: var(--text-md);
+    padding: 6px 10px;
+    border-radius: var(--radius-sm);
+  }
+  .selection-bar .cancel:hover {
+    background: var(--color-bg-hover);
+  }
+  .selection-bar .count {
+    flex: 1;
+    color: var(--color-fg-secondary);
+    font-size: var(--text-sm);
+    text-align: center;
+  }
+  .selection-bar .actions {
+    display: flex;
+    gap: var(--space-2);
+  }
+  .selection-bar .action {
+    background: transparent;
+    color: var(--color-fg);
+    width: 36px;
+    height: 36px;
+    border-radius: var(--radius-md);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .selection-bar .action:hover:not(:disabled) {
+    background: var(--color-bg-hover);
+  }
+  .selection-bar .action:disabled {
+    opacity: 0.35;
+    cursor: default;
+  }
+  .selection-bar .action.danger {
+    color: var(--color-danger);
   }
   .daymarker span {
     font-size: var(--text-xs);

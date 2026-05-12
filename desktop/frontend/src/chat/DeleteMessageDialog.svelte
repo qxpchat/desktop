@@ -11,12 +11,14 @@
     open: boolean;
     /** Show the "Delete for Everyone" button. */
     canDeleteForAll: boolean;
+    /** Number of messages being deleted (drives the dialog body's pluralisation). */
+    count?: number;
     onDeleteForMe: () => void;
     onDeleteForAll: () => void;
     onClose: () => void;
   };
 
-  let { open, canDeleteForAll, onDeleteForMe, onDeleteForAll, onClose }: Props = $props();
+  let { open, canDeleteForAll, count = 1, onDeleteForMe, onDeleteForAll, onClose }: Props = $props();
 
   function deleteForMe() {
     onDeleteForMe();
@@ -49,8 +51,12 @@
     aria-labelledby="delete-dialog-title"
     aria-describedby="delete-dialog-body"
   >
-    <h2 id="delete-dialog-title">{t('Delete Message')}</h2>
-    <p id="delete-dialog-body">{t('Delete this message?')}</p>
+    <h2 id="delete-dialog-title">
+      {count > 1 ? t('Delete Messages') : t('Delete Message')}
+    </h2>
+    <p id="delete-dialog-body">
+      {count > 1 ? t('Delete {n} messages?', { n: count }) : t('Delete this message?')}
+    </p>
     <div class="actions">
       {#if canDeleteForAll}
         <button class="btn danger" onclick={deleteForAll}>
