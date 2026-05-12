@@ -300,7 +300,7 @@
   }
   .bubble.media > .sender,
   .bubble.media > .forwarded {
-    padding: 8px 12px 0;
+    padding: 8px 12px 6px;
     margin: 0;
   }
   .bubble.media > .quote {
