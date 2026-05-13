@@ -1,14 +1,15 @@
-// Phase 4/5 — multi-message selection + bulk delete.
+// Phase 4/5 — multi-message selection: bulk delete + bulk forward.
 
 import { test, expect } from '../../fixtures/app-paired.js';
 import {
+  createGroupChat,
   openChatByName,
   waitForChatRowByName,
 } from '../../helpers/setup.js';
 import { TID } from '../../helpers/selectors.js';
 import { ARRIVAL_TIMEOUT_MS } from '../../helpers/timeouts.js';
 
-test.setTimeout(120_000);
+test.setTimeout(180_000);
 
 test('select-more + bulk delete removes all selected bubbles', async ({ qxpPaired, page }) => {
   const { peer } = qxpPaired;
@@ -60,4 +61,62 @@ test('select-more + bulk delete removes all selected bubbles', async ({ qxpPaire
     ).toHaveCount(0);
   }
   await expect(page.locator(TID.selectionBar)).toHaveCount(0);
+});
+
+test('select-more + bulk forward routes all selected bubbles into a target chat', async ({ qxpPaired, page }) => {
+  const { peer } = qxpPaired;
+
+  // 1. Create a distinct destination chat (group with peer) first so the
+  //    picker has something to find.
+  const groupName = `Bulk fwd ${Date.now()}`;
+  await createGroupChat(page, peer.displayName, groupName);
+
+  // 2. Switch to the 1:1 and seed three peer messages; wait for each bubble.
+  await openChatByName(page, peer.displayName);
+  const stamp = Date.now();
+  const texts = [`bulk-fwd-a ${stamp}`, `bulk-fwd-b ${stamp}`, `bulk-fwd-c ${stamp}`];
+  for (const t of texts) await peer.sendTo(t);
+  for (const t of texts) {
+    await expect(
+      page.locator(`[data-testid="message-bubble"][data-direction="incoming"]`, { hasText: t }),
+    ).toBeVisible({ timeout: ARRIVAL_TIMEOUT_MS });
+  }
+
+  // 3. Enter selection mode on first bubble, click-toggle the rest.
+  const firstBubble = page.locator(
+    `[data-testid="message-bubble"][data-direction="incoming"]`,
+    { hasText: texts[0] },
+  );
+  await firstBubble.click({ button: 'right' });
+  await page.locator(TID.msgContextMenuItem('select-more')).click();
+  await expect(page.locator(TID.selectionBar)).toBeVisible();
+
+  for (const t of texts.slice(1)) {
+    await page.locator(
+      `[data-testid="message-bubble"][data-direction="incoming"]`,
+      { hasText: t },
+    ).click({ force: true });
+  }
+  await expect(page.locator(TID.selectionBar)).toHaveAttribute('data-count', String(texts.length));
+
+  // 4. Bulk Forward → chat picker → group. UI stays on the 1:1 after the
+  //    picker closes (selection-bar exits); manually switch to the group
+  //    to verify the messages landed there.
+  await page.locator(TID.selectionBarForward).click();
+  await expect(page.locator(TID.chatPicker)).toBeVisible();
+  await page.locator(TID.chatPickerSearch).fill(groupName);
+  await page.locator(TID.chatPickerRowByName(groupName)).first().click();
+  await expect(page.locator(TID.chatPicker)).toHaveCount(0);
+  await expect(page.locator(TID.selectionBar)).toHaveCount(0);
+
+  // 5. Switch to the target group → all three forwards arrived.
+  await openChatByName(page, groupName);
+  for (const t of texts) {
+    await expect(
+      page.locator(
+        `[data-testid="message-bubble"][data-direction="outgoing"][data-forwarded="true"]`,
+        { hasText: t },
+      ),
+    ).toBeVisible({ timeout: 30_000 });
+  }
 });

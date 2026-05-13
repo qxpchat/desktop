@@ -309,7 +309,7 @@
         <Icon name="chevron-right" size={14} />
       </button>
       {#if (isGroup || isBroadcast) && chat.isEncrypted}
-        <button class="row link" onclick={showQr}>
+        <button class="row link" onclick={showQr} data-testid="chat-info__qr-invite">
           <span class="label">{t('Invite QR')}</span>
           <Icon name="chevron-right" size={14} />
         </button>

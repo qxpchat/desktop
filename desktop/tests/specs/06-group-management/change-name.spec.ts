@@ -22,3 +22,17 @@ test('rename: edit group name and persist via Save', async ({ qxpPaired, page })
   // After save, the header reflects the new name.
   await expect(page.locator(TID.chatInfoName)).toHaveText(renamed);
 });
+
+test('rename cancel: discard edits and keep the original name', async ({ qxpPaired, page }) => {
+  const { peer } = qxpPaired;
+  const initial = `Project ${Date.now()}`;
+  await createGroupAndOpenInfo(page, peer.displayName, initial);
+
+  await page.locator(TID.chatInfoRename).click();
+  await page.locator(TID.chatInfoNameInput).fill('this should never persist');
+  await page.locator(TID.chatInfoNameCancel).click();
+
+  // Editor unmounts; name header still shows the initial value.
+  await expect(page.locator(TID.chatInfoNameInput)).toHaveCount(0);
+  await expect(page.locator(TID.chatInfoName)).toHaveText(initial);
+});

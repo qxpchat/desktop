@@ -31,6 +31,17 @@ test('compose → New Channel → pick subscriber → name → first message sen
 
   await expect(page.locator(TID.chatTopbarTitle)).toHaveText(channelName);
 
+  // Verify the chat is actually a broadcast (not a Group). The two flows
+  // share most of their UI; without this check both could accidentally
+  // call create_group_chat and the topbar title alone wouldn't reveal it.
+  const { mainRpc } = qxpPaired;
+  const accountId = (await mainRpc.call<number[]>('get_all_account_ids'))[0];
+  const entries = await mainRpc.call<number[]>('get_chatlist_entries', [accountId, null, channelName, null]);
+  expect(entries.length).toBeGreaterThan(0);
+  const info = await mainRpc.call<{ chatType: string; name: string }>('get_basic_chat_info', [accountId, entries[0]]);
+  expect(info.chatType).toBe('OutBroadcast');
+  expect(info.name).toBe(channelName);
+
   const text = 'first broadcast';
   await sendComposerText(page, text);
   const outgoing = page.locator(

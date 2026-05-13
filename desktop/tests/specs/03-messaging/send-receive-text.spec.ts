@@ -15,7 +15,6 @@ import {
   openChatByName,
   sendComposerText,
   waitForOutgoingRead,
-  waitForChatRowByName,
 } from '../../helpers/setup.js';
 import { TID } from '../../helpers/selectors.js';
 import { ARRIVAL_TIMEOUT_MS, DELIVERED_TIMEOUT_MS } from '../../helpers/timeouts.js';
@@ -29,10 +28,11 @@ test('text message round-trips between peer and main with full state glyph progr
   const { peer } = qxpPaired;
 
   // ---- peer → main ----
-  const incoming = 'ping from peer';
-  await peer.sendTo(incoming);
-  await waitForChatRowByName(page, peer.displayName, ARRIVAL_TIMEOUT_MS);
+  // Peer's chat row exists in the template; open it directly, then send
+  // and wait for the actual incoming bubble.
   await openChatByName(page, peer.displayName);
+  const incoming = `ping from peer ${Date.now()}`;
+  await peer.sendTo(incoming);
 
   const incomingBubble = page.locator(
     `[data-testid="message-bubble"][data-direction="incoming"]`,

@@ -24,11 +24,19 @@ test('delete-for-me removes the targeted bubble locally', async ({ qxpPaired, pa
   );
   await expect(bubble).toBeVisible({ timeout: ARRIVAL_TIMEOUT_MS });
 
+  // Cancel-first pass: open the dialog, dismiss via Cancel, bubble stays.
   await bubble.click({ button: 'right' });
   await page.locator(TID.msgContextMenuItem('delete')).click();
   await expect(page.locator(TID.deleteMsgDialog)).toBeVisible();
   await expect(page.locator(TID.deleteMsgDialogForAll)).toHaveCount(0);
-  await page.locator(TID.deleteMsgDialogForMe).click();
+  await page.locator(TID.deleteMsgDialogCancel).click();
+  await expect(page.locator(TID.deleteMsgDialog)).toHaveCount(0);
+  await expect(bubble).toBeVisible();
 
+  // Confirm pass — bubble actually goes away.
+  await bubble.click({ button: 'right' });
+  await page.locator(TID.msgContextMenuItem('delete')).click();
+  await expect(page.locator(TID.deleteMsgDialog)).toBeVisible();
+  await page.locator(TID.deleteMsgDialogForMe).click();
   await expect(bubble).toHaveCount(0);
 });

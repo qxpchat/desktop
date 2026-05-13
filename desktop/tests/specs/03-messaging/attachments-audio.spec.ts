@@ -3,7 +3,6 @@
 import { test, expect } from '../../fixtures/app-paired.js';
 import {
   openChatByName,
-  waitForChatRowByName,
   waitForOutgoingRead,
 } from '../../helpers/setup.js';
 import { TID } from '../../helpers/selectors.js';
@@ -20,9 +19,8 @@ test('audio attachment round-trips with full state glyph progression', async ({ 
   const { peer } = qxpPaired;
   const filePath = mediaPath('test.mp3');
 
-  await peer.sendAttachment({ viewtype: 'Audio', file: filePath, filename: 'test.mp3' });
-  await waitForChatRowByName(page, peer.displayName, ARRIVAL_TIMEOUT_MS);
   await openChatByName(page, peer.displayName);
+  await peer.sendAttachment({ viewtype: 'Audio', file: filePath, filename: 'test.mp3' });
 
   const incomingBubble = page.locator(
     `[data-testid="message-bubble"][data-direction="incoming"][data-view-type="Audio"]`,

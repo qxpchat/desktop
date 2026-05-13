@@ -3,7 +3,6 @@
 import { test, expect } from '../../fixtures/app-paired.js';
 import {
   openChatByName,
-  waitForChatRowByName,
   waitForOutgoingRead,
 } from '../../helpers/setup.js';
 import { TID } from '../../helpers/selectors.js';
@@ -20,9 +19,8 @@ test('GIF attachment round-trips with full state glyph progression', async ({ qx
   const { peer } = qxpPaired;
   const filePath = mediaPath('test.gif');
 
-  await peer.sendAttachment({ viewtype: 'Gif', file: filePath, filename: 'test.gif' });
-  await waitForChatRowByName(page, peer.displayName, ARRIVAL_TIMEOUT_MS);
   await openChatByName(page, peer.displayName);
+  await peer.sendAttachment({ viewtype: 'Gif', file: filePath, filename: 'test.gif' });
 
   const incomingBubble = page.locator(
     `[data-testid="message-bubble"][data-direction="incoming"][data-view-type="Gif"]`,

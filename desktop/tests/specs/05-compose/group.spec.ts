@@ -36,6 +36,16 @@ test('compose → New Group → pick member → name → first message sends', a
   // Lands in the new group chat.
   await expect(page.locator(TID.chatTopbarTitle)).toHaveText(groupName);
 
+  // Verify the chat is actually a Group (not e.g. accidentally created
+  // as a 1:1 or broadcast). Read the chat type back through the daemon.
+  const { mainRpc } = qxpPaired;
+  const accountId = (await mainRpc.call<number[]>('get_all_account_ids'))[0];
+  const entries = await mainRpc.call<number[]>('get_chatlist_entries', [accountId, null, groupName, null]);
+  expect(entries.length).toBeGreaterThan(0);
+  const info = await mainRpc.call<{ chatType: string; name: string }>('get_basic_chat_info', [accountId, entries[0]]);
+  expect(info.chatType).toBe('Group');
+  expect(info.name).toBe(groupName);
+
   // First message round-trips delivered.
   const text = 'kickoff';
   await sendComposerText(page, text);

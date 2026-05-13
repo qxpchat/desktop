@@ -252,7 +252,7 @@
 
   <SettingsSection title={t('Relays')} footer={t('Messages are received on all relays.')}>
     {#each relays as r (r.addr)}
-      <div class="relay">
+      <div class="relay" data-testid="settings-connectivity__relay" data-addr={r.addr}>
         <button
           class="relay-main"
           onclick={() => void setDefault(r.addr)}

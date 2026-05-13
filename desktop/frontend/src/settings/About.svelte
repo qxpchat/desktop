@@ -34,9 +34,9 @@
   <SettingsRow label={t('Architecture')} right={archRight} />
 </SettingsSection>
 
-{#snippet coreRight()}<span class="value">{coreVersion}</span>{/snippet}
-{#snippet sqliteRight()}<span class="value">{sqliteVersion}</span>{/snippet}
-{#snippet archRight()}<span class="value">{arch}</span>{/snippet}
+{#snippet coreRight()}<span class="value" data-testid="settings-about__core-version">{coreVersion}</span>{/snippet}
+{#snippet sqliteRight()}<span class="value" data-testid="settings-about__sqlite-version">{sqliteVersion}</span>{/snippet}
+{#snippet archRight()}<span class="value" data-testid="settings-about__arch">{arch}</span>{/snippet}
 
 <SettingsSection title={t('Diagnostics')}>
   {#if info}

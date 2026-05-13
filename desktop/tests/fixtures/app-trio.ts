@@ -1,20 +1,15 @@
-// Per-test fixture for *pre-paired* specs.
+// Per-test fixture for *pre-paired trio* specs.
 //
-// Drop-in replacement for `fixtures/app.ts` (the empty-accounts variant)
-// that:
+// Same idea as `app-paired.ts` but with two pre-paired peers instead of
+// one. Used by Phase 2 chatlist specs that need to seed two distinct
+// chats (`load-and-sort`, `pin`, `search`). Skips the per-test live
+// secure_join handshake for the second peer entirely — that was the
+// single biggest source of flakes (30-150s, relay-dependent).
 //
-//   1. Leases a pre-paired pair from `account-templates/`.
-//   2. Copies both daemon snapshots into per-test mkdtemp dirs.
-//   3. Spawns the main daemon on 4041 against the copied dir, so the
-//      Vite proxy still finds it.
-//   4. Spawns the peer daemon on PEER_PORT (4042 by default), starts IO.
-//   5. Navigates the page — the SPA finds an already-configured account
-//      and lands on the chat shell directly. No UI login.
-//
-// Tests using this fixture skip both `manualLogin` *and*
-// `pairPeerWithMain` — that's the speedup. The peer is returned with
-// `pairedChatId` already set, so `peer.sendTo` immediately uses the
-// verified-1on1 chat (no fallback to create-contact + send).
+// Port layout:
+//   main  : QXP_TEST_DAEMON_PORT  (default 9041, what the Vite proxy hits)
+//   peer1 : QXP_TEST_PEER_PORT    (default 9042)
+//   peer2 : QXP_TEST_PEER2_PORT   (default 9043)
 
 import { test as base, expect, type Page } from '@playwright/test';
 import { spawn, type ChildProcess } from 'node:child_process';
@@ -26,9 +21,8 @@ import { fileURLToPath } from 'node:url';
 import { WebSocket } from 'ws';
 
 import {
-  leasePair,
-  releasePair,
-  type PairTemplate,
+  leaseTrio,
+  releaseTrio,
   type PoolAccount,
 } from './accounts.js';
 import { RpcClient } from './daemon.js';
@@ -38,13 +32,12 @@ const REPO_ROOT = path.resolve(__dirname, '..', '..', '..');
 const DAEMON_BIN = path.join(
   REPO_ROOT, 'desktop', 'server', 'target', 'debug', 'qxp-web',
 );
-// Test daemon ports — separated from prod's 4041/4042 so the suite
-// doesn't piggy-back on a running prod app.
 const MAIN_PORT = parseInt(process.env.QXP_TEST_DAEMON_PORT ?? '9041', 10);
-const PEER_PORT = parseInt(process.env.QXP_TEST_PEER_PORT ?? '9042', 10);
+const PEER1_PORT = parseInt(process.env.QXP_TEST_PEER_PORT ?? '9042', 10);
+const PEER2_PORT = parseInt(process.env.QXP_TEST_PEER2_PORT ?? '9043', 10);
 const DAEMON_READY_TIMEOUT_MS = 15_000;
 
-export type PairedPeer = {
+export type TrioPeer = {
   daemon: ChildProcess;
   daemonPort: number;
   rpc: RpcClient;
@@ -52,39 +45,18 @@ export type PairedPeer = {
   email: string;
   displayName: string;
   pairedChatId: number;
-  /** Send `text` into the paired chat (verified-1on1 with main).
-   *  Returns the new message id on the peer side — Phase 13's
-   *  jump-from-quote spec uses it to thread a `quotedMessageId` into
-   *  a follow-up send. */
   sendTo(text: string): Promise<number>;
-  /** Send a structured message (file / location / vcard / voice) into
-   *  the paired chat. */
-  sendAttachment(data: {
-    viewtype: 'Text' | 'Image' | 'Gif' | 'Video' | 'Audio' | 'Voice' | 'File' | 'Vcard';
-    file?: string;
-    filename?: string;
-    text?: string;
-    location?: [number, number];
-  }): Promise<number>;
-  /** Mark fresh incoming messages on peer's side as seen — emits MDN
-   *  back to main, advancing main's outgoing bubble to `read`. */
   markSeen(timeoutMs?: number): Promise<void>;
 };
 
-export type QxpPairedFixture = {
-  /** Slot info for main (already logged in / configured in the daemon). */
+export type QxpTrioFixture = {
   mainAccount: PoolAccount;
-  /** Live JSON-RPC client connected to the main daemon. Tests that
-   *  need to manipulate main from outside the UI (e.g. provision a
-   *  second account in Phase 8) use this. The fixture owns the
-   *  lifecycle and closes it on teardown. */
   mainRpc: RpcClient;
-  /** Pre-paired peer handle. */
-  peer: PairedPeer;
-  /** Per-test temp dir holding the copied main accounts dir. */
+  peer1: TrioPeer;
+  peer2: TrioPeer;
   mainAccountsDir: string;
-  /** Per-test temp dir holding the copied peer accounts dir. */
-  peerAccountsDir: string;
+  peer1AccountsDir: string;
+  peer2AccountsDir: string;
 };
 
 async function assertPortFree(port: number): Promise<void> {
@@ -92,13 +64,11 @@ async function assertPortFree(port: number): Promise<void> {
     const probe = createServer();
     probe.once('error', (err: NodeJS.ErrnoException) => {
       if (err.code === 'EADDRINUSE') {
-        reject(
-          new Error(
-            `Port ${port} is already in use — refusing to start the test daemon.\n` +
-              `  Likely cause: prod Tauri (\`make tauri-dev\`) or a stray test daemon.\n` +
-              `  \`lsof -nP -i :${port}\` to find it.`,
-          ),
-        );
+        reject(new Error(
+          `Port ${port} is already in use — refusing to start the test daemon.\n` +
+            `  Likely cause: prod Tauri or a stray test daemon.\n` +
+            `  \`lsof -nP -i :${port}\` to find it.`,
+        ));
       } else {
         reject(err);
       }
@@ -158,40 +128,36 @@ async function killAndWait(proc: ChildProcess): Promise<void> {
   });
 }
 
-async function startPairedPeer(
+async function startTrioPeer(
   port: number,
   accountsDir: string,
-  template: PairTemplate,
-): Promise<PairedPeer> {
+  account: PoolAccount,
+  pairedChatId: number,
+): Promise<TrioPeer> {
   const { proc, log } = spawnQxpWeb(port, accountsDir);
   try {
     await waitForDaemonReady(port);
   } catch (err) {
     proc.kill();
-    throw new Error(`peer daemon failed to bind ${port}:\n${log()}\n${(err as Error).message}`);
+    throw new Error(`trio peer daemon failed to bind ${port}:\n${log()}\n${(err as Error).message}`);
   }
 
   const rpc = new RpcClient(`ws://127.0.0.1:${port}/ws`);
   await rpc.connect();
 
-  // The template's account already has addr/mail_pw/displayname/mdns_enabled
-  // configured. We just need the account id (templates always end up at
-  // account id 1 since the dir starts empty before configure), and to
-  // start IO.
   const ids = await rpc.call<number[]>('get_all_account_ids');
   const accountId = ids[0];
   if (accountId == null) {
     proc.kill();
-    throw new Error('peer template had no configured account on load');
+    throw new Error('trio peer template had no configured account on load');
   }
   await rpc.call('select_account', [accountId]);
   await rpc.call('start_io', [accountId]);
 
   const email = await rpc.call<string>('get_config', [accountId, 'addr']);
-  const displayName = template.peer.displayName;
-  const pairedChatId = template.peerPairedChatId;
+  const displayName = account.displayName;
 
-  const peer: PairedPeer = {
+  return {
     daemon: proc,
     daemonPort: port,
     rpc,
@@ -200,17 +166,7 @@ async function startPairedPeer(
     displayName,
     pairedChatId,
     async sendTo(text) {
-      // Returns the newly-created message id on peer's side. Tests that
-      // need to quote-reply (Phase 13 jump-from-quote) read it; everyone
-      // else ignores it.
-      return await rpc.call<number>('misc_send_text_message', [
-        accountId,
-        pairedChatId,
-        text,
-      ]);
-    },
-    async sendAttachment(data) {
-      return await rpc.call<number>('send_msg', [accountId, pairedChatId, data]);
+      return await rpc.call<number>('misc_send_text_message', [accountId, pairedChatId, text]);
     },
     async markSeen(timeoutMs = 30_000) {
       const deadline = Date.now() + timeoutMs;
@@ -224,48 +180,43 @@ async function startPairedPeer(
       }
     },
   };
-  return peer;
 }
 
-export const test = base.extend<{ qxpPaired: QxpPairedFixture }>({
-  qxpPaired: [async ({ page }, use) => {
-    // Refuse to start if either port is squatted (prod app / stray daemon).
+export const test = base.extend<{ qxpTrio: QxpTrioFixture }>({
+  qxpTrio: [async ({ page }, use) => {
     await assertPortFree(MAIN_PORT);
-    await assertPortFree(PEER_PORT);
+    await assertPortFree(PEER1_PORT);
+    await assertPortFree(PEER2_PORT);
 
-    const pair = await leasePair();
+    const trio = await leaseTrio();
+    const mainAccountsDir = await mkdtemp(path.join(tmpdir(), `qxp-trio-main-`));
+    const peer1AccountsDir = await mkdtemp(path.join(tmpdir(), `qxp-trio-peer1-`));
+    const peer2AccountsDir = await mkdtemp(path.join(tmpdir(), `qxp-trio-peer2-`));
 
-    const mainAccountsDir = await mkdtemp(path.join(tmpdir(), `qxp-paired-main-`));
-    const peerAccountsDir = await mkdtemp(path.join(tmpdir(), `qxp-paired-peer-`));
-
-    // Copy the snapshotted dbs over the fresh mkdtemp. `cp` with recursive
-    // descends into accounts/<id>/dc.db and the per-account blobdir.
     await Promise.all([
-      cp(pair.mainTemplateDir, mainAccountsDir, { recursive: true }),
-      cp(pair.peerTemplateDir, peerAccountsDir, { recursive: true }),
+      cp(trio.mainTemplateDir, mainAccountsDir, { recursive: true }),
+      cp(trio.peer1TemplateDir, peer1AccountsDir, { recursive: true }),
+      cp(trio.peer2TemplateDir, peer2AccountsDir, { recursive: true }),
     ]);
 
-    // Start main on the well-known port the Vite proxy targets.
     const { proc: mainProc, log: mainLog } = spawnQxpWeb(MAIN_PORT, mainAccountsDir);
     try {
       await waitForDaemonReady(MAIN_PORT);
     } catch (err) {
       mainProc.kill();
       await rm(mainAccountsDir, { recursive: true, force: true });
-      await rm(peerAccountsDir, { recursive: true, force: true });
-      releasePair(pair);
-      const hint = mainLog().includes('Address already in use')
-        ? `\n\nPort ${MAIN_PORT} is already in use. Likely cause: a stray \`make tauri-dev\` or \`make server\` is running in another terminal. \`lsof -nP -i :${MAIN_PORT}\` to find it.`
-        : '';
-      throw new Error(`${(err as Error).message}${hint}\n${mainLog()}`);
+      await rm(peer1AccountsDir, { recursive: true, force: true });
+      await rm(peer2AccountsDir, { recursive: true, force: true });
+      releaseTrio(trio);
+      throw new Error(`${(err as Error).message}\n${mainLog()}`);
     }
 
-    // Bring up the peer daemon and grab its handle.
-    let peer: PairedPeer;
+    let peer1: TrioPeer | null = null;
+    let peer2: TrioPeer | null = null;
     const mainRpc = new RpcClient(`ws://127.0.0.1:${MAIN_PORT}/ws`);
     try {
-      peer = await startPairedPeer(PEER_PORT, peerAccountsDir, pair);
-      // start_io on main so it processes incoming MDN-traffic from peer.
+      peer1 = await startTrioPeer(PEER1_PORT, peer1AccountsDir, trio.peer1, trio.peer1PairedChatId);
+      peer2 = await startTrioPeer(PEER2_PORT, peer2AccountsDir, trio.peer2, trio.peer2PairedChatId);
       await mainRpc.connect();
       const ids = await mainRpc.call<number[]>('get_all_account_ids');
       if (ids[0] != null) {
@@ -274,14 +225,16 @@ export const test = base.extend<{ qxpPaired: QxpPairedFixture }>({
       }
     } catch (err) {
       mainRpc.close();
+      if (peer1) { peer1.rpc.close(); await killAndWait(peer1.daemon); }
+      if (peer2) { peer2.rpc.close(); await killAndWait(peer2.daemon); }
       await killAndWait(mainProc);
       await rm(mainAccountsDir, { recursive: true, force: true });
-      await rm(peerAccountsDir, { recursive: true, force: true });
-      releasePair(pair);
+      await rm(peer1AccountsDir, { recursive: true, force: true });
+      await rm(peer2AccountsDir, { recursive: true, force: true });
+      releaseTrio(trio);
       throw err;
     }
 
-    // Record browser-side errors per the standard pattern.
     const errors: string[] = [];
     page.on('console', (msg) => {
       if (msg.type() === 'error' || msg.type() === 'warning') {
@@ -297,32 +250,32 @@ export const test = base.extend<{ qxpPaired: QxpPairedFixture }>({
       (window as unknown as { QXP_TEST_MODE?: boolean }).QXP_TEST_MODE = true;
     });
     await page.goto('/');
-
-    // SPA boots, refreshAccounts finds the configured account, selects it,
-    // chatlist mounts. Wait for the shell to actually be visible —
-    // otherwise specs race against onboarding-vs-shell branching.
     await page.waitForSelector('[data-testid="app-shell"]', { timeout: 20_000 });
 
     await use({
-      mainAccount: pair.main,
+      mainAccount: trio.main,
       mainRpc,
-      peer,
+      peer1: peer1!,
+      peer2: peer2!,
       mainAccountsDir,
-      peerAccountsDir,
+      peer1AccountsDir,
+      peer2AccountsDir,
     });
 
-    // Teardown.
     mainRpc.close();
-    peer.rpc.close();
+    peer1!.rpc.close();
+    peer2!.rpc.close();
     await Promise.all([
-      killAndWait(peer.daemon),
+      killAndWait(peer1!.daemon),
+      killAndWait(peer2!.daemon),
       killAndWait(mainProc),
     ]);
     await Promise.all([
       rm(mainAccountsDir, { recursive: true, force: true }),
-      rm(peerAccountsDir, { recursive: true, force: true }),
+      rm(peer1AccountsDir, { recursive: true, force: true }),
+      rm(peer2AccountsDir, { recursive: true, force: true }),
     ]);
-    releasePair(pair);
+    releaseTrio(trio);
   }, { auto: true }],
 });
 

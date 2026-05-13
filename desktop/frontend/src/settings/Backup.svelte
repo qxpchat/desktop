@@ -62,25 +62,29 @@
   title={t('Export backup')}
   footer={t('Save your account as a .tar file you can restore on another device.')}
 >
-  {#if status === 'idle'}
-    <SettingsRow label={t('Export backup')} icon="hard-drive" onClick={startExport} />
-  {:else if status === 'exporting'}
-    <div class="progress-row">
-      <span class="label">{t('Exporting…')}</span>
-      <progress max="1000" value={progress}></progress>
-      <span class="pct">{Math.round((progress / 1000) * 100)}%</span>
-    </div>
-  {:else if status === 'ready' && writtenPath}
-    <a class="row link" href={fileUrl(writtenPath)} download>
-      <span class="label">{t('Download backup')}</span>
-      <span class="value">{t('Saved to {path}', { path: writtenPath })}</span>
-    </a>
-  {:else if status === 'error'}
-    <div class="row">
-      <span class="label danger">{message ?? t('Export failed')}</span>
-      <button class="ghost" onclick={() => (status = 'idle')}>{t('Try again')}</button>
-    </div>
-  {/if}
+  <div data-testid="settings-backup__status" data-status={status}>
+    {#if status === 'idle'}
+      <span data-testid="settings-backup__export">
+        <SettingsRow label={t('Export backup')} icon="hard-drive" onClick={startExport} />
+      </span>
+    {:else if status === 'exporting'}
+      <div class="progress-row">
+        <span class="label">{t('Exporting…')}</span>
+        <progress max="1000" value={progress}></progress>
+        <span class="pct">{Math.round((progress / 1000) * 100)}%</span>
+      </div>
+    {:else if status === 'ready' && writtenPath}
+      <a class="row link" href={fileUrl(writtenPath)} download data-testid="settings-backup__download">
+        <span class="label">{t('Download backup')}</span>
+        <span class="value">{t('Saved to {path}', { path: writtenPath })}</span>
+      </a>
+    {:else if status === 'error'}
+      <div class="row">
+        <span class="label danger">{message ?? t('Export failed')}</span>
+        <button class="ghost" onclick={() => (status = 'idle')}>{t('Try again')}</button>
+      </div>
+    {/if}
+  </div>
 </SettingsSection>
 
 <SettingsSection

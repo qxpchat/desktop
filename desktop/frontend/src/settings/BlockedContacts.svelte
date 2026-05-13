@@ -30,7 +30,7 @@
 
   async function unblock(id: number) {
     if (accounts.selectedId == null) return;
-    await rpc.call('block_contact', [accounts.selectedId, id, false]);
+    await rpc.call('unblock_contact', [accounts.selectedId, id]);
     await load();
   }
 </script>
@@ -40,17 +40,17 @@
 {#if loading}
   <p class="muted">{t('Loading…')}</p>
 {:else if list.length === 0}
-  <p class="muted">{t('No blocked contacts.')}</p>
+  <p class="muted" data-testid="settings-blocked__empty">{t('No blocked contacts.')}</p>
 {:else}
-  <ul class="list">
+  <ul class="list" data-testid="settings-blocked__list">
     {#each list as c (c.id)}
-      <li class="row">
+      <li class="row" data-testid="settings-blocked__row" data-contact-id={c.id} data-address={c.address}>
         <Avatar name={c.displayName} color={c.color} imagePath={c.profileImage} size={36} />
         <span class="meta">
           <span class="name">{c.displayName}</span>
           <span class="addr">{c.address}</span>
         </span>
-        <button class="unblock" onclick={() => unblock(c.id)}>{t('Unblock')}</button>
+        <button class="unblock" onclick={() => unblock(c.id)} data-testid="settings-blocked__unblock">{t('Unblock')}</button>
       </li>
     {/each}
   </ul>

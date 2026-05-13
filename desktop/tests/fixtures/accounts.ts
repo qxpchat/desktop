@@ -120,10 +120,23 @@ type ManifestEntry = {
   createdAt: string;
 };
 
-let manifestCache: ManifestEntry[] | null = null;
+type TrioManifestEntry = {
+  trioId: number;
+  mainSlot: number;
+  peer1Slot: number;
+  peer2Slot: number;
+  mainEmail: string;
+  peer1Email: string;
+  peer2Email: string;
+  peer1PairedChatId: number;
+  peer2PairedChatId: number;
+  createdAt: string;
+};
 
-async function loadManifest(): Promise<ManifestEntry[]> {
-  if (manifestCache) return manifestCache;
+let manifestCache: ManifestEntry[] | null = null;
+let trioManifestCache: TrioManifestEntry[] | null = null;
+
+async function loadManifestFile(): Promise<{ templates: ManifestEntry[]; trios: TrioManifestEntry[] }> {
   let text: string;
   try {
     text = await readFile(MANIFEST_PATH, 'utf8');
@@ -132,15 +145,33 @@ async function loadManifest(): Promise<ManifestEntry[]> {
       `No template manifest at ${MANIFEST_PATH}.\n  Run \`make test-accounts\` to build pair templates.`,
     );
   }
-  const parsed = JSON.parse(text) as { version: number; templates: ManifestEntry[] };
+  const parsed = JSON.parse(text) as {
+    version: number;
+    templates: ManifestEntry[];
+    trios?: TrioManifestEntry[];
+  };
   if (parsed?.version !== 1 || !Array.isArray(parsed.templates)) {
     throw new Error(`Template manifest at ${MANIFEST_PATH} is malformed (version != 1).`);
   }
-  manifestCache = parsed.templates;
+  return { templates: parsed.templates, trios: parsed.trios ?? [] };
+}
+
+async function loadManifest(): Promise<ManifestEntry[]> {
+  if (manifestCache) return manifestCache;
+  const { templates } = await loadManifestFile();
+  manifestCache = templates;
   return manifestCache;
 }
 
+async function loadTrioManifest(): Promise<TrioManifestEntry[]> {
+  if (trioManifestCache) return trioManifestCache;
+  const { trios } = await loadManifestFile();
+  trioManifestCache = trios;
+  return trioManifestCache;
+}
+
 const pairsInUse = new Set<number>();
+const triosInUse = new Set<number>();
 
 export async function leasePair(): Promise<PairTemplate> {
   const templates = await loadManifest();
@@ -183,4 +214,76 @@ export function releasePair(p: PairTemplate): void {
   pairsInUse.delete(p.pairId);
   inUse.delete(p.main.slot);
   inUse.delete(p.peer.slot);
+}
+
+// ---- trio templates (main + 2 pre-paired peers) ----
+//
+// Used by Phase 2 chatlist specs that need two distinct verified peers
+// to seed two chats — load-and-sort, pin, search. Without this, each
+// such test does a live secure_join handshake for the second peer
+// (Bob) which adds 30-150s and flakes on slow relays.
+
+export type TrioTemplate = {
+  trioId: number;
+  main: PoolAccount;
+  peer1: PoolAccount;
+  peer2: PoolAccount;
+  mainTemplateDir: string;
+  peer1TemplateDir: string;
+  peer2TemplateDir: string;
+  peer1PairedChatId: number;
+  peer2PairedChatId: number;
+};
+
+export async function leaseTrio(): Promise<TrioTemplate> {
+  const trios = await loadTrioManifest();
+  if (trios.length === 0) {
+    throw new Error(
+      'No trio templates available. Run `make test-accounts` to build them.',
+    );
+  }
+  const pool = await loadPool();
+  for (const t of trios) {
+    if (triosInUse.has(t.trioId)) continue;
+    const main = pool.find((a) => a.slot === t.mainSlot);
+    const peer1 = pool.find((a) => a.slot === t.peer1Slot);
+    const peer2 = pool.find((a) => a.slot === t.peer2Slot);
+    if (!main || !peer1 || !peer2) continue;
+    if (
+      main.email !== t.mainEmail ||
+      peer1.email !== t.peer1Email ||
+      peer2.email !== t.peer2Email
+    ) {
+      continue;
+    }
+    if (inUse.has(main.slot) || inUse.has(peer1.slot) || inUse.has(peer2.slot)) continue;
+
+    triosInUse.add(t.trioId);
+    inUse.add(main.slot);
+    inUse.add(peer1.slot);
+    inUse.add(peer2.slot);
+
+    return {
+      trioId: t.trioId,
+      main,
+      peer1,
+      peer2,
+      mainTemplateDir: path.join(TEMPLATES_DIR, `trio-${t.trioId}`, 'main'),
+      peer1TemplateDir: path.join(TEMPLATES_DIR, `trio-${t.trioId}`, 'peer1'),
+      peer2TemplateDir: path.join(TEMPLATES_DIR, `trio-${t.trioId}`, 'peer2'),
+      peer1PairedChatId: t.peer1PairedChatId,
+      peer2PairedChatId: t.peer2PairedChatId,
+    };
+  }
+  throw new Error(
+    `No free trio templates (${trios.length} total, ${triosInUse.size} in use).\n` +
+      '  Increase QXP_TEST_TEMPLATE_TRIOS in your environment and rerun `make test-accounts`.',
+  );
+}
+
+export function releaseTrio(t: TrioTemplate): void {
+  triosInUse.delete(t.trioId);
+  inUse.delete(t.main.slot);
+  inUse.delete(t.peer1.slot);
+  inUse.delete(t.peer2.slot);
 }

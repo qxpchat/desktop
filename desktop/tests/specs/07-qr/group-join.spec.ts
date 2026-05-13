@@ -35,7 +35,7 @@ test('group invite QR renders and is parseable as a group-join code', async ({ q
   // Open chat-info → Invite QR.
   await page.locator(TID.chatTopbarInfo).click();
   await expect(page.locator(TID.chatInfo)).toBeVisible();
-  await page.getByRole('button', { name: 'Invite QR' }).click();
+  await page.locator(TID.chatInfoQrInvite).click();
 
   await expect(page.locator(TID.qrShow)).toHaveAttribute('data-scope', 'chat');
   await expect(page.locator(TID.qrShowCard)).toBeVisible({ timeout: 10_000 });

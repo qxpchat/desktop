@@ -6,7 +6,6 @@
 // "mark-unread" depending on the current state.
 
 import { test, expect } from '../../fixtures/app-paired.js';
-import { waitForChatRowByName } from '../../helpers/setup.js';
 import { TID } from '../../helpers/selectors.js';
 import { ARRIVAL_TIMEOUT_MS } from '../../helpers/timeouts.js';
 
@@ -15,16 +14,14 @@ test.setTimeout(60_000);
 test('mark-as-unread restores the unread badge after a chat was read', async ({ qxpPaired, page }) => {
   const { peer } = qxpPaired;
 
-  await peer.sendTo('are you there?');
-  await waitForChatRowByName(page, peer.displayName, ARRIVAL_TIMEOUT_MS);
-
   const row = page.locator(
     `[data-testid="chat-list-row"][data-name="${peer.displayName}"]`,
   );
-  // The row was already there from the Setup-Contact handshake (which
-  // doesn't bump freshMessageCounter), so `waitForChatRowByName` returns
-  // before "are you there?" has actually arrived. Use the unread badge
-  // itself as the message-arrival signal, with the full ARRIVAL budget.
+  // The chat row exists from the template's secure-join handshake.
+  // Send AFTER the row is confirmed present — then wait for the unread
+  // badge as the message-arrival signal.
+  await expect(row).toBeVisible();
+  await peer.sendTo(`are you there? ${Date.now()}`);
   await expect(row.locator(TID.chatListRowUnread)).toBeVisible({
     timeout: ARRIVAL_TIMEOUT_MS,
   });

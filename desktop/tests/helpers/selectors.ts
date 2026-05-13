@@ -93,6 +93,7 @@ export const TID = {
   chatInfoLeave: '[data-testid="chat-info__leave"]',
   chatInfoDelete: '[data-testid="chat-info__delete"]',
   chatInfoMedia: '[data-testid="chat-info__media"]',
+  chatInfoQrInvite: '[data-testid="chat-info__qr-invite"]',
 
   // -- Media browser --
   mediaBrowser: '[data-testid="media-browser"]',
@@ -107,6 +108,11 @@ export const TID = {
   mediaBrowserRow: '[data-testid="media-browser__row"]',
   mediaBrowserRowByViewType: (viewType: string) =>
     `[data-testid="media-browser__row"][data-view-type="${viewType}"]`,
+  mediaBrowserRowDelete: '[data-testid="media-browser__row-delete"]',
+  mediaBrowserRowShow: '[data-testid="media-browser__row-show"]',
+  mediaBrowserRowDownload: '[data-testid="media-browser__row-download"]',
+  mediaBrowserBack: '[data-testid="media-browser__back"]',
+  mediaBrowserLoading: '[data-testid="media-browser__loading"]',
 
   // -- Chat list header (toggles the NavTabs profile rail) --
   chatListBurger: '[data-testid="chat-list__burger"]',
@@ -134,6 +140,38 @@ export const TID = {
   settingsAppearanceAccent: '[data-testid="settings-appearance__accent"]',
   settingsAppearanceAccentSwatch: '[data-testid="settings-appearance__accent-swatch"]',
 
+  // -- Settings: About --
+  settingsAboutCoreVersion: '[data-testid="settings-about__core-version"]',
+  settingsAboutSqliteVersion: '[data-testid="settings-about__sqlite-version"]',
+  settingsAboutArch: '[data-testid="settings-about__arch"]',
+
+  // -- Settings: Chats & Media --
+  settingsChatsMdns: '[data-testid="settings-chats__mdns"]',
+
+  // -- Settings: Blocked --
+  settingsBlockedEmpty: '[data-testid="settings-blocked__empty"]',
+  settingsBlockedList: '[data-testid="settings-blocked__list"]',
+  settingsBlockedRow: '[data-testid="settings-blocked__row"]',
+  settingsBlockedRowByAddress: (addr: string) =>
+    `[data-testid="settings-blocked__row"][data-address="${addr}"]`,
+  settingsBlockedUnblock: '[data-testid="settings-blocked__unblock"]',
+
+  // -- Settings: Backup --
+  settingsBackupStatus: '[data-testid="settings-backup__status"]',
+  settingsBackupExport: '[data-testid="settings-backup__export"]',
+  settingsBackupDownload: '[data-testid="settings-backup__download"]',
+
+  // -- Settings: Connectivity --
+  settingsConnectivityRelay: '[data-testid="settings-connectivity__relay"]',
+  settingsConnectivityRelayByAddr: (addr: string) =>
+    `[data-testid="settings-connectivity__relay"][data-addr="${addr}"]`,
+
+  // -- Settings: Logs --
+  settingsLogsHeader: '[data-testid="settings-logs__header"]',
+  settingsLogsList: '[data-testid="settings-logs__list"]',
+  settingsLogsEntry: '[data-testid="settings-logs__entry"]',
+  settingsLogsEmpty: '[data-testid="settings-logs__empty"]',
+
   // -- Chat-list search (doubles as global message search) --
   chatListSearchMessagesHeader: '[data-testid="chat-list-search__messages-header"]',
   chatListSearchHit: '[data-testid="chat-list-search__hit"]',
@@ -158,6 +196,7 @@ export const TID = {
   navTabsAccountMenuSwitch: '[data-testid="nav-tabs__account-menu-switch"]',
   navTabsAccountMenuRemove: '[data-testid="nav-tabs__account-menu-remove"]',
   navTabsQrShow: '[data-testid="nav-tabs__qr-show"]',
+  navTabsProxy: '[data-testid="nav-tabs__proxy"]',
 
   // -- QR show --
   qrShow: '[data-testid="qr-show"]',

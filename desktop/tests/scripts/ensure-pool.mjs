@@ -232,6 +232,11 @@ const DISPLAY_PREFIX = process.env.QXP_TEST_DISPLAY_NAME_PREFIX ?? 'qxp e2e';
 // win for the suite. 3 supports up to 3 workers in parallel; tests
 // running on worker N consume pair (N mod TEMPLATE_PAIR_COUNT).
 const TEMPLATE_PAIR_COUNT = parseInt(process.env.QXP_TEST_TEMPLATE_PAIRS ?? '3', 10);
+// Number of trio templates (main + 2 peers, both pre-paired with main).
+// Used by the 3 chatlist specs (load-and-sort, pin, search) that need a
+// second verified peer to seed two distinct chats. 1 is enough since
+// workers=1; bump if/when we run chatlist specs in parallel.
+const TEMPLATE_TRIO_COUNT = parseInt(process.env.QXP_TEST_TEMPLATE_TRIOS ?? '1', 10);
 const TEMPLATES_DIR = path.join(TESTS_DIR, 'fixtures', 'account-templates');
 const MANIFEST_PATH = path.join(TEMPLATES_DIR, 'manifest.json');
 const PAIR_TIMEOUT_MS = 180_000;
@@ -414,6 +419,199 @@ async function snapshotInto(tmpDir, destDir) {
   await rm(tmpDir, { recursive: true, force: true });
 }
 
+/** Build one trio template: spin up three daemons, configure each with
+ *  the given creds, run Setup-Contact handshakes peer1↔main and
+ *  peer2↔main, snapshot all three accounts dirs to
+ *  `<templates>/trio-N/{main,peer1,peer2}`.
+ *
+ *  Returns the trio manifest record. Throws on any failure. */
+async function buildTrioTemplate(trioId, mainAccount, peer1Account, peer2Account) {
+  const mainTmpDir = await mkdtemp(path.join(tmpdir(), `qxp-tpl-trio-${trioId}-main-`));
+  const peer1TmpDir = await mkdtemp(path.join(tmpdir(), `qxp-tpl-trio-${trioId}-peer1-`));
+  const peer2TmpDir = await mkdtemp(path.join(tmpdir(), `qxp-tpl-trio-${trioId}-peer2-`));
+
+  let mainDaemon, peer1Daemon, peer2Daemon;
+  let mainRpc, peer1Rpc, peer2Rpc;
+  try {
+    [mainDaemon, peer1Daemon, peer2Daemon] = await Promise.all([
+      spawnDaemon(mainTmpDir),
+      spawnDaemon(peer1TmpDir),
+      spawnDaemon(peer2TmpDir),
+    ]);
+    mainRpc = new RpcClient(`ws://127.0.0.1:${mainDaemon.port}/ws`);
+    peer1Rpc = new RpcClient(`ws://127.0.0.1:${peer1Daemon.port}/ws`);
+    peer2Rpc = new RpcClient(`ws://127.0.0.1:${peer2Daemon.port}/ws`);
+    await Promise.all([mainRpc.connect(), peer1Rpc.connect(), peer2Rpc.connect()]);
+
+    async function configure(rpc, account) {
+      const id = await rpc.call('add_account');
+      await rpc.call('set_config', [id, 'addr', account.email]);
+      await rpc.call('set_config', [id, 'mail_pw', account.password]);
+      await rpc.call('set_config', [id, 'displayname', `${DISPLAY_PREFIX} ${account.slot}`]);
+      await rpc.call('set_config', [id, 'mdns_enabled', '1']);
+      await rpc.call('configure', [id]);
+      await rpc.call('select_account', [id]);
+      await rpc.call('start_io', [id]);
+      return id;
+    }
+    const mainAcctId = await configure(mainRpc, mainAccount);
+    const peer1AcctId = await configure(peer1Rpc, peer1Account);
+    const peer2AcctId = await configure(peer2Rpc, peer2Account);
+
+    await sleep(5_000);
+
+    // Helper: drive one Setup-Contact handshake against main.
+    async function pairWithMain(peerRpc, peerAcctId, label) {
+      const qr = await mainRpc.call('get_chat_securejoin_qr_code', [mainAcctId, null]);
+      const chatId = await peerRpc.call('secure_join', [peerAcctId, qr]);
+      const deadline = Date.now() + PAIR_TIMEOUT_MS;
+      let tick = 0;
+      while (Date.now() < deadline) {
+        const chat = await peerRpc.call('get_full_chat_by_id', [peerAcctId, chatId]);
+        if (chat.canSend) return chatId;
+        if (tick % 5 === 0) {
+          const elapsedSec = Math.floor((Date.now() - (deadline - PAIR_TIMEOUT_MS)) / 1000);
+          process.stdout.write(`\n    [${elapsedSec}s] ${label}.canSend=false`);
+        }
+        tick++;
+        await sleep(2000);
+      }
+      throw new Error(`trio handshake (${label}) did not complete within ${PAIR_TIMEOUT_MS / 1000}s`);
+    }
+
+    // Serialised handshakes: running them in parallel makes main race
+    // its own SMTP queue and the relay sometimes drops the slower side.
+    const peer1ChatId = await pairWithMain(peer1Rpc, peer1AcctId, 'peer1');
+    const peer2ChatId = await pairWithMain(peer2Rpc, peer2AcctId, 'peer2');
+
+    await sleep(500);
+    await Promise.all([
+      mainRpc.call('stop_io', [mainAcctId]).catch(() => {}),
+      peer1Rpc.call('stop_io', [peer1AcctId]).catch(() => {}),
+      peer2Rpc.call('stop_io', [peer2AcctId]).catch(() => {}),
+    ]);
+    await sleep(300);
+
+    return {
+      trioId,
+      mainSlot: mainAccount.slot,
+      peer1Slot: peer1Account.slot,
+      peer2Slot: peer2Account.slot,
+      mainEmail: mainAccount.email,
+      peer1Email: peer1Account.email,
+      peer2Email: peer2Account.email,
+      peer1PairedChatId: peer1ChatId,
+      peer2PairedChatId: peer2ChatId,
+      createdAt: new Date().toISOString(),
+      mainTmpDir,
+      peer1TmpDir,
+      peer2TmpDir,
+    };
+  } catch (err) {
+    await Promise.all([
+      rm(mainTmpDir, { recursive: true, force: true }),
+      rm(peer1TmpDir, { recursive: true, force: true }),
+      rm(peer2TmpDir, { recursive: true, force: true }),
+    ]);
+    throw err;
+  } finally {
+    mainRpc?.close();
+    peer1Rpc?.close();
+    peer2Rpc?.close();
+    try { mainDaemon?.proc.kill(); } catch { /* ignore */ }
+    try { peer1Daemon?.proc.kill(); } catch { /* ignore */ }
+    try { peer2Daemon?.proc.kill(); } catch { /* ignore */ }
+    await sleep(300);
+  }
+}
+
+/** Bring the trios tree in sync with the pool. Trios live at
+ *  `<templates>/trio-K/{main,peer1,peer2}` and consume 3 pool slots each,
+ *  starting after the pair-templates. With TEMPLATE_PAIR_COUNT=3 +
+ *  TEMPLATE_TRIO_COUNT=1, the slot layout is:
+ *    pairs:  1-2, 3-4, 5-6
+ *    trios:  7-8-9
+ *    free:   10 */
+async function ensureTrios(env) {
+  const slots = [];
+  for (let n = 1; n <= POOL_SIZE; n++) {
+    const email = env.get(`QXP_TEST_ACCT_${n}_EMAIL`);
+    const password = env.get(`QXP_TEST_ACCT_${n}_PASSWORD`);
+    if (!email || !password) continue;
+    slots.push({ slot: n, email, password });
+  }
+
+  const offset = TEMPLATE_PAIR_COUNT * 2;
+  const needed = offset + TEMPLATE_TRIO_COUNT * 3;
+  if (slots.length < needed) {
+    console.log(
+      `trios: pool has ${slots.length} healthy slots; need at least ${needed} ` +
+        `for ${TEMPLATE_PAIR_COUNT} pair(s) + ${TEMPLATE_TRIO_COUNT} trio(s). skipping.`,
+    );
+    return { built: 0, kept: 0, failed: 0 };
+  }
+
+  const manifest = await readManifest();
+  if (!Array.isArray(manifest.trios)) manifest.trios = [];
+  const byTrioId = new Map(manifest.trios.map((t) => [t.trioId, t]));
+
+  let built = 0;
+  let kept = 0;
+  let failed = 0;
+
+  for (let k = 0; k < TEMPLATE_TRIO_COUNT; k++) {
+    const main = slots[offset + k * 3];
+    const peer1 = slots[offset + k * 3 + 1];
+    const peer2 = slots[offset + k * 3 + 2];
+    const existing = byTrioId.get(k);
+    const mainDir = path.join(TEMPLATES_DIR, `trio-${k}`, 'main');
+    const peer1Dir = path.join(TEMPLATES_DIR, `trio-${k}`, 'peer1');
+    const peer2Dir = path.join(TEMPLATES_DIR, `trio-${k}`, 'peer2');
+
+    const dirsPresent = existsSync(mainDir) && existsSync(peer1Dir) && existsSync(peer2Dir);
+    const credsMatch =
+      existing?.mainEmail === main.email &&
+      existing?.peer1Email === peer1.email &&
+      existing?.peer2Email === peer2.email;
+
+    if (dirsPresent && credsMatch) {
+      console.log(`trio ${k}: cached (${main.email} ↔ ${peer1.email} + ${peer2.email})`);
+      kept++;
+      continue;
+    }
+
+    process.stdout.write(`trio ${k}: building ... `);
+    try {
+      const t = await buildTrioTemplate(k, main, peer1, peer2);
+      await snapshotInto(t.mainTmpDir, mainDir);
+      await snapshotInto(t.peer1TmpDir, peer1Dir);
+      await snapshotInto(t.peer2TmpDir, peer2Dir);
+      byTrioId.set(k, {
+        trioId: t.trioId,
+        mainSlot: t.mainSlot,
+        peer1Slot: t.peer1Slot,
+        peer2Slot: t.peer2Slot,
+        mainEmail: t.mainEmail,
+        peer1Email: t.peer1Email,
+        peer2Email: t.peer2Email,
+        peer1PairedChatId: t.peer1PairedChatId,
+        peer2PairedChatId: t.peer2PairedChatId,
+        createdAt: t.createdAt,
+      });
+      console.log('✓');
+      built++;
+    } catch (err) {
+      console.log(`× ${err.message ?? err}`);
+      failed++;
+    }
+  }
+
+  manifest.trios = [...byTrioId.values()].sort((a, b) => a.trioId - b.trioId);
+  await writeManifest(manifest);
+
+  return { built, kept, failed };
+}
+
 /** Bring the templates tree in sync with the pool. For each pair-slot
  *  0..TEMPLATE_PAIR_COUNT-1, check whether the existing snapshot matches
  *  the current pool creds (mainSlot+peerSlot emails); rebuild any
@@ -586,7 +784,15 @@ async function main() {
   console.log(
     `templates: ${tplResult.built} built, ${tplResult.kept} cached, ${tplResult.failed} failed`,
   );
-  process.exit(tplResult.failed > 0 ? 1 : 0);
+
+  console.log('');
+  console.log('building trio templates...');
+  const trioResult = await ensureTrios(env);
+  console.log(
+    `trios: ${trioResult.built} built, ${trioResult.kept} cached, ${trioResult.failed} failed`,
+  );
+
+  process.exit(tplResult.failed + trioResult.failed > 0 ? 1 : 0);
 }
 
 main().catch((err) => fatal(err.stack ?? String(err)));

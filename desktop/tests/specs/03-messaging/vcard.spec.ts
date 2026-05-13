@@ -3,7 +3,6 @@
 import { test, expect } from '../../fixtures/app-paired.js';
 import {
   openChatByName,
-  waitForChatRowByName,
   waitForOutgoingRead,
 } from '../../helpers/setup.js';
 import { TID } from '../../helpers/selectors.js';
@@ -20,9 +19,8 @@ test('vCard share round-trips with full state glyph progression', async ({ qxpPa
   const { peer } = qxpPaired;
   const filePath = mediaPath('test.vcf');
 
-  await peer.sendAttachment({ viewtype: 'Vcard', file: filePath, filename: 'test.vcf' });
-  await waitForChatRowByName(page, peer.displayName, ARRIVAL_TIMEOUT_MS);
   await openChatByName(page, peer.displayName);
+  await peer.sendAttachment({ viewtype: 'Vcard', file: filePath, filename: 'test.vcf' });
 
   const incomingBubble = page.locator(
     `[data-testid="message-bubble"][data-direction="incoming"][data-view-type="Vcard"]`,

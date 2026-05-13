@@ -15,6 +15,6 @@ test('Proxy: shield-icon deep-link lands on Connectivity', async ({ page }) => {
   await page.locator(TID.chatListBurger).click();
   // The Proxy icon is the shield button in NavTabs' footer — it sets
   // mainRoute to settings/connectivity/proxy.
-  await page.locator('button[aria-label*="Proxy" i]').first().click();
+  await page.locator(TID.navTabsProxy).click();
   await expect(page.locator(TID.settings)).toHaveAttribute('data-active', 'connectivity');
 });

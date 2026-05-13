@@ -32,10 +32,14 @@ test('global search: typing a message hit opens the chat and flashes the bubble'
   await expect(hit).toBeVisible();
 
   // Click the hit → ChatView mounts with that chat selected, the
-  // matching bubble visible.
+  // matching bubble visible AND flashed (jumpToMessage sets a 1.2s
+  // `.flash` class on the targeted bubble — same mechanism Phase 13's
+  // jump-from-quote test relies on).
   await hit.click();
   await expect(page.locator(TID.chatTopbarTitle)).toHaveText(peer.displayName);
-  await expect(
-    page.locator(`[data-testid="message-bubble"]`, { hasText: needle }),
-  ).toBeVisible();
+  const bubble = page
+    .locator(`[data-testid="message-bubble"]`, { hasText: needle })
+    .first();
+  await expect(bubble).toBeVisible();
+  await expect(bubble).toHaveClass(/\bflash\b/);
 });

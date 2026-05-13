@@ -1,20 +1,45 @@
 // Phase 9 — Settings: Backup export.
 //
-// TODO: the backup-export flow opens a file save dialog (`<input
-// type="file" />`-style picker invocation isn't symmetric here — the
-// SPA calls `imex` with a daemon-side path). Exercising the full
-// round-trip needs either a stubbed file destination or the daemon's
-// imex events plumbed into the test fixture. Section reachability is
-// covered by the navigation in `openSettings`; the round-trip stays
-// a TODO.
+// Drives the actual export. `export_backup` writes a .tar into the daemon's
+// uploads dir and fires ImexProgress events; the UI flips status `idle →
+// exporting → ready`. We don't actually download the file — its size is
+// account-dependent and the proxy serves it via /file/... which is its
+// own surface. The status round-trip is what the user can see.
 
 import { test, expect } from '../../fixtures/app-paired.js';
 import { openSettings } from '../../helpers/setup.js';
 import { TID } from '../../helpers/selectors.js';
 
-test.setTimeout(60_000);
+test.setTimeout(180_000);
 
-test('Backup: section is reachable', async ({ page }) => {
+test('Backup: Export flips status idle → exporting → ready', async ({ page }) => {
   await openSettings(page, 'backup');
-  await expect(page.locator(TID.settingsSectionBy('backup'))).toBeVisible();
+
+  const statusEl = page.locator(TID.settingsBackupStatus);
+  await expect(statusEl).toHaveAttribute('data-status', 'idle');
+
+  // The Export row triggers `export_backup`. Click via the wrapping span's
+  // `<button>`.
+  await page.locator(`${TID.settingsBackupExport} button`).click();
+
+  // Status transitions: 'exporting' (with progress) → 'ready' once
+  // ImexProgress=1000 lands. The first transition can be fast on a small
+  // account — accept either next state.
+  await expect(statusEl).toHaveAttribute('data-status', /(exporting|ready)/, {
+    timeout: 5_000,
+  });
+  await expect(statusEl).toHaveAttribute('data-status', 'ready', {
+    timeout: 120_000,
+  });
+
+  // Once ready, the Download link surfaces with a usable href.
+  // qxp-web serves backups from `/file?path=…` (query-string, not a path
+  // segment), so the URL shape is `/file?path=...&...`. Accept that plus
+  // any absolute URL for cross-platform tolerance, and verify the
+  // payload points at a .tar.
+  const dl = page.locator(TID.settingsBackupDownload);
+  await expect(dl).toBeVisible();
+  const href = await dl.getAttribute('href');
+  expect(href).toMatch(/^https?:\/\/.+|^\/file/);
+  expect(href).toContain('.tar');
 });

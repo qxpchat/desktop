@@ -9,7 +9,6 @@ import { test, expect } from '../../fixtures/app-paired.js';
 import {
   openChatByName,
   sendComposerText,
-  waitForChatRowByName,
   waitForOutgoingRead,
 } from '../../helpers/setup.js';
 import { ensureFixtures, mediaPath } from '../../helpers/media.js';
@@ -24,13 +23,12 @@ test.beforeAll(() => {
 test('voice message arrives as a Voice bubble; outgoing text walks state glyph', async ({ qxpPaired, page }) => {
   const { peer } = qxpPaired;
 
+  await openChatByName(page, peer.displayName);
   await peer.sendAttachment({
     viewtype: 'Voice',
     file: mediaPath('test.mp3'),
     filename: 'voice.mp3',
   });
-  await waitForChatRowByName(page, peer.displayName, ARRIVAL_TIMEOUT_MS);
-  await openChatByName(page, peer.displayName);
 
   const incomingBubble = page.locator(
     `[data-testid="message-bubble"][data-direction="incoming"][data-view-type="Voice"]`,

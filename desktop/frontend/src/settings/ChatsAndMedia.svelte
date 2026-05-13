@@ -83,7 +83,9 @@
   </SettingsSection>
 
   {#snippet mdnsToggle()}
-    <Toggle checked={mdnsEnabled} onChange={(v) => void setMdns(v)} label={t('Send read receipts')} />
+    <span data-testid="settings-chats__mdns" data-checked={mdnsEnabled}>
+      <Toggle checked={mdnsEnabled} onChange={(v) => void setMdns(v)} label={t('Send read receipts')} />
+    </span>
   {/snippet}
 
   <SettingsSection title={t('Media')}>

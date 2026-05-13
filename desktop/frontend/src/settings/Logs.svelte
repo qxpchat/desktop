@@ -147,15 +147,15 @@
 </div>
 
 <div class="card">
-  <pre class="header">{redact ? redactEmails(header) : header}</pre>
+  <pre class="header" data-testid="settings-logs__header">{redact ? redactEmails(header) : header}</pre>
 </div>
 
-<div class="card list" bind:this={listEl}>
+<div class="card list" bind:this={listEl} data-testid="settings-logs__list">
   {#if entries.length === 0}
-    <p class="empty">{t('No log entries yet. Activity will appear here.')}</p>
+    <p class="empty" data-testid="settings-logs__empty">{t('No log entries yet. Activity will appear here.')}</p>
   {:else}
     {#each entries as e (e.id)}
-      <div class="entry" data-level={e.level}>
+      <div class="entry" data-testid="settings-logs__entry" data-level={e.level}>
         <span class="ts">{fmt(e.ts)}</span>
         <span class="level">{e.level}</span>
         <span class="acct">a{e.accountId}</span>

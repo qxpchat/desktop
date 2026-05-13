@@ -130,6 +130,8 @@
       title={proxyEnabled ? t('Proxy: On') : t('Proxy: Off')}
       aria-label={proxyEnabled ? t('Proxy on — open Proxy settings') : t('Open Proxy settings')}
       onclick={openProxy}
+      data-testid="nav-tabs__proxy"
+      data-proxy-enabled={proxyEnabled}
     >
       <Icon name={proxyEnabled ? 'shield-fill' : 'shield'} size={20} />
     </button>

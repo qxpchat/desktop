@@ -31,3 +31,7 @@ User instructions **always** override this file.
 
 - Always think ahead and try to optimize your steps to reduce the token expense.
 - If you nee to consume a really big input, get a user confirmation.
+
+## Code
+
+- For every bug, first implement a new e2e test if possible, then write a fix.
