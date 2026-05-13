@@ -351,7 +351,7 @@
   {:else if replyTarget}
     <QuoteBar target={replyTarget} mode="reply" onClose={() => setReplyTo(null)} />
   {/if}
-  <div class="composer">
+  <div class="composer" data-testid="composer">
   {#if recording}
     <button class="cancel-rec" onclick={cancelRecording} aria-label={t('Cancel recording')}>
       <Icon name="x" size={18} />
@@ -360,7 +360,7 @@
       <span class="rec-dot" aria-hidden="true"></span>
       {t('Recording…')} {fmtElapsed(recElapsed)}
     </div>
-    <button class="send" onclick={stopAndSend} aria-label={t('Send voice message')} disabled={sending}>
+    <button class="send" onclick={stopAndSend} aria-label={t('Send voice message')} disabled={sending} data-testid="composer__send">
       <Icon name="send" size={18} />
     </button>
   {:else}
@@ -371,6 +371,7 @@
     aria-expanded={attachOpen}
     title={t('Attach')}
     disabled={chat.active == null}
+    data-testid="composer__attach"
   >
     <Icon name="paperclip" size={18} />
   </button>
@@ -383,7 +384,7 @@
     onShareContact={() => (contactPickerOpen = true)}
   />
 
-  <input bind:this={fileInput} type="file" hidden onchange={onFilePicked} />
+  <input bind:this={fileInput} type="file" hidden onchange={onFilePicked} data-testid="composer__file-input" />
 
   <textarea
     bind:this={textarea}
@@ -393,6 +394,7 @@
     rows="1"
     aria-label={t('Message text')}
     disabled={chat.active == null}
+    data-testid="composer__textarea"
   ></textarea>
 
   <div class="emoji-wrap">
@@ -404,6 +406,7 @@
       aria-expanded={emojiOpen}
       title={t('Emoji')}
       disabled={chat.active == null}
+      data-testid="composer__emoji"
     >
       <Icon name="smile" size={20} />
     </button>
@@ -435,6 +438,7 @@
       onclick={send}
       aria-label={t('Send message')}
       title={t('Send (Enter)')}
+      data-testid="composer__send"
     >
       <Icon name="send" size={18} />
     </button>

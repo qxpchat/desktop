@@ -76,30 +76,30 @@
   }
 </script>
 
-<section class="qr-show">
+<section class="qr-show" data-testid="qr-show" data-scope={chatId == null ? 'self' : 'chat'}>
   <header class="topbar" data-tauri-drag-region>
-    <button class="back" onclick={backToChat} aria-label={t('Back')}>‹ {t('Back')}</button>
+    <button class="back" onclick={backToChat} aria-label={t('Back')} data-testid="qr-show__back">‹ {t('Back')}</button>
     <h1>{chatId == null ? t('Your QR') : t('Group invite')}</h1>
   </header>
 
   <div class="body">
     {#if error}
-      <p class="error">{error}</p>
+      <p class="error" data-testid="qr-show__error">{error}</p>
     {:else if svg}
-      <div class="card">
+      <div class="card" data-testid="qr-show__card">
         <!-- daemon-trusted SVG; safe to render -->
-        <div class="svg-wrap">{@html svg}</div>
+        <div class="svg-wrap" data-testid="qr-show__svg">{@html svg}</div>
         {#if url}
-          <p class="url" title={url}>{url}</p>
+          <p class="url" title={url} data-testid="qr-show__url">{url}</p>
         {/if}
         <div class="actions">
-          <button onclick={copy}>{copied ? t('Copied!') : t('Copy link')}</button>
-          <button onclick={paste}>{t('Paste code')}</button>
-          <button class="danger" onclick={withdraw}>{t('Withdraw')}</button>
+          <button onclick={copy} data-testid="qr-show__copy">{copied ? t('Copied!') : t('Copy link')}</button>
+          <button onclick={paste} data-testid="qr-show__paste">{t('Paste code')}</button>
+          <button class="danger" onclick={withdraw} data-testid="qr-show__withdraw">{t('Withdraw')}</button>
         </div>
       </div>
     {:else}
-      <p class="hint">{t('Generating QR…')}</p>
+      <p class="hint" data-testid="qr-show__loading">{t('Generating QR…')}</p>
     {/if}
   </div>
 </section>

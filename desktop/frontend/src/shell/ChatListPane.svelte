@@ -25,6 +25,8 @@
   import { canLeaveBeforeDelete } from '../lib/chatActions';
   import Icon from '../lib/Icon.svelte';
   import { t } from '../lib/i18n/i18n.svelte';
+  import { onShortcut } from '../lib/shortcuts';
+  import { onMount, onDestroy } from 'svelte';
   import ComposePane from '../compose/ComposePane.svelte';
   import ChooseMembers from '../compose/ChooseMembers.svelte';
   import GroupMetadata from '../compose/GroupMetadata.svelte';
@@ -73,6 +75,20 @@
   let otherUnreadLabel = $derived(otherUnread > 99 ? '99+' : String(otherUnread));
 
   let search = $state('');
+  let searchInput: HTMLInputElement | undefined = $state();
+
+  // Cmd/Ctrl+K focuses the chat-list search input — handler matches
+  // the global shortcut dispatched from `lib/shortcuts.ts`.
+  let unsubFocusSearch: (() => void) | null = null;
+  onMount(() => {
+    unsubFocusSearch = onShortcut('focus-search', () => {
+      searchInput?.focus();
+      searchInput?.select();
+    });
+  });
+  onDestroy(() => {
+    unsubFocusSearch?.();
+  });
   $effect(() => {
     setSearchQuery(search);
     setMessageSearchQuery(search);
@@ -103,7 +119,9 @@
 
   async function togglePin(chat: ChatListItem) {
     if (accounts.selectedId == null) return;
-    const vis = chat.isPinned ? 'normal' : 'pinned';
+    // ChatVisibility variants are PascalCase on the wire — the enum has no
+    // `rename_all`, so the tag passes through verbatim.
+    const vis = chat.isPinned ? 'Normal' : 'Pinned';
     try {
       await rpc.call('set_chat_visibility', [accounts.selectedId, chat.id, vis]);
     } catch {
@@ -124,7 +142,7 @@
   const unmuteChat = (chat: ChatListItem) => setMute(chat, { kind: 'NotMuted' });
   async function toggleArchive(chat: ChatListItem) {
     if (accounts.selectedId == null) return;
-    const vis = chat.isArchived ? 'normal' : 'archived';
+    const vis = chat.isArchived ? 'Normal' : 'Archived';
     try {
       await rpc.call('set_chat_visibility', [accounts.selectedId, chat.id, vis]);
     } catch {
@@ -169,13 +187,13 @@
   }
 </script>
 
-<aside class="pane" style:width="{width}px" aria-label={t('Chat list')}>
+<aside class="pane" style:width="{width}px" aria-label={t('Chat list')} data-testid="chat-list">
   <div class="titlebar-gutter" data-tauri-drag-region></div>
   {#if paneMode.mode.kind === 'inbox' || paneMode.mode.kind === 'archive'}
     {@const archive = paneMode.mode.kind === 'archive'}
     <header class="header" class:narrow>
       {#if archive}
-        <button class="expand" aria-label={t('Back to inbox')} onclick={exitArchive}>
+        <button class="expand" aria-label={t('Back to inbox')} onclick={exitArchive} data-testid="chat-list-archive-back">
           <Icon name="chevron-left" size={18} />
         </button>
         {#if !narrow}
@@ -190,6 +208,7 @@
           aria-pressed={railOpen}
           disabled={burgerDisabled}
           onclick={onToggleRail}
+          data-testid="chat-list__burger"
         >
           <Icon name="menu" size={18} />
           {#if !railOpen && otherUnread > 0}
@@ -203,6 +222,8 @@
             placeholder={t('Search chats…')}
             aria-label={t('Search chats')}
             bind:value={search}
+            bind:this={searchInput}
+            data-testid="chat-list-search"
           />
         {/if}
         <button
@@ -210,6 +231,7 @@
           title={t('New conversation')}
           aria-label={t('New conversation')}
           onclick={openCompose}
+          data-testid="compose-button"
         >
           <Icon name="pencil" size={16} />
         </button>
@@ -219,7 +241,7 @@
     <ul class="list">
       {#if !archive && chatlist.hasArchive && !narrow}
         <li>
-          <button class="archive-row" onclick={openArchive}>
+          <button class="archive-row" onclick={openArchive} data-testid="chat-list-archive-link">
             <span class="archive-icon" aria-hidden="true"><Icon name="archive" size={20} /></span>
             <span>{t('Archived chats')}</span>
           </button>
@@ -247,10 +269,10 @@
       {/if}
 
       {#if isFiltered && messageSearch.hits.length > 0}
-        <li class="section-header">{t('Messages')}</li>
+        <li class="section-header" data-testid="chat-list-search__messages-header">{t('Messages')}</li>
         {#each messageSearch.hits.slice(0, 25) as h (h.id)}
           <li>
-            <button class="hit" onclick={() => jumpToHit(h.chatId, h.id)}>
+            <button class="hit" onclick={() => jumpToHit(h.chatId, h.id)} data-testid="chat-list-search__hit" data-msg-id={h.id}>
               <span class="hit-text">{h.text || t('(no text)')}</span>
               {#if h.sender}
                 <span class="hit-sender">{h.sender}</span>

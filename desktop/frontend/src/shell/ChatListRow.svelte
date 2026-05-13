@@ -74,6 +74,9 @@
   {title}
   aria-label={displayName}
   aria-pressed={selected}
+  data-testid="chat-list-row"
+  data-chat-id={chat.id}
+  data-name={displayName}
 >
   <Avatar
     name={displayName}
@@ -89,7 +92,7 @@
         <span class="name">
           {displayName}
           {#if chat.isMuted}
-            <span class="mute" aria-label={t('muted')} title={t('Muted')}><Icon name="bell-off" size={12} /></span>
+            <span class="mute" aria-label={t('muted')} title={t('Muted')} data-testid="chat-list-row__mute"><Icon name="bell-off" size={12} /></span>
           {/if}
           {#if peerStreaming}
             <span class="live" aria-label={t('Live location')} title={t('Sharing live location')}>
@@ -109,9 +112,9 @@
           </span>
         {/if}
         {#if showUnread}
-          <span class="unread" aria-label={t('Unread')}></span>
+          <span class="unread" aria-label={t('Unread')} data-testid="chat-list-row__unread"></span>
         {:else if chat.isPinned}
-          <span class="pin" aria-label={t('pinned')} title={t('Pinned')}><Icon name="pin" size={12} /></span>
+          <span class="pin" aria-label={t('pinned')} title={t('Pinned')} data-testid="chat-list-row__pin"><Icon name="pin" size={12} /></span>
         {/if}
       </span>
     </span>

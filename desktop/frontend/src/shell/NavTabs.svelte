@@ -93,6 +93,9 @@
           aria-pressed={profile.id === selectedAccountId}
           onclick={() => onSelect(profile.id)}
           oncontextmenu={(e) => rightClick(e, profile.id)}
+          data-testid="nav-tabs__account"
+          data-account-id={profile.id}
+          data-name={profile.displayName}
         >
           <Avatar
             name={profile.displayName}
@@ -106,16 +109,16 @@
         </button>
         {#if menuFor === profile.id}
           <button class="menu-backdrop" onclick={() => (menuFor = null)} aria-label={t('Close menu')}></button>
-          <div class="menu" role="menu">
-            <button onclick={openProfileEditor}>{t('Edit profile')}</button>
-            <button onclick={() => onSelect(profile.id)}>{t('Switch to')}</button>
-            <button class="danger" onclick={() => remove(profile.id)}>{t('Remove…')}</button>
+          <div class="menu" role="menu" data-testid="nav-tabs__account-menu">
+            <button onclick={openProfileEditor} data-testid="nav-tabs__account-menu-edit">{t('Edit profile')}</button>
+            <button onclick={() => onSelect(profile.id)} data-testid="nav-tabs__account-menu-switch">{t('Switch to')}</button>
+            <button class="danger" onclick={() => remove(profile.id)} data-testid="nav-tabs__account-menu-remove">{t('Remove…')}</button>
           </div>
         {/if}
       </div>
     {/each}
 
-    <button class="tile add" title={t('Add account')} aria-label={t('Add account')} onclick={onAddAccount}>
+    <button class="tile add" title={t('Add account')} aria-label={t('Add account')} onclick={onAddAccount} data-testid="nav-tabs__add-account">
       <span class="add-avatar"><Icon name="plus" size={18} /></span>
     </button>
   </div>
@@ -136,6 +139,7 @@
       aria-label={t('Show QR')}
       class:active={mainRoute.route.kind === 'qrShow'}
       onclick={openQrShow}
+      data-testid="nav-tabs__qr-show"
     >
       <Icon name="qr-code" size={20} />
     </button>
@@ -145,6 +149,7 @@
       aria-label={t('Settings')}
       class:active={mainRoute.route.kind === 'settings'}
       onclick={openSettings}
+      data-testid="nav-tabs__settings"
     >
       <Icon name="settings" size={20} />
     </button>

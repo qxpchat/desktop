@@ -49,7 +49,7 @@
   <h1>{t('Manual Setup')}</h1>
 </header>
 
-<main class="manual">
+<main class="manual" data-testid="onboarding-manual">
   <label class="field">
     <span class="label">{t('Email')}</span>
     <input
@@ -59,12 +59,18 @@
       placeholder="you@example.com"
       autocapitalize="off"
       spellcheck="false"
+      data-testid="onboarding-manual__addr"
     />
   </label>
 
   <label class="field">
     <span class="label">{t('Password')}</span>
-    <input type="password" bind:value={mailPw} autocomplete="current-password" />
+    <input
+      type="password"
+      bind:value={mailPw}
+      autocomplete="current-password"
+      data-testid="onboarding-manual__password"
+    />
   </label>
 
   <button class="advanced-toggle" onclick={() => (advancedOpen = !advancedOpen)} aria-expanded={advancedOpen}>
@@ -123,7 +129,7 @@
     </fieldset>
   {/if}
 
-  <button class="primary" disabled={!canLogin} onclick={login}>{t('Log In')}</button>
+  <button class="primary" disabled={!canLogin} onclick={login} data-testid="onboarding-manual__submit">{t('Log In')}</button>
 </main>
 
 <ProgressOverlay />

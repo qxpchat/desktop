@@ -12,7 +12,7 @@ use tracing_subscriber::EnvFilter;
 /// daemon listens on. The port is deliberately the same as the standalone
 /// `make server` setup — the Tauri app behaves identically to running the
 /// daemon by hand.
-const DAEMON_PORT: u16 = 9090;
+const DAEMON_PORT: u16 = 4041;
 
 fn main() {
     tracing_subscriber::fmt()
@@ -75,7 +75,7 @@ fn set_badge(label: Option<String>) {
 
 /// Spawn the qxp-web daemon in its own OS thread on a dedicated multi-thread
 /// tokio runtime. Same wire surface as the standalone binary (axum + yerpc on
-/// 127.0.0.1:9090); the only difference is that this thread exits when the
+/// 127.0.0.1:4041); the only difference is that this thread exits when the
 /// Tauri process does.
 fn spawn_daemon(accounts_dir: PathBuf) {
     std::thread::Builder::new()

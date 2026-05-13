@@ -50,6 +50,7 @@
     aria-modal="true"
     aria-labelledby="delete-dialog-title"
     aria-describedby="delete-dialog-body"
+    data-testid="delete-msg-dialog"
   >
     <h2 id="delete-dialog-title">
       {count > 1 ? t('Delete Messages') : t('Delete Message')}
@@ -59,15 +60,15 @@
     </p>
     <div class="actions">
       {#if canDeleteForAll}
-        <button class="btn danger" onclick={deleteForAll}>
+        <button class="btn danger" onclick={deleteForAll} data-testid="delete-msg-dialog__delete-for-all">
           {t('Delete for Everyone')}
         </button>
       {/if}
-      <button class="btn danger" onclick={deleteForMe}>
+      <button class="btn danger" onclick={deleteForMe} data-testid="delete-msg-dialog__delete-for-me">
         {t('Delete for Me')}
       </button>
       <!-- svelte-ignore a11y_autofocus -->
-      <button class="btn" onclick={onClose} autofocus>
+      <button class="btn" onclick={onClose} autofocus data-testid="delete-msg-dialog__cancel">
         {t('Cancel')}
       </button>
     </div>

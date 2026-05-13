@@ -242,9 +242,9 @@
   ]);
 </script>
 
-<section class="info">
+<section class="info" data-testid="chat-info">
   <header class="topbar">
-    <button class="back" onclick={backToChat} aria-label={t('Back')}>‹ {t('Back')}</button>
+    <button class="back" onclick={backToChat} aria-label={t('Back')} data-testid="chat-info__back">‹ {t('Back')}</button>
     <h1>{t('Info')}</h1>
   </header>
 
@@ -260,15 +260,15 @@
         seenRecently={other?.wasSeenRecently ?? false}
       />
       {#if editingName}
-        <input bind:value={nameInput} placeholder={t('Name')} />
+        <input bind:value={nameInput} placeholder={t('Name')} data-testid="chat-info__name-input" />
         <div class="actions">
-          <button onclick={() => (editingName = false)}>{t('Cancel')}</button>
-          <button class="primary" onclick={rename}>{t('Save')}</button>
+          <button onclick={() => (editingName = false)} data-testid="chat-info__name-cancel">{t('Cancel')}</button>
+          <button class="primary" onclick={rename} data-testid="chat-info__name-save">{t('Save')}</button>
         </div>
       {:else}
-        <h2>{chat.name || t('(no name)')}</h2>
+        <h2 data-testid="chat-info__name">{chat.name || t('(no name)')}</h2>
         {#if isGroup || isBroadcast}
-          <button class="link" onclick={() => { nameInput = chat?.name ?? ''; editingName = true; }}>{t('Rename')}</button>
+          <button class="link" onclick={() => { nameInput = chat?.name ?? ''; editingName = true; }} data-testid="chat-info__rename">{t('Rename')}</button>
         {/if}
         {#if other?.address}
           <p class="muted">{other.address}</p>
@@ -304,7 +304,7 @@
     {/if}
 
     <div class="group">
-      <button class="row link" onclick={showMedia}>
+      <button class="row link" onclick={showMedia} data-testid="chat-info__media">
         <span class="label">{t('Media, Audio & Files')}</span>
         <Icon name="chevron-right" size={14} />
       </button>
@@ -319,7 +319,7 @@
     <div class="group">
       <div class="row">
         <span class="label">{t('Disappearing messages')}</span>
-        <select onchange={(e) => void setEphemeral(Number((e.currentTarget as HTMLSelectElement).value))} value={chat.ephemeralTimer}>
+        <select onchange={(e) => void setEphemeral(Number((e.currentTarget as HTMLSelectElement).value))} value={chat.ephemeralTimer} data-testid="chat-info__ephemeral">
           {#each EPHEMERAL_OPTIONS as o}
             <option value={o.v}>{o.l}</option>
           {/each}
@@ -342,16 +342,16 @@
 
     {#if isGroup || isBroadcast}
       <h3>{t('Members')} ({members.length})</h3>
-      <ul class="members">
+      <ul class="members" data-testid="chat-info__members">
         {#each members as m (m.id)}
-          <li>
+          <li data-testid="chat-info__member" data-contact-id={m.id} data-name={m.displayName}>
             <Avatar name={m.displayName} color={m.color} imagePath={m.profileImage} size={32} />
             <span class="m-meta">
               <span class="m-name">{m.displayName}</span>
               <span class="m-addr">{m.address}</span>
             </span>
             {#if m.id !== 1 && chat.selfInGroup}
-              <button class="link-danger" onclick={() => void removeMember(m.id)}>{t('Remove')}</button>
+              <button class="link-danger" onclick={() => void removeMember(m.id)} data-testid="chat-info__member-remove">{t('Remove')}</button>
             {/if}
           </li>
         {/each}
@@ -368,11 +368,11 @@
 
     <div class="group">
       {#if (isGroup || isBroadcast) && chat.selfInGroup}
-        <button class="row danger-row" onclick={leave}>
+        <button class="row danger-row" onclick={leave} data-testid="chat-info__leave">
           <span class="label">{t('Leave')}</span>
         </button>
       {/if}
-      <button class="row danger-row" onclick={deleteChat}>
+      <button class="row danger-row" onclick={deleteChat} data-testid="chat-info__delete">
         <span class="label">{t('Delete chat')}</span>
       </button>
     </div>

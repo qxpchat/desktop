@@ -28,21 +28,22 @@
 
 {#if open}
   <button class="backdrop" onclick={onClose} aria-label={t('Close picker')}></button>
-  <div class="card" role="dialog" aria-label={t('Forward to chat')}>
+  <div class="card" role="dialog" aria-label={t('Forward to chat')} data-testid="chat-picker">
     <header>
       <h2>{t('Forward to…')}</h2>
-      <button class="close" onclick={onClose} aria-label={t('Close')}>✕</button>
+      <button class="close" onclick={onClose} aria-label={t('Close')} data-testid="chat-picker__close">✕</button>
     </header>
     <input
       type="search"
       class="search"
       placeholder={t('Search chats…')}
       bind:value={search}
+      data-testid="chat-picker__search"
     />
     <ul class="list">
       {#each visible as c (c.id)}
         <li>
-          <button class="row" onclick={() => onPick(c.id)}>
+          <button class="row" onclick={() => onPick(c.id)} data-testid="chat-picker__row" data-chat-id={c.id} data-name={c.name || ''}>
             <Avatar name={c.name || '?'} color={c.color} imagePath={c.avatarPath} size={36} />
             <span class="name">{c.name || t('(no name)')}</span>
           </button>

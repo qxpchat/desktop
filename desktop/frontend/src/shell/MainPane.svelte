@@ -46,8 +46,8 @@
 
 <section class="main">
   {#if showChatTopBar && chat}
-    <header class="topbar">
-      <button class="title-btn" onclick={() => setMainRoute({ kind: 'chatInfo', chatId: chat.id })}>
+    <header class="topbar" data-testid="chat-topbar" data-chat-id={chat.id}>
+      <button class="title-btn" onclick={() => setMainRoute({ kind: 'chatInfo', chatId: chat.id })} data-testid="chat-topbar__info">
         <Avatar
           name={chat.name || '?'}
           color={chat.color}
@@ -55,7 +55,7 @@
           size={36}
         />
         <div class="titles">
-          <span class="chat-title">
+          <span class="chat-title" data-testid="chat-topbar__title">
             {chat.name || t('(no name)')}
             {#if chat.isMuted}
               <span class="title-icon mute" aria-label={t('Muted')} title={t('Muted')}>

@@ -130,16 +130,16 @@
 
   <label class="field">
     <span class="field-label">{t('Display name')}</span>
-    <input bind:value={displayName} placeholder={t('Your name')} />
+    <input bind:value={displayName} placeholder={t('Your name')} data-testid="settings-profile__name" />
   </label>
 
   <label class="field">
     <span class="field-label">{t('Signature')}</span>
-    <textarea bind:value={signature} rows="3" placeholder={t('Shown in your contact info')}></textarea>
+    <textarea bind:value={signature} rows="3" placeholder={t('Shown in your contact info')} data-testid="settings-profile__signature"></textarea>
   </label>
 
   <div class="actions">
-    <button class="primary" onclick={save} disabled={saving}>
+    <button class="primary" onclick={save} disabled={saving} data-testid="settings-profile__save">
       {saving ? t('Saving…') : recentlySaved ? t('Saved') : t('Save')}
     </button>
   </div>

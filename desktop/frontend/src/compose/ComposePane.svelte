@@ -59,9 +59,9 @@
   }
 </script>
 
-<aside class="pane" aria-label={t('New conversation')}>
+<aside class="pane" aria-label={t('New conversation')} data-testid="compose-pane">
   <header class="header">
-    <button class="back" onclick={backToInbox} title={t('Back')} aria-label={t('Back to inbox')}>‹</button>
+    <button class="back" onclick={backToInbox} title={t('Back')} aria-label={t('Back to inbox')} data-testid="compose-pane__back">‹</button>
     <h2>{t('New conversation')}</h2>
   </header>
 
@@ -72,25 +72,26 @@
       placeholder={t('Search contacts…')}
       aria-label={t('Search contacts')}
       bind:value={search}
+      data-testid="compose-pane__search"
     />
   </div>
 
   <ul class="actions">
     <li>
-      <button class="action" onclick={newContact}>
+      <button class="action" onclick={newContact} data-testid="compose-pane__new-contact">
         <span class="icon" aria-hidden="true"><Icon name="user-plus" size={18} /></span>
         <span class="label">{t('New Contact')}</span>
         <span class="hint">{t('Scan a QR code')}</span>
       </button>
     </li>
     <li>
-      <button class="action" onclick={newGroup}>
+      <button class="action" onclick={newGroup} data-testid="compose-pane__new-group">
         <span class="icon" aria-hidden="true"><Icon name="users" size={18} /></span>
         <span class="label">{t('New Group')}</span>
       </button>
     </li>
     <li>
-      <button class="action" onclick={newChannel}>
+      <button class="action" onclick={newChannel} data-testid="compose-pane__new-channel">
         <span class="icon" aria-hidden="true"><Icon name="megaphone" size={18} /></span>
         <span class="label">{t('New Channel')}</span>
       </button>

@@ -24,7 +24,7 @@
   );
 </script>
 
-<button class="row" class:selected onclick={() => onSelect(contact.id)} aria-pressed={selected}>
+<button class="row" class:selected onclick={() => onSelect(contact.id)} aria-pressed={selected} data-testid="contact-row" data-contact-id={contact.id} data-name={displayName}>
   {#if selectable}
     <span class="check" class:on={selected} aria-hidden="true">
       {#if selected}✓{/if}

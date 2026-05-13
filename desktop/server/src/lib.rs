@@ -114,7 +114,7 @@ async fn index() -> axum::response::Html<&'static str> {
 <style>body{font-family:system-ui,sans-serif;max-width:42rem;margin:3rem auto;padding:0 1rem;line-height:1.5}code{background:#f3f3f3;padding:.1em .3em;border-radius:.2em}</style>
 </head><body>
 <h1>qxp-web</h1>
-<p>The Rust daemon is running. The SPA isn't served from here yet — start the Vite dev server in <code>web/frontend</code> and open <code>http://localhost:8080</code>.</p>
+<p>The Rust daemon is running. The SPA isn't served from here yet — start the Vite dev server in <code>web/frontend</code> and open <code>http://localhost:4040</code>.</p>
 <p>WebSocket endpoint: <code>/ws</code> (JSON-RPC 2.0).</p>
 </body></html>"#,
     )

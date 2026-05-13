@@ -1,0 +1,24 @@
+{
+  "name": "qxp-desktop-tests",
+  "version": "0.1.0",
+  "private": true,
+  "description": "End-to-end tests for the qxp desktop app. Drives the Svelte SPA via Playwright + Chromium against a real qxp-web daemon.",
+  "type": "module",
+  "scripts": {
+    "_comment_node_options": "DEP0205 silenced because Playwright's bundled TS loader still calls module.register() (deprecated on Node 22). Targets ONE warning code, not all warnings. Remove this prefix once Playwright migrates to module.registerHooks() — track upstream and verify by running `playwright test` without it.",
+    "test": "NODE_OPTIONS=--disable-warning=DEP0205 playwright test",
+    "test:watch": "NODE_OPTIONS=--disable-warning=DEP0205 playwright test --ui",
+    "ensure-pool": "node scripts/ensure-pool.mjs",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "ws": "^8.18.0",
+    "dotenv": "^16.4.7"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.60.0",
+    "@types/node": "^22.10.0",
+    "@types/ws": "^8.5.13",
+    "typescript": "^5.7.2"
+  }
+}

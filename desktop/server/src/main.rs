@@ -15,7 +15,7 @@ use qxp_web::{run, DaemonConfig};
 #[command(name = "qxp-web", version)]
 struct Args {
     /// Address to listen on (host:port). Use port 0 to let the OS pick.
-    #[arg(long, default_value = "127.0.0.1:9090")]
+    #[arg(long, default_value = "127.0.0.1:4041")]
     listen: SocketAddr,
 
     /// Path to the accounts directory. Created if absent.

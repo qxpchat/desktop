@@ -40,9 +40,9 @@ cargo tauri dev
 
 `cargo tauri dev` does three things in one command:
 
-1. Spawns a Vite dev server at `http://localhost:8080` (hot reload).
+1. Spawns a Vite dev server at `http://localhost:4040` (hot reload).
 2. Compiles the Tauri Rust shell (which spawns the daemon thread on
-   `127.0.0.1:9090`).
+   `127.0.0.1:4041`).
 3. Opens a native window pointing at Vite. The frontend's WebSocket
    connects to the daemon at the loopback port.
 
@@ -63,7 +63,7 @@ Outputs platform-native bundles under `src-tauri/target/release/bundle/`:
 The frontend is built once via `npm run build` (configured as
 `beforeBuildCommand` in `tauri.conf.json`) and Tauri serves the resulting
 `frontend/dist/` from `tauri://localhost` inside the bundle. The daemon
-listens on `127.0.0.1:9090` exactly as in dev; the frontend detects the
+listens on `127.0.0.1:4041` exactly as in dev; the frontend detects the
 Tauri context and connects there explicitly.
 
 ## Standalone daemon (headless / web-style dev)
@@ -72,12 +72,12 @@ If you just want to iterate on the Svelte UI in a regular browser without
 booting Tauri:
 
 ```sh
-make server   # cargo run --release-ish; daemon at 127.0.0.1:9090
-make ui       # vite, 0.0.0.0:8080
+make server   # cargo run --release-ish; daemon at 127.0.0.1:4041
+make ui       # vite, 0.0.0.0:4040
 ```
 
 `make ui` proxies `/ws`, `/upload`, `/file` to the daemon. Browser at
-<http://localhost:8080>.
+<http://localhost:4040>.
 
 ## Account data
 

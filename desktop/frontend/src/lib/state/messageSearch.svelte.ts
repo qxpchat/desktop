@@ -4,6 +4,7 @@
 // (returns a flat list of msg ids), then `get_messages` to hydrate previews.
 
 import { rpc } from '../rpc';
+import { onEvent } from '../events';
 
 export type Hit = {
   id: number;
@@ -45,6 +46,20 @@ export function setMessageSearchQuery(q: string): void {
     debounceTimer = null;
     void run();
   }, 200);
+}
+
+// Re-run search when new messages arrive on the active account. Without
+// this the hits go stale: type a query, then an incoming message that
+// matches lands via IMAP — the user sees nothing change until they
+// retype. Subscribed to both IncomingMsg (peer→main) and MsgsChanged
+// (covers outgoing-sent + edits).
+for (const kind of ['IncomingMsg', 'MsgsChanged'] as const) {
+  onEvent(kind, (ev) => {
+    if (messageSearch.accountId == null) return;
+    if (ev.contextId !== messageSearch.accountId) return;
+    if (!messageSearch.query.trim()) return;
+    void run();
+  });
 }
 
 async function run() {

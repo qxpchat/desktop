@@ -41,13 +41,13 @@
 </script>
 
 {#if target}
-  <div class="quote-bar" class:edit={mode === 'edit'}>
+  <div class="quote-bar" class:edit={mode === 'edit'} data-testid="composer__quote-bar" data-mode={mode}>
     <span class="bar-color" aria-hidden="true"></span>
     <div class="content">
       <span class="label">{label}</span>
       <span class="preview">{preview}</span>
     </div>
-    <button class="close" onclick={onClose} aria-label={t('Cancel')}>✕</button>
+    <button class="close" onclick={onClose} aria-label={t('Cancel')} data-testid="composer__quote-bar-close">✕</button>
   </div>
 {/if}
 

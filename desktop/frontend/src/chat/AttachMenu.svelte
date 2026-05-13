@@ -23,18 +23,18 @@
     fn();
   }
 
-  const items: { icon: IconName; label: string; action: () => void }[] = $derived([
-    { icon: 'file', label: t('File'), action: onPickFile },
-    { icon: 'map-pin', label: t('Location'), action: onShareLocation },
-    { icon: 'user', label: t('Contact'), action: onShareContact },
+  const items: { icon: IconName; label: string; action: () => void; tid: string }[] = $derived([
+    { icon: 'file', label: t('File'), action: onPickFile, tid: 'file' },
+    { icon: 'map-pin', label: t('Location'), action: onShareLocation, tid: 'location' },
+    { icon: 'user', label: t('Contact'), action: onShareContact, tid: 'contact' },
   ]);
 </script>
 
 {#if open}
   <button class="backdrop" onclick={onClose} aria-label={t('Close attach menu')}></button>
-  <div class="menu" role="menu" aria-label={t('Attach')}>
+  <div class="menu" role="menu" aria-label={t('Attach')} data-testid="attach-menu">
     {#each items as it}
-      <button role="menuitem" onclick={() => pick(it.action)}>
+      <button role="menuitem" onclick={() => pick(it.action)} data-testid="attach-menu-item" data-action={it.tid}>
         <span class="icon" aria-hidden="true"><Icon name={it.icon} size={18} /></span>
         <span>{it.label}</span>
       </button>

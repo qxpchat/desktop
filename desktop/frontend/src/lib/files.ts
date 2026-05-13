@@ -5,13 +5,13 @@
 
 /** Origin to use for daemon HTTP calls.
  *
- * Empty string (=> same-origin) on the web. `http://127.0.0.1:9090` when
+ * Empty string (=> same-origin) on the web. `http://127.0.0.1:4041` when
  * running inside the Tauri webview, where the SPA is loaded from
  * `tauri://localhost` and same-origin requests don't reach the bundled
  * daemon. */
 export function daemonOrigin(): string {
   const tauriHost = location.protocol === 'tauri:' || location.hostname === 'tauri.localhost';
-  return tauriHost ? 'http://127.0.0.1:9090' : '';
+  return tauriHost ? 'http://127.0.0.1:4041' : '';
 }
 
 export function fileUrl(daemonPath: string | null | undefined): string | undefined {

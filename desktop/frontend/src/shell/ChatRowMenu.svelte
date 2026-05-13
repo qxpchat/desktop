@@ -104,40 +104,40 @@
      window Escape above; the backdrop itself doesn't need its own keydown. -->
 <button class="backdrop" aria-label={t('Close menu')} onclick={onClose}></button>
 
-<div bind:this={menu} class="menu" role="menu" {style}>
+<div bind:this={menu} class="menu" role="menu" {style} data-testid="chat-row-menu">
   {#if view === 'main'}
     {#if chat.freshMessageCounter > 0}
-      <button role="menuitem" onclick={() => fire(onMarkRead)}>
+      <button role="menuitem" onclick={() => fire(onMarkRead)} data-testid="chat-row-menu-item" data-action="mark-read">
         <Icon name="check" size={14} />
         {t('Mark as Read')}
       </button>
     {:else}
-      <button role="menuitem" onclick={() => fire(onMarkUnread)}>
+      <button role="menuitem" onclick={() => fire(onMarkUnread)} data-testid="chat-row-menu-item" data-action="mark-unread">
         <Icon name="message-circle" size={14} />
         {t('Mark as Unread')}
       </button>
     {/if}
-    <button role="menuitem" onclick={() => fire(onTogglePin)}>
+    <button role="menuitem" onclick={() => fire(onTogglePin)} data-testid="chat-row-menu-item" data-action={chat.isPinned ? 'unpin' : 'pin'}>
       <Icon name="pin" size={14} />
       {chat.isPinned ? t('Unpin') : t('Pin')}
     </button>
     {#if chat.isMuted}
-      <button role="menuitem" onclick={() => fire(onUnmute)}>
+      <button role="menuitem" onclick={() => fire(onUnmute)} data-testid="chat-row-menu-item" data-action="unmute">
         <Icon name="bell" size={14} />
         {t('Unmute')}
       </button>
     {:else}
-      <button role="menuitem" onclick={() => (view = 'mute')}>
+      <button role="menuitem" onclick={() => (view = 'mute')} data-testid="chat-row-menu-item" data-action="mute">
         <Icon name="bell-off" size={14} />
         {t('Mute…')}
       </button>
     {/if}
-    <button role="menuitem" onclick={() => fire(onToggleArchive)}>
+    <button role="menuitem" onclick={() => fire(onToggleArchive)} data-testid="chat-row-menu-item" data-action={chat.isArchived ? 'unarchive' : 'archive'}>
       <Icon name="archive" size={14} />
       {chat.isArchived ? t('Unarchive') : t('Archive')}
     </button>
     <div class="separator" role="separator"></div>
-    <button class="danger" role="menuitem" onclick={() => fire(onDelete)}>
+    <button class="danger" role="menuitem" onclick={() => fire(onDelete)} data-testid="chat-row-menu-item" data-action="delete">
       <Icon name="trash-2" size={14} />
       {deleteLabel}
     </button>
@@ -147,7 +147,7 @@
       {t('Mute')}
     </button>
     {#each MUTE_OPTIONS as opt (opt.label())}
-      <button role="menuitem" onclick={() => pickMute(opt.duration)}>
+      <button role="menuitem" onclick={() => pickMute(opt.duration)} data-testid="chat-row-mute-option">
         {opt.label()}
       </button>
     {/each}

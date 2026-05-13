@@ -45,6 +45,9 @@
   let busy = $state(false);
   let errorMsg = $state<string | null>(null);
   let scannerKey = $state(0);
+  // Fallback input for users without a camera (and for headless E2E
+  // tests) — pasting a QR URL feeds the same `onScanned` pipeline.
+  let pasteText = $state('');
 
   async function onScanned(raw: string) {
     if (accounts.selectedId == null) return;
@@ -245,9 +248,9 @@
   });
 </script>
 
-<section class="qr">
+<section class="qr" data-testid="qr-dispatcher" data-purpose={purpose}>
   <header class="topbar" data-tauri-drag-region>
-    <button class="back" onclick={backToChat} aria-label={t('Back')}>‹ {t('Back')}</button>
+    <button class="back" onclick={backToChat} aria-label={t('Back')} data-testid="qr-dispatcher__back">‹ {t('Back')}</button>
     <h1>{title}</h1>
   </header>
 
@@ -257,27 +260,51 @@
         <Scanner onResult={onScanned} onError={(m) => (errorMsg = m)} />
       {/key}
       <p class="hint">{t('Position the QR code inside the frame.')}</p>
+
+      <div class="paste-fallback">
+        <label for="qr-paste-input" class="paste-label">{t('Or paste a QR code:')}</label>
+        <input
+          id="qr-paste-input"
+          class="paste-input"
+          type="text"
+          bind:value={pasteText}
+          placeholder="openpgp4fpr:… / dcaccount:… / OPENPGP4FPR:…"
+          data-testid="qr-dispatcher__paste-input"
+        />
+        <button
+          class="paste-submit"
+          disabled={!pasteText.trim() || busy}
+          onclick={() => {
+            const t = pasteText.trim();
+            if (t) void onScanned(t);
+          }}
+          data-testid="qr-dispatcher__paste-submit"
+        >
+          {t('Use this code')}
+        </button>
+      </div>
+
       {#if errorMsg}
-        <p class="error">{errorMsg}</p>
+        <p class="error" data-testid="qr-dispatcher__error">{errorMsg}</p>
       {/if}
       {#if busy}
         <p class="hint">{t('Checking…')}</p>
       {/if}
     {:else}
-      <div class="card">
-        <h2>{title}</h2>
+      <div class="card" data-testid="qr-dispatcher__card" data-qr-kind={qr.obj.kind}>
+        <h2 data-testid="qr-dispatcher__title">{title}</h2>
         {#if body}
-          <p class="text">{body}</p>
+          <p class="text" data-testid="qr-dispatcher__body">{body}</p>
         {/if}
         {#if errorMsg}
           <p class="error">{errorMsg}</p>
         {/if}
         <div class="actions">
-          <button onclick={reset} disabled={busy}>{t('Scan again')}</button>
+          <button onclick={reset} disabled={busy} data-testid="qr-dispatcher__reset">{t('Scan again')}</button>
           {#if actionLabel}
-            <button class="primary" onclick={confirmCurrent} disabled={busy}>{actionLabel}</button>
+            <button class="primary" onclick={confirmCurrent} disabled={busy} data-testid="qr-dispatcher__confirm">{actionLabel}</button>
           {:else}
-            <button class="primary" onclick={() => backToChat()} disabled={busy}>{t('OK')}</button>
+            <button class="primary" onclick={() => backToChat()} disabled={busy} data-testid="qr-dispatcher__ok">{t('OK')}</button>
           {/if}
         </div>
       </div>
@@ -370,5 +397,43 @@
   }
   .actions .primary:hover:not(:disabled) {
     filter: brightness(1.05);
+  }
+  .paste-fallback {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+    width: min(420px, 100%);
+    margin-top: var(--space-3);
+    padding: var(--space-3);
+    border: 1px dashed var(--color-border);
+    border-radius: var(--radius-md);
+    background: var(--color-bg);
+  }
+  .paste-label {
+    font-size: var(--text-sm);
+    color: var(--color-fg-secondary);
+  }
+  .paste-input {
+    padding: 8px 10px;
+    border-radius: var(--radius-md);
+    border: 1px solid var(--color-border);
+    background: var(--color-bg-elevated);
+    font: inherit;
+    color: var(--color-fg);
+    font-family: var(--font-mono, monospace);
+    font-size: var(--text-sm);
+  }
+  .paste-submit {
+    align-self: flex-end;
+    height: 32px;
+    padding: 0 var(--space-3);
+    border-radius: var(--radius-md);
+    background: var(--color-accent);
+    color: var(--color-accent-fg);
+    font-weight: 600;
+  }
+  .paste-submit:disabled {
+    opacity: 0.5;
+    cursor: default;
   }
 </style>

@@ -50,6 +50,7 @@
     aria-modal="true"
     aria-labelledby="delete-chat-dialog-title"
     aria-describedby="delete-chat-dialog-body"
+    data-testid="delete-chat-dialog"
   >
     <h2 id="delete-chat-dialog-title">{t('Delete chat?')}</h2>
     <p id="delete-chat-dialog-body">
@@ -58,11 +59,11 @@
       <span class="hint">{t('All messages in this chat will be deleted locally.')}</span>
     </p>
     <div class="actions">
-      <button class="btn danger" onclick={confirm}>
+      <button class="btn danger" onclick={confirm} data-testid="delete-chat-dialog__confirm">
         {confirmLabel}
       </button>
       <!-- svelte-ignore a11y_autofocus -->
-      <button class="btn" onclick={onClose} autofocus>
+      <button class="btn" onclick={onClose} autofocus data-testid="delete-chat-dialog__cancel">
         {t('Cancel')}
       </button>
     </div>

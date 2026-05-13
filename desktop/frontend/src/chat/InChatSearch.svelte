@@ -108,7 +108,7 @@
 </script>
 
 {#if open}
-  <div class="bar" role="search">
+  <div class="bar" role="search" data-testid="in-chat-search">
     <input
       bind:this={input}
       type="search"
@@ -116,8 +116,9 @@
       bind:value={query}
       onkeydown={onKeyDown}
       aria-label={t('Find in chat')}
+      data-testid="in-chat-search__input"
     />
-    <span class="count" aria-live="polite">
+    <span class="count" aria-live="polite" data-testid="in-chat-search__count">
       {#if busy}
         …
       {:else if hits.length > 0}
@@ -126,9 +127,9 @@
         0 / 0
       {/if}
     </span>
-    <button onclick={prev} disabled={hits.length === 0} aria-label={t('Previous match')} title={t('Previous (Shift+Enter)')}>↑</button>
-    <button onclick={next} disabled={hits.length === 0} aria-label={t('Next match')} title={t('Next (Enter)')}>↓</button>
-    <button onclick={onClose} aria-label={t('Close find')} title={t('Close (Esc)')}>✕</button>
+    <button onclick={prev} disabled={hits.length === 0} aria-label={t('Previous match')} title={t('Previous (Shift+Enter)')} data-testid="in-chat-search__prev">↑</button>
+    <button onclick={next} disabled={hits.length === 0} aria-label={t('Next match')} title={t('Next (Enter)')} data-testid="in-chat-search__next">↓</button>
+    <button onclick={onClose} aria-label={t('Close find')} title={t('Close (Esc)')} data-testid="in-chat-search__close">✕</button>
   </div>
 {/if}
 

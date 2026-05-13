@@ -15,6 +15,8 @@
     onSelect: () => void;
     danger?: boolean;
     disabled?: boolean;
+    /** Stable identifier for tests (data-action). Not displayed. */
+    action?: string;
   };
 
   type Props = {
@@ -74,12 +76,12 @@
 </script>
 
 <button class="backdrop" onclick={onClose} aria-label={t('Close menu')}></button>
-<div bind:this={menu} class="menu" style={style} role="menu">
+<div bind:this={menu} class="menu" style={style} role="menu" data-testid="message-context-menu">
   <div class="quick" role="group" aria-label={t('Quick reactions')}>
     {#each quickEmojis as e (e)}
-      <button class="emoji" onclick={() => pick(e)} aria-label={e}>{e}</button>
+      <button class="emoji" onclick={() => pick(e)} aria-label={e} data-testid="message-context-menu__quick-emoji" data-emoji={e}>{e}</button>
     {/each}
-    <button class="emoji more" onclick={more} aria-label={t('More emoji')}>
+    <button class="emoji more" onclick={more} aria-label={t('More emoji')} data-testid="message-context-menu__more-emoji">
       <Icon name="smile-plus" size={18} />
     </button>
   </div>
@@ -92,6 +94,8 @@
           disabled={a.disabled}
           onclick={() => pickAction(a)}
           role="menuitem"
+          data-testid="message-context-menu-item"
+          data-action={a.action ?? ''}
         >
           {#if a.icon}
             <span class="action-icon" aria-hidden="true">

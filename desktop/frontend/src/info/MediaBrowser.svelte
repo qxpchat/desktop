@@ -116,9 +116,9 @@
   }
 </script>
 
-<section class="media">
+<section class="media" data-testid="media-browser" data-tab={tab}>
   <header class="topbar">
-    <button class="back" onclick={backToChat} aria-label={t('Back')}>‹ {t('Back')}</button>
+    <button class="back" onclick={backToChat} aria-label={t('Back')} data-testid="media-browser__back">‹ {t('Back')}</button>
     <h1>{t('Media')}</h1>
   </header>
 
@@ -129,6 +129,8 @@
         class:active={tab === tabDef.id}
         aria-selected={tab === tabDef.id}
         onclick={() => (tab = tabDef.id as Tab)}
+        data-testid="media-browser__tab"
+        data-tab={tabDef.id}
       >
         {tabDef.label}
       </button>
@@ -137,13 +139,13 @@
 
   <div class="body">
     {#if loading}
-      <p class="muted">{t('Loading…')}</p>
+      <p class="muted" data-testid="media-browser__loading">{t('Loading…')}</p>
     {:else if items.length === 0}
-      <p class="muted">{t('Nothing yet.')}</p>
+      <p class="muted" data-testid="media-browser__empty">{t('Nothing yet.')}</p>
     {:else if tab === 'gallery'}
-      <div class="grid">
+      <div class="grid" data-testid="media-browser__grid">
         {#each items as m (m.id)}
-          <button class="thumb" onclick={() => jump(m.id)} oncontextmenu={(e) => { e.preventDefault(); void deleteItem(m.id); }}>
+          <button class="thumb" onclick={() => jump(m.id)} oncontextmenu={(e) => { e.preventDefault(); void deleteItem(m.id); }} data-testid="media-browser__tile" data-msg-id={m.id} data-view-type={m.viewType}>
             {#if m.viewType === 'Video'}
               <span class="play" aria-hidden="true">▶</span>
             {/if}
@@ -154,9 +156,9 @@
         {/each}
       </div>
     {:else if tab === 'audio'}
-      <ul class="list">
+      <ul class="list" data-testid="media-browser__list">
         {#each items as m (m.id)}
-          <li>
+          <li data-testid="media-browser__row" data-msg-id={m.id} data-view-type={m.viewType}>
             <span class="icon" aria-hidden="true">
               <Icon name={m.viewType === 'Voice' ? 'mic' : 'music'} size={18} stroke={2} />
             </span>
@@ -164,15 +166,15 @@
               <span class="name">{m.fileName ?? (m.viewType === 'Voice' ? t('Voice message') : t('Audio'))}</span>
               <span class="sub">{new Date(m.timestamp * 1000).toLocaleString()} · {formatBytes(m.fileBytes)}</span>
             </span>
-            <button class="link" onclick={() => jump(m.id)}>{t('Show')}</button>
-            <button class="link danger" onclick={() => void deleteItem(m.id)}>{t('Delete')}</button>
+            <button class="link" onclick={() => jump(m.id)} data-testid="media-browser__row-show">{t('Show')}</button>
+            <button class="link danger" onclick={() => void deleteItem(m.id)} data-testid="media-browser__row-delete">{t('Delete')}</button>
           </li>
         {/each}
       </ul>
     {:else}
-      <ul class="list">
+      <ul class="list" data-testid="media-browser__list">
         {#each items as m (m.id)}
-          <li>
+          <li data-testid="media-browser__row" data-msg-id={m.id} data-view-type={m.viewType}>
             <span class="icon" aria-hidden="true">
               <Icon name="paperclip" size={18} stroke={2} />
             </span>
@@ -180,9 +182,9 @@
               <span class="name">{m.fileName ?? t('file')}</span>
               <span class="sub">{new Date(m.timestamp * 1000).toLocaleString()} · {formatBytes(m.fileBytes)}</span>
             </span>
-            <a class="link" href={fileUrl(m.file ?? undefined)} download={m.fileName ?? undefined}>{t('Download')}</a>
-            <button class="link" onclick={() => jump(m.id)}>{t('Show')}</button>
-            <button class="link danger" onclick={() => void deleteItem(m.id)}>{t('Delete')}</button>
+            <a class="link" href={fileUrl(m.file ?? undefined)} download={m.fileName ?? undefined} data-testid="media-browser__row-download">{t('Download')}</a>
+            <button class="link" onclick={() => jump(m.id)} data-testid="media-browser__row-show">{t('Show')}</button>
+            <button class="link danger" onclick={() => void deleteItem(m.id)} data-testid="media-browser__row-delete">{t('Delete')}</button>
           </li>
         {/each}
       </ul>

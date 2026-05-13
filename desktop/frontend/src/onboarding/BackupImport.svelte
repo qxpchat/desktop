@@ -62,7 +62,7 @@
   <h1>{t('Restore Backup')}</h1>
 </header>
 
-<main class="page">
+<main class="page" data-testid="onboarding-backup-import">
   <div
     class="dropzone"
     class:hover={dragOver}
@@ -83,7 +83,7 @@
     <h2>{t('Drop a .tar backup file here')}</h2>
     <p class="hint">{t('Or pick one from your device')}</p>
     <label class="picker">
-      <input type="file" accept=".tar,application/x-tar" onchange={onPick} />
+      <input type="file" accept=".tar,application/x-tar" onchange={onPick} data-testid="onboarding-backup-import__picker" />
       <span>{t('Choose file…')}</span>
     </label>
     {#if uploading}

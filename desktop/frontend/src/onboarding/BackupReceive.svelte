@@ -70,7 +70,7 @@
   <h1>{t('Pair as Second Device')}</h1>
 </header>
 
-<main class="page">
+<main class="page" data-testid="onboarding-backup-receive">
   <p class="hint">
     {t('On your other device, open Delta Chat and choose Settings → Add Second Device. Point your camera at the QR code shown there.')}
   </p>
@@ -88,7 +88,7 @@
     <p class="error">{scanError}</p>
   {/if}
 
-  <button class="paste" onclick={openPaste}>{t('Paste Code Manually')}</button>
+  <button class="paste" onclick={openPaste} data-testid="onboarding-backup-receive__paste-open">{t('Paste Code Manually')}</button>
 </main>
 
 {#if pasteOpen}
@@ -104,10 +104,11 @@
         rows="3"
         spellcheck="false"
         autocapitalize="off"
+        data-testid="onboarding-backup-receive__paste-input"
       ></textarea>
       <div class="actions">
         <button onclick={cancelPaste}>{t('Cancel')}</button>
-        <button class="primary" onclick={submitPaste} disabled={!pasteValue.trim()}>{t('Pair')}</button>
+        <button class="primary" onclick={submitPaste} disabled={!pasteValue.trim()} data-testid="onboarding-backup-receive__paste-submit">{t('Pair')}</button>
       </div>
     </div>
   </div>
@@ -120,7 +121,7 @@
       <p>{t('You\'ll receive your account from the other device.')}</p>
       <div class="actions">
         <button onclick={cancelConfirm}>{t('Cancel')}</button>
-        <button class="primary" onclick={confirm}>{t('Pair')}</button>
+        <button class="primary" onclick={confirm} data-testid="onboarding-backup-receive__confirm">{t('Pair')}</button>
       </div>
     </div>
   </div>

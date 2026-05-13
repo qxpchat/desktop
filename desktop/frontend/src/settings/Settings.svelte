@@ -69,9 +69,9 @@
   }
 </script>
 
-<section class="settings">
+<section class="settings" data-testid="settings" data-active={active}>
   <header class="topbar" data-tauri-drag-region>
-    <button class="back" onclick={backToChat} aria-label={t('Back')}>
+    <button class="back" onclick={backToChat} aria-label={t('Back')} data-testid="settings__back">
       <Icon name="chevron-left" size={16} /> {t('Back')}
     </button>
     <h1>{t('Settings')}</h1>
@@ -87,6 +87,8 @@
             connectivitySubView = undefined;
           }}
           aria-current={active === s.id ? 'page' : undefined}
+          data-testid="settings__rail-item"
+          data-section={s.id}
         >
           <span class="icon" aria-hidden="true"><Icon name={s.icon} size={18} /></span>
           <span>{s.label}</span>
@@ -95,7 +97,7 @@
     </nav>
 
     <div class="content">
-      <div class="section">
+      <div class="section" data-testid="settings__section" data-section={active}>
         {#if active === 'profile'}
           <Profile />
         {:else if active === 'appearance'}
@@ -116,7 +118,7 @@
       </div>
 
       <div class="logout-row">
-        <button class="logout" disabled={loggingOut} onclick={logout}>
+        <button class="logout" disabled={loggingOut} onclick={logout} data-testid="settings__logout">
           <Icon name="log-out" size={16} />
           {loggingOut ? t('Logging out…') : t('Log out')}
         </button>

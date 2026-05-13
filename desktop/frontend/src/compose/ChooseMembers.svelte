@@ -57,12 +57,12 @@
   );
 </script>
 
-<div class="pane">
+<div class="pane" data-testid="choose-members" data-flow={mode.flow}>
   <header class="header">
-    <button class="back" onclick={backToInbox} aria-label={t('Cancel')}>‹</button>
+    <button class="back" onclick={backToInbox} aria-label={t('Cancel')} data-testid="choose-members__cancel">‹</button>
     <h2>{headerLabel}</h2>
     <div class="spacer"></div>
-    <button class="next" disabled={selected.length === 0} onclick={next}>{actionLabel}</button>
+    <button class="next" disabled={selected.length === 0} onclick={next} data-testid="choose-members__next">{actionLabel}</button>
   </header>
 
   <div class="search-row">
@@ -72,6 +72,7 @@
       placeholder={t('Search contacts…')}
       aria-label={t('Search contacts')}
       bind:value={search}
+      data-testid="choose-members__search"
     />
   </div>
 

@@ -204,13 +204,21 @@
       style:--jumbo-scale={jumboScale}
       oncontextmenu={handleContext}
       role="article"
+      data-testid="message-bubble"
+      data-msg-id={message.id}
+      data-direction={outgoing ? 'outgoing' : 'incoming'}
+      data-state={stateGlyph?.kind ?? ''}
+      data-view-type={message.viewType}
+      data-has-location={message.hasLocation ? 'true' : 'false'}
+      data-edited={message.isEdited ? 'true' : 'false'}
+      data-forwarded={message.isForwarded ? 'true' : 'false'}
     >
       {#if !outgoing && showSender && senderName}
-        <div class="sender" style:color={senderColor}>{senderName}</div>
+        <div class="sender" style:color={senderColor} data-testid="message-bubble__sender">{senderName}</div>
       {/if}
 
       {#if quote}
-        <button class="quote" onclick={onJumpQuote} type="button">
+        <button class="quote" onclick={onJumpQuote} type="button" data-testid="message-bubble__quote">
           <span class="quote-bar" style:background={quote.kind === 'WithMessage' ? quote.authorDisplayColor : 'var(--color-accent)'}></span>
           <span class="quote-meta">
             {#if quote.kind === 'WithMessage'}
@@ -248,7 +256,7 @@
       {/if}
 
       {#if message.text && !cellOwnsText}
-        <div class="text">
+        <div class="text" data-testid="message-bubble__text">
           {#each linkify(message.text) as seg, i (i)}
             {#if seg.kind === 'link'}
               <a href={seg.href} target="_blank" rel="noopener noreferrer">{seg.text}</a>
@@ -266,7 +274,7 @@
         </div>
       {/if}
 
-      <div class="meta">
+      <div class="meta" data-testid="message-bubble__meta">
         {#if message.isEdited}
           <span class="edited-tag">{t('edited')}</span>
         {/if}
@@ -274,7 +282,7 @@
           {timeLabel}
         </span>
         {#if stateGlyph}
-          <span class="state {stateGlyph.kind}" aria-label={stateGlyph.kind}>
+          <span class="state {stateGlyph.kind}" aria-label={stateGlyph.kind} data-testid="message-bubble__state" data-state={stateGlyph.kind}>
             <Icon name={stateGlyph.icon} size={12} stroke={2} />
           </span>
         {/if}

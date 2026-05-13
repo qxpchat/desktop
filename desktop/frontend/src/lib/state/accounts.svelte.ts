@@ -3,6 +3,7 @@
 // onboarding.
 
 import { rpc } from '../rpc';
+import { onEvent } from '../events';
 
 export type AccountsState = {
   loaded: boolean;
@@ -51,6 +52,20 @@ export async function refreshAccounts(): Promise<void> {
     accounts.loaded = true;
   }
 }
+
+// dc-core splits account-list mutations across two events:
+//   - `AccountsChanged`     fires on add_account / remove_account
+//                           (account *list* shape changed).
+//   - `AccountsItemChanged` fires on configure-complete / set_config
+//                           (an existing account's metadata changed
+//                            — most importantly the `is_configured`
+//                            flag flipping from false to true).
+//
+// We need both: AccountsChanged so a new tile appears, and
+// AccountsItemChanged so a freshly-configured account moves into
+// `configuredIds` (which is what NavTabs renders).
+onEvent('AccountsChanged', () => void refreshAccounts());
+onEvent('AccountsItemChanged', () => void refreshAccounts());
 
 /** Remove any accounts that aren't yet configured — typically left over from
  *  an onboarding flow that was interrupted (tab closed, network dropped). */

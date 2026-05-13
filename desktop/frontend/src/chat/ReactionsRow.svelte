@@ -36,7 +36,7 @@
 </script>
 
 {#if reactions.length > 0}
-  <div class="row" role="group" aria-label={t('Reactions')}>
+  <div class="row" role="group" aria-label={t('Reactions')} data-testid="reactions-row">
     {#each reactions as r (r.emoji)}
       {@const actionable = r.isFromSelf || isGroup}
       <button
@@ -47,6 +47,9 @@
         disabled={!actionable}
         aria-pressed={r.isFromSelf}
         aria-label="{r.emoji} reaction, {r.count}"
+        data-testid="reactions-row__chip"
+        data-emoji={r.emoji}
+        data-mine={r.isFromSelf ? 'true' : 'false'}
       >
         <span class="emoji">{r.emoji}</span>
         {#if showCount}

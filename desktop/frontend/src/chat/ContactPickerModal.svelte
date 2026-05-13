@@ -45,6 +45,7 @@
     aria-modal="true"
     aria-label={t('Pick a contact')}
     tabindex="-1"
+    data-testid="contact-picker"
     onclick={(e) => {
       if (e.target === e.currentTarget) onClose();
     }}

@@ -6,8 +6,8 @@ help:
 	@echo "  make tauri-dev      Run the full Tauri app (daemon + Vite + native window)"
 	@echo "  make tauri-build    Bundle a release build (single-binary desktop app)"
 	@echo
-	@echo "  make server         Run only the Rust daemon (server/)        [127.0.0.1:9090]"
-	@echo "  make ui             Run only the Vite dev server              [0.0.0.0:8080]"
+	@echo "  make server         Run only the Rust daemon (server/)        [127.0.0.1:4041]"
+	@echo "  make ui             Run only the Vite dev server              [0.0.0.0:4040]"
 	@echo "  make install        npm install in frontend/"
 	@echo "  make build          Production build of the frontend (dist/)"
 	@echo "  make clean          Remove target/, node_modules/, dist/"

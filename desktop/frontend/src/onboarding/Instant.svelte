@@ -34,7 +34,7 @@
   <button class="back" onclick={onBack} aria-label={t('Back')}>‹ {t('Back')}</button>
 </header>
 
-<main class="instant">
+<main class="instant" data-testid="onboarding-instant">
   <div class="avatar" aria-hidden="true">{avatarLetter}</div>
 
   <input
@@ -43,6 +43,7 @@
     placeholder={t('Your name')}
     bind:value={displayName}
     autocomplete="nickname"
+    data-testid="onboarding-instant__name"
   />
 
   <p class="hint">{t('Set a name so others recognize you.')}</p>
@@ -54,7 +55,7 @@
     </a>.
   </p>
 
-  <button class="primary" disabled={!canCreate} onclick={create}>{t('Create Profile')}</button>
+  <button class="primary" disabled={!canCreate} onclick={create} data-testid="onboarding-instant__submit">{t('Create Profile')}</button>
 
   <div class="alt">
     <button class="secondary" aria-haspopup="menu" aria-expanded={altMenuOpen} onclick={() => (altMenuOpen = !altMenuOpen)}>

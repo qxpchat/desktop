@@ -157,12 +157,12 @@ class RpcClient {
  *      daemon during dev; an embedded production build serves it itself).
  *   2. Tauri webview — the frontend is loaded over `tauri://localhost` (no
  *      port, custom protocol). Same-origin `/ws` doesn't reach the daemon,
- *      so we hop directly to `ws://127.0.0.1:9090/ws` where the desktop
+ *      so we hop directly to `ws://127.0.0.1:4041/ws` where the desktop
  *      shell binds it.
  */
 function detectDaemonWsUrl(): string {
   const tauriHost = location.protocol === 'tauri:' || location.hostname === 'tauri.localhost';
-  if (tauriHost) return 'ws://127.0.0.1:9090/ws';
+  if (tauriHost) return 'ws://127.0.0.1:4041/ws';
   return `${location.protocol === 'https:' ? 'wss' : 'ws'}://${location.host}/ws`;
 }
 

@@ -216,7 +216,7 @@
 </script>
 
 {#if !accounts.loaded || connectionStatus !== 'connected'}
-  <div class="boot">
+  <div class="boot" data-testid="app-boot">
     <div class="boot-content">
       <div class="boot-logo">
         <Logo size="clamp(96px, 22vw, 168px)" />
@@ -234,12 +234,14 @@
     </div>
   </div>
 {:else if accounts.configuredIds.length === 0 || showAddAccountOnboarding}
-  <Onboarding />
-  {#if showAddAccountOnboarding && accounts.configuredIds.length > 0}
-    <button class="onboarding-back" onclick={() => (showAddAccountOnboarding = false)}>← {t('Back')}</button>
-  {/if}
+  <div data-testid="onboarding">
+    <Onboarding />
+    {#if showAddAccountOnboarding && accounts.configuredIds.length > 0}
+      <button class="onboarding-back" onclick={() => (showAddAccountOnboarding = false)}>← {t('Back')}</button>
+    {/if}
+  </div>
 {:else}
-  <div class="shell">
+  <div class="shell" data-testid="app-shell">
     {#if !prefs.pane1Collapsed && !fullscreenRoute}
       <NavTabs
         selectedAccountId={accounts.selectedId ?? 0}

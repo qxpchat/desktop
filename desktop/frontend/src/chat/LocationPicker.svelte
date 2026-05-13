@@ -88,7 +88,7 @@
 <svelte:window onkeydown={onKey} />
 
 {#if open}
-  <div class="overlay" role="dialog" aria-modal="true" aria-label={t('Send Location')}>
+  <div class="overlay" role="dialog" aria-modal="true" aria-label={t('Send Location')} data-testid="location-picker">
     <button class="backdrop" onclick={onClose} aria-label={t('Close')}></button>
     <div class="card">
       <header>
@@ -118,8 +118,8 @@
       </div>
 
       <div class="actions">
-        <button onclick={onClose}>{t('Cancel')}</button>
-        <button class="primary" onclick={send} disabled={!coord || busy}>
+        <button onclick={onClose} data-testid="location-picker__cancel">{t('Cancel')}</button>
+        <button class="primary" onclick={send} disabled={!coord || busy} data-testid="location-picker__send">
           <Icon name="map-pin" size={14} stroke={2.5} />
           {t('Send this location')}
         </button>

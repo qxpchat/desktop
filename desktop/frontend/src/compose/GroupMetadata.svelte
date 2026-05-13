@@ -74,24 +74,25 @@
   }
 </script>
 
-<div class="pane">
+<div class="pane" data-testid="group-metadata" data-flow={mode.flow}>
   <header class="header">
-    <button class="back" onclick={back} aria-label={t('Back')}>‹</button>
+    <button class="back" onclick={back} aria-label={t('Back')} data-testid="group-metadata__back">‹</button>
     <h2>{title}</h2>
     <div class="spacer"></div>
-    <button class="create" disabled={!canCreate} onclick={create}>{t('Create')}</button>
+    <button class="create" disabled={!canCreate} onclick={create} data-testid="group-metadata__create">{t('Create')}</button>
   </header>
 
   <div class="body">
     <label class="field">
       <span class="label">{t('Name')}</span>
-      <input bind:value={name} placeholder={mode.flow === 'group' ? t('Project chat') : t('Updates')} />
+      <input bind:value={name} placeholder={mode.flow === 'group' ? t('Project chat') : t('Updates')} data-testid="group-metadata__name" />
     </label>
 
     {#if mode.flow === 'group'}
       <label class="field">
         <span class="label">{t('Description (optional)')}</span>
         <textarea bind:value={description} rows="2" placeholder={t('What\'s this group about?')}
+          data-testid="group-metadata__description"
         ></textarea>
       </label>
 
@@ -100,6 +101,7 @@
           type="checkbox"
           bind:checked={verified}
           disabled={!allSelectedAreVerified}
+          data-testid="group-metadata__verified"
         />
         <span>
           {t('Verified group')}

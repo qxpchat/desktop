@@ -40,7 +40,7 @@
 
 <svelte:window onkeydown={onKey} />
 
-<main class="welcome">
+<main class="welcome" data-testid="onboarding-welcome">
   <div class="brand">
     <div class="logo-wrap">
       <Logo size="clamp(96px, 22vw, 168px)" />
@@ -50,18 +50,24 @@
   </div>
 
   <div class="actions">
-    <button class="primary" onclick={signUp}>{t('Sign Up')}</button>
+    <button class="primary" onclick={signUp} data-testid="onboarding-welcome__sign-up">{t('Sign Up')}</button>
 
     <div class="alt">
-      <button class="secondary" aria-haspopup="menu" aria-expanded={altMenuOpen} onclick={toggleAlt}>
+      <button
+        class="secondary"
+        aria-haspopup="menu"
+        aria-expanded={altMenuOpen}
+        onclick={toggleAlt}
+        data-testid="onboarding-welcome__alt-toggle"
+      >
         {t('I Already Have a Profile')}
       </button>
 
       {#if altMenuOpen}
         <div class="alt-menu" role="menu">
-          <button role="menuitem" onclick={manualSetup}>{t('Manual Setup')}</button>
-          <button role="menuitem" onclick={restoreBackup}>{t('Restore Backup')}</button>
-          <button role="menuitem" onclick={addAsSecondDevice}>{t('Add as Second Device')}</button>
+          <button role="menuitem" onclick={manualSetup} data-testid="onboarding-welcome__manual-setup">{t('Manual Setup')}</button>
+          <button role="menuitem" onclick={restoreBackup} data-testid="onboarding-welcome__restore-backup">{t('Restore Backup')}</button>
+          <button role="menuitem" onclick={addAsSecondDevice} data-testid="onboarding-welcome__add-second-device">{t('Add as Second Device')}</button>
         </div>
       {/if}
     </div>

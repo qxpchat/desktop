@@ -408,22 +408,26 @@
       onSelect: () => void;
       danger?: boolean;
       disabled?: boolean;
+      action?: string;
     }[] = [];
     actions.push({
       label: t('Reply'),
       icon: 'reply',
+      action: 'reply',
       onSelect: () => setReplyTo(m.id),
     });
     if (m.text) {
       actions.push({
         label: t('Copy'),
         icon: 'copy',
+        action: 'copy',
         onSelect: () => void navigator.clipboard.writeText(m.text),
       });
     }
     actions.push({
       label: t('Forward'),
       icon: 'forward',
+      action: 'forward',
       onSelect: () => {
         forwardTargets = [m.id];
         forwardOpen = true;
@@ -433,6 +437,7 @@
       actions.push({
         label: t('Edit'),
         icon: 'pencil',
+        action: 'edit',
         onSelect: () => setEditing(m.id),
       });
     }
@@ -440,6 +445,7 @@
       label: t('Delete'),
       icon: 'trash-2',
       danger: true,
+      action: 'delete',
       onSelect: () => {
         // Core only accepts a recall for own messages that already left the
         // outbox. Anything else (incoming, draft, pending, failed) can only
@@ -453,6 +459,7 @@
     actions.push({
       label: t('Select More'),
       icon: 'check-square',
+      action: 'select-more',
       onSelect: () => enterSelection(m.id),
     });
     return actions;
@@ -534,6 +541,7 @@
   ondragover={onDragOver}
   ondragleave={onDragLeave}
   ondrop={onDrop}
+  data-testid="chat-view"
 >
   {#if dragActive}
     <div class="drop-overlay" role="presentation">
@@ -611,9 +619,9 @@
   </div>
 
   {#if isSelecting}
-    <div class="selection-bar" role="toolbar" aria-label={t('Selection actions')}>
-      <button class="cancel" onclick={exitSelection}>{t('Cancel')}</button>
-      <span class="count">
+    <div class="selection-bar" role="toolbar" aria-label={t('Selection actions')} data-testid="selection-bar" data-count={selectedCount}>
+      <button class="cancel" onclick={exitSelection} data-testid="selection-bar__cancel">{t('Cancel')}</button>
+      <span class="count" data-testid="selection-bar__count">
         {selectedCount === 1 ? t('1 selected') : t('{n} selected', { n: selectedCount })}
       </span>
       <div class="actions">
@@ -622,6 +630,7 @@
           disabled={selectedCount === 0}
           onclick={onForwardSelected}
           aria-label={t('Forward')}
+          data-testid="selection-bar__forward"
         >
           <Icon name="forward" size={18} />
         </button>
@@ -630,6 +639,7 @@
           disabled={selectedCount === 0}
           onclick={onCopySelected}
           aria-label={t('Copy')}
+          data-testid="selection-bar__copy"
         >
           <Icon name="copy" size={18} />
         </button>
@@ -638,6 +648,7 @@
           disabled={selectedCount === 0}
           onclick={onDeleteSelected}
           aria-label={t('Delete')}
+          data-testid="selection-bar__delete"
         >
           <Icon name="trash-2" size={18} />
         </button>

@@ -7,6 +7,20 @@ xcuserdata/
 *.xcuserstate
 target
 
+# E2E test pool — real chatmail creds, regenerable via `make test-accounts`.
+desktop/tests/.env
+desktop/tests/node_modules/
+desktop/tests/.pool-lock.json
+# Leftover per-test accounts dirs land in /tmp by default but list the
+# local fallback too in case a contributor symlinks one in.
+desktop/tests/.tmp-accounts/
+# Pre-paired account snapshots produced by `make test-accounts` — large
+# binary SQLite dbs + blob dirs, regenerable.
+desktop/tests/fixtures/account-templates/
+# Attachment fixtures materialised at test start by `helpers/media.ts`
+# (tiny base64-inlined files). Regenerable.
+desktop/tests/fixtures/media/
+
 # Platform-specific copies of the derivatives canonical in `assets/generated/`
 # (and `assets/logo.svg`). Populated on `make icons` — never edit directly.
 ios/qxp/Assets.xcassets/Logo.imageset/logo.svg
@@ -16,3 +30,4 @@ desktop/frontend/src/lib/qxpLogoPath.ts
 desktop/frontend/public/icon.svg
 desktop/src-tauri/icons/icon.png
 
+desktop/tests/test-results

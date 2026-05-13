@@ -114,13 +114,15 @@
 
 <section class="block">
   <h3>{t('Theme')}</h3>
-  <div class="seg" role="radiogroup" aria-label={t('Theme')}>
+  <div class="seg" role="radiogroup" aria-label={t('Theme')} data-testid="settings-appearance__theme">
     {#each THEMES as theme}
       <button
         role="radio"
         aria-checked={prefs.theme === theme}
         class:active={prefs.theme === theme}
         onclick={() => setTheme(theme)}
+        data-testid="settings-appearance__theme-option"
+        data-theme={theme}
       >
         {THEME_LABELS[theme]()}
       </button>
@@ -130,7 +132,7 @@
 
 <section class="block">
   <h3>{t('Accent color')}</h3>
-  <div class="swatches" role="radiogroup" aria-label={t('Accent color')}>
+  <div class="swatches" role="radiogroup" aria-label={t('Accent color')} data-testid="settings-appearance__accent">
     {#each swatches as s (s.value + s.label)}
       <button
         class="swatch"
@@ -139,6 +141,8 @@
         onclick={() => pickAccent(s.value)}
         aria-label={s.label}
         title={s.label}
+        data-testid="settings-appearance__accent-swatch"
+        data-color={s.value}
       ></button>
     {/each}
   </div>
