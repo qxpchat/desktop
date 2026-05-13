@@ -1,18 +1,48 @@
 // Phase 6 — add a member to an existing group.
 //
-// TODO: there is currently no "Add member" affordance in `ChatInfo`.
-// The component renders the members list with a per-row Remove button,
-// but no Add button or row-tap that opens the picker. To make this
-// spec live we'd need to extend ChatInfo with an Add-member path
-// (mirror the compose-flow ChooseMembers, scoped to the active chat).
-//
-// Skipping until that UI exists. The underlying RPC
-// (`add_contact_to_chat`) is already exercised by the Phase 5 group
-// spec at creation time, so this isn't dark code — it just isn't
-// reachable from the post-creation surface yet.
+// Uses the trio fixture so we have a 3rd verified peer (peer2) available
+// to add. Flow:
+//   1. Create a group with peer1.
+//   2. Open chat-info → tap "Add members" → dialog opens.
+//   3. Tap peer2's row → tap "Add".
+//   4. Members list now lists peer2; daemon-side membership confirms it.
 
-import { test } from '../../fixtures/app-paired.js';
+import { test, expect } from '../../fixtures/app-trio.js';
+import { createGroupAndOpenInfo } from '../../helpers/setup.js';
+import { TID } from '../../helpers/selectors.js';
 
-test.skip('add-member: UI affordance not yet shipped', async () => {
-  /* see header comment */
+test.setTimeout(90_000);
+
+test('add-member: picker adds a verified contact to the group', async ({ qxpTrio, page }) => {
+  const { peer1, peer2, mainRpc } = qxpTrio;
+
+  const groupName = `Add member ${Date.now()}`;
+  await createGroupAndOpenInfo(page, peer1.displayName, groupName);
+
+  // peer2's row is initially absent.
+  await expect(
+    page.locator(TID.chatInfoMemberByName(peer2.displayName)),
+  ).toHaveCount(0);
+
+  // Open the picker, select peer2, confirm.
+  await page.locator(TID.chatInfoAddMember).click();
+  await expect(page.locator(TID.chatInfoAddMemberDialog)).toBeVisible();
+  const row = page.locator(TID.chatInfoAddMemberRowByName(peer2.displayName));
+  await expect(row).toBeVisible({ timeout: 5_000 });
+  await row.click();
+  await page.locator(TID.chatInfoAddMemberConfirm).click();
+  await expect(page.locator(TID.chatInfoAddMemberDialog)).toHaveCount(0);
+
+  // UI: members list now contains peer2.
+  await expect(
+    page.locator(TID.chatInfoMemberByName(peer2.displayName)),
+  ).toBeVisible({ timeout: 5_000 });
+
+  // Daemon-side: peer2's contactId is in the chat's contactIds.
+  const accountId = (await mainRpc.call<number[]>('get_all_account_ids'))[0];
+  const entries = await mainRpc.call<number[]>('get_chatlist_entries', [accountId, null, groupName, null]);
+  const peerContactId = await mainRpc.call<number | null>('lookup_contact_id_by_addr', [accountId, peer2.email]);
+  const full = await mainRpc.call<{ contactIds: number[] }>('get_full_chat_by_id', [accountId, entries[0]]);
+  expect(peerContactId).not.toBeNull();
+  expect(full.contactIds).toContain(peerContactId!);
 });

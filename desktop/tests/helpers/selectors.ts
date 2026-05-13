@@ -94,6 +94,16 @@ export const TID = {
   chatInfoDelete: '[data-testid="chat-info__delete"]',
   chatInfoMedia: '[data-testid="chat-info__media"]',
   chatInfoQrInvite: '[data-testid="chat-info__qr-invite"]',
+  chatInfoAddMember: '[data-testid="chat-info__add-member"]',
+  chatInfoAddMemberDialog: '[data-testid="chat-info__add-member-dialog"]',
+  chatInfoAddMemberSearch: '[data-testid="chat-info__add-member-search"]',
+  chatInfoAddMemberRow: '[data-testid="chat-info__add-member-row"]',
+  chatInfoAddMemberRowByName: (name: string) =>
+    `[data-testid="chat-info__add-member-row"][data-name="${name}"]`,
+  chatInfoAddMemberConfirm: '[data-testid="chat-info__add-member-confirm"]',
+  chatInfoAddMemberCancel: '[data-testid="chat-info__add-member-cancel"]',
+  chatInfoAvatarEdit: '[data-testid="chat-info__avatar-edit"]',
+  chatInfoAvatarFileInput: '[data-testid="chat-info__avatar-file-input"]',
 
   // -- Media browser --
   mediaBrowser: '[data-testid="media-browser"]',

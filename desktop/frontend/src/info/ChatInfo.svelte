@@ -8,6 +8,7 @@
   import { backToChat, setMainRoute } from '../lib/state/mainRoute.svelte';
   import { selectChat } from '../lib/state/selection.svelte';
   import { liveLocations } from '../lib/state/liveLocations.svelte';
+  import { uploadBlob } from '../lib/files';
   import Avatar from '../lib/Avatar.svelte';
   import Icon from '../lib/Icon.svelte';
   import { t } from '../lib/i18n/i18n.svelte';
@@ -58,6 +59,17 @@
   let loaded = $state(false);
   let editingName = $state(false);
   let nameInput = $state('');
+
+  // ---- add-member dialog ----
+  let addMemberOpen = $state(false);
+  let addMemberQuery = $state('');
+  let addMemberPicked = $state<number[]>([]);
+  let addMemberCandidates = $state<Contact[]>([]);
+  let addMemberBusy = $state(false);
+
+  // ---- avatar / cover-image edit ----
+  let avatarFileInput: HTMLInputElement | undefined = $state();
+  let avatarBusy = $state(false);
 
   // Latest peer stream point for this chat — comes from the shared
   // liveLocations store (one bulk `get_locations` query for the whole
@@ -221,6 +233,89 @@
     await load();
   }
 
+  /** Open the add-member dialog. Loads all contacts on the active account,
+   *  filters out anyone already in the chat (including past members so we
+   *  don't suggest re-adding someone who just got kicked — the user has to
+   *  type their address fresh in that case via the compose-flow). */
+  async function openAddMembers() {
+    if (!chat || accounts.selectedId == null) return;
+    addMemberPicked = [];
+    addMemberQuery = '';
+    addMemberOpen = true;
+    await refreshAddMemberCandidates();
+  }
+
+  async function refreshAddMemberCandidates() {
+    if (!chat || accounts.selectedId == null) return;
+    // `get_contacts(accountId, listFlags=0, query)` returns non-blocked
+    // contacts, search-filtered server-side. Self (id=1) is excluded.
+    const all = await rpc.call<Contact[]>('get_contacts', [
+      accounts.selectedId,
+      0,
+      addMemberQuery.trim() || null,
+    ]);
+    const inGroup = new Set<number>([...(chat?.contactIds ?? []), ...(chat?.pastContactIds ?? [])]);
+    addMemberCandidates = all.filter((c) => c.id !== 1 && !inGroup.has(c.id));
+  }
+
+  function toggleAddMember(id: number) {
+    if (addMemberPicked.includes(id)) {
+      addMemberPicked = addMemberPicked.filter((x) => x !== id);
+    } else {
+      addMemberPicked = [...addMemberPicked, id];
+    }
+  }
+
+  async function confirmAddMembers() {
+    if (!chat || accounts.selectedId == null || addMemberPicked.length === 0) return;
+    addMemberBusy = true;
+    try {
+      for (const cid of addMemberPicked) {
+        await rpc.call('add_contact_to_chat', [accounts.selectedId, chat.id, cid]);
+      }
+      addMemberOpen = false;
+      addMemberPicked = [];
+      await load();
+    } catch (err) {
+      alert(`Add member failed: ${err instanceof Error ? err.message : String(err)}`);
+    } finally {
+      addMemberBusy = false;
+    }
+  }
+
+  /** Tap-to-edit on the group/channel avatar. Triggers the hidden file
+   *  input; the change handler uploads + sets the chat profile image. */
+  function pickAvatar() {
+    avatarFileInput?.click();
+  }
+
+  async function onAvatarPicked(ev: Event) {
+    if (!chat || accounts.selectedId == null) return;
+    const target = ev.currentTarget as HTMLInputElement;
+    const file = target.files?.[0];
+    // Clear the input so picking the same file again re-fires `change`.
+    target.value = '';
+    if (!file) return;
+    avatarBusy = true;
+    try {
+      const ext = (file.name.split('.').pop() ?? 'png').toLowerCase();
+      const path = await uploadBlob(file, ext);
+      await rpc.call('set_chat_profile_image', [accounts.selectedId, chat.id, path]);
+      await load();
+    } catch (err) {
+      alert(`Could not set image: ${err instanceof Error ? err.message : String(err)}`);
+    } finally {
+      avatarBusy = false;
+    }
+  }
+
+  // Debounced refresh on search-input changes while the dialog is open.
+  $effect(() => {
+    if (!addMemberOpen) return;
+    void addMemberQuery;
+    void refreshAddMemberCandidates();
+  });
+
   function showMedia() {
     if (!chat) return;
     setMainRoute({ kind: 'mediaBrowser', chatId: chat.id });
@@ -252,13 +347,42 @@
     <p class="muted">{t('Loading…')}</p>
   {:else}
     <div class="header">
-      <Avatar
-        name={chat.name || '?'}
-        color={chat.color}
-        imagePath={chat.profileImage}
-        size={96}
-        seenRecently={other?.wasSeenRecently ?? false}
-      />
+      {#if (isGroup || isBroadcast) && chat.selfInGroup}
+        <button
+          class="avatar-edit"
+          onclick={pickAvatar}
+          disabled={avatarBusy}
+          aria-label={isBroadcast ? t('Change channel image') : t('Change group avatar')}
+          data-testid="chat-info__avatar-edit"
+        >
+          <Avatar
+            name={chat.name || '?'}
+            color={chat.color}
+            imagePath={chat.profileImage}
+            size={96}
+            seenRecently={false}
+          />
+          <span class="avatar-edit-badge" aria-hidden="true">
+            <Icon name="upload" size={14} />
+          </span>
+        </button>
+        <input
+          type="file"
+          accept="image/*"
+          class="hidden-file"
+          bind:this={avatarFileInput}
+          onchange={onAvatarPicked}
+          data-testid="chat-info__avatar-file-input"
+        />
+      {:else}
+        <Avatar
+          name={chat.name || '?'}
+          color={chat.color}
+          imagePath={chat.profileImage}
+          size={96}
+          seenRecently={other?.wasSeenRecently ?? false}
+        />
+      {/if}
       {#if editingName}
         <input bind:value={nameInput} placeholder={t('Name')} data-testid="chat-info__name-input" />
         <div class="actions">
@@ -356,6 +480,14 @@
           </li>
         {/each}
       </ul>
+      {#if chat.selfInGroup}
+        <div class="group">
+          <button class="row link" onclick={openAddMembers} data-testid="chat-info__add-member">
+            <span class="label">{t('Add members')}</span>
+            <Icon name="chevron-right" size={14} />
+          </button>
+        </div>
+      {/if}
     {/if}
 
     {#if isSingle && other}
@@ -375,6 +507,59 @@
       <button class="row danger-row" onclick={deleteChat} data-testid="chat-info__delete">
         <span class="label">{t('Delete chat')}</span>
       </button>
+    </div>
+  {/if}
+
+  {#if addMemberOpen}
+    <div class="overlay" role="dialog" aria-modal="true" aria-label={t('Add members')}>
+      <div class="dialog" data-testid="chat-info__add-member-dialog">
+        <h3>{t('Add members')}</h3>
+        <input
+          class="search"
+          bind:value={addMemberQuery}
+          placeholder={t('Search contacts')}
+          data-testid="chat-info__add-member-search"
+        />
+        <ul class="picker">
+          {#each addMemberCandidates as c (c.id)}
+            <li>
+              <button
+                class="picker-row"
+                class:picked={addMemberPicked.includes(c.id)}
+                onclick={() => toggleAddMember(c.id)}
+                data-testid="chat-info__add-member-row"
+                data-contact-id={c.id}
+                data-name={c.displayName}
+              >
+                <Avatar name={c.displayName} color={c.color} imagePath={c.profileImage} size={32} />
+                <span class="m-meta">
+                  <span class="m-name">{c.displayName}</span>
+                  <span class="m-addr">{c.address}</span>
+                </span>
+                {#if addMemberPicked.includes(c.id)}
+                  <Icon name="check" size={16} />
+                {/if}
+              </button>
+            </li>
+          {/each}
+          {#if addMemberCandidates.length === 0}
+            <li class="empty">{t('No contacts to add.')}</li>
+          {/if}
+        </ul>
+        <div class="actions">
+          <button
+            onclick={() => (addMemberOpen = false)}
+            disabled={addMemberBusy}
+            data-testid="chat-info__add-member-cancel"
+          >{t('Cancel')}</button>
+          <button
+            class="primary"
+            onclick={confirmAddMembers}
+            disabled={addMemberBusy || addMemberPicked.length === 0}
+            data-testid="chat-info__add-member-confirm"
+          >{addMemberBusy ? t('Adding…') : t('Add')}</button>
+        </div>
+      </div>
     </div>
   {/if}
 </section>
@@ -595,5 +780,127 @@
     background: var(--color-accent);
     color: var(--color-accent-fg);
     font-weight: 600;
+  }
+
+  /* --- avatar edit --- */
+  .avatar-edit {
+    position: relative;
+    padding: 0;
+    background: transparent;
+    border-radius: 50%;
+    cursor: pointer;
+  }
+  .avatar-edit:disabled {
+    opacity: 0.6;
+    cursor: default;
+  }
+  .avatar-edit-badge {
+    position: absolute;
+    right: 0;
+    bottom: 0;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: var(--color-accent);
+    color: var(--color-accent-fg);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: 2px solid var(--color-bg);
+  }
+  .hidden-file {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  /* --- add-member dialog --- */
+  .overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.45);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: var(--z-modal);
+    backdrop-filter: blur(4px);
+  }
+  .dialog {
+    background: var(--color-bg-elevated);
+    border-radius: var(--radius-lg);
+    padding: var(--space-5);
+    width: min(480px, calc(100vw - 2 * var(--space-4)));
+    max-height: 80vh;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+    box-shadow: 0 16px 48px var(--color-shadow);
+  }
+  .dialog h3 {
+    margin: 0;
+    font-size: var(--text-lg);
+    font-weight: 600;
+  }
+  .search {
+    padding: 8px 12px;
+    border-radius: var(--radius-md);
+    border: 1px solid var(--color-border);
+    background: var(--color-bg);
+    color: var(--color-fg);
+    font: inherit;
+  }
+  .picker {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    overflow-y: auto;
+    flex: 1;
+    min-height: 60px;
+  }
+  .picker-row {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    width: 100%;
+    padding: 8px;
+    border-radius: var(--radius-md);
+    background: transparent;
+    color: var(--color-fg);
+    text-align: left;
+  }
+  .picker-row:hover {
+    background: var(--color-bg-hover);
+  }
+  .picker-row.picked {
+    background: color-mix(in srgb, var(--color-accent) 12%, transparent);
+    color: var(--color-accent);
+  }
+  .empty {
+    color: var(--color-fg-tertiary);
+    padding: var(--space-3);
+    text-align: center;
+  }
+  .actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: var(--space-2);
+  }
+  .actions button {
+    height: 36px;
+    padding: 0 var(--space-4);
+    border-radius: var(--radius-md);
+    background: var(--color-bg-hover);
+    color: var(--color-fg);
+    font-weight: 600;
+  }
+  .actions .primary {
+    background: var(--color-accent);
+    color: var(--color-accent-fg);
+  }
+  .actions button:disabled {
+    opacity: 0.5;
+    cursor: default;
   }
 </style>
