@@ -1,70 +1,78 @@
 // Phase 4 — message reactions.
 //
-// TODO: this spec hangs waiting for the reaction chip to appear after
-// `send_reaction`. The full send → patchMessage → re-render path is
-// instrumented at every layer (dc-core stores the reaction in
-// `msgs_reactions` before returning; the chat-state listener repatches
-// the message on `ReactionsChanged` AND `toggleReaction` calls
-// `patchMessage` explicitly), so the most likely root cause is
-// chatmail-specific: the reaction *message* itself is being rejected
-// by `filtermail` (hidden=true + reaction tag might trip a filter),
-// which would surface as `send_reaction` throwing — caught silently
-// by `toggleReaction`'s try/catch.
+// Reactions are local-first: dc-core's `send_reaction` writes to the
+// `msgs_reactions` table and emits `ReactionsChanged` synchronously
+// before the MIME goes out. So even if chatmail's `filtermail` were to
+// reject the hidden reaction message over the wire, the sender's own
+// chip must still appear locally.
 //
-// Skipping until we can capture daemon stderr from the failing run.
-// The other 27 Phase 2/3/4 specs run green under templates, so this
-// gates one spec, not the suite.
+// qxp's `toggleReaction` (chat.svelte.ts:564) implements one-emoji-per-
+// user-per-message semantics (matches Signal / WhatsApp): tapping a new
+// emoji *replaces* the prior one rather than stacking, and tapping your
+// own chip clears it. Two tests cover these two transitions.
 
 import { test, expect } from '../../fixtures/app-paired.js';
 import {
   openChatByName,
   waitForChatRowByName,
 } from '../../helpers/setup.js';
-import { TID } from '../../helpers/selectors.js';
 import { ARRIVAL_TIMEOUT_MS } from '../../helpers/timeouts.js';
 
 test.setTimeout(90_000);
 
-test.skip('reactions toggle on/off and support multiple emoji per message', async ({ qxpPaired, page }) => {
-  const { peer } = qxpPaired;
-
-  const text = 'react to me';
-  await peer.sendTo(text);
-  await waitForChatRowByName(page, peer.displayName, ARRIVAL_TIMEOUT_MS);
-  await openChatByName(page, peer.displayName);
-
+async function seedIncoming(qxpPaired: { peer: { sendTo: (s: string) => Promise<number>; displayName: string } }, page: import('@playwright/test').Page, text: string) {
+  await qxpPaired.peer.sendTo(text);
+  await waitForChatRowByName(page, qxpPaired.peer.displayName, ARRIVAL_TIMEOUT_MS);
+  await openChatByName(page, qxpPaired.peer.displayName);
   const bubble = page.locator(
     `[data-testid="message-bubble"][data-direction="incoming"]`,
     { hasText: text },
   );
   await expect(bubble).toBeVisible({ timeout: ARRIVAL_TIMEOUT_MS });
+  return bubble;
+}
 
-  // Toggle a single emoji on/off. The reaction RPC sends a message over
-  // the wire AND updates the local DB; UI repatch from MsgsChanged is
-  // usually fast but can lag on cold relays — give it 15s.
+test('reaction toggle: own chip appears on pick and disappears on re-tap', async ({ qxpPaired, page }) => {
+  const bubble = await seedIncoming(qxpPaired, page, `react-toggle ${Date.now()}`);
+
   await bubble.click({ button: 'right' });
   const firstQuick = page.locator('[data-testid="message-context-menu__quick-emoji"]').first();
-  const emojiA = (await firstQuick.getAttribute('data-emoji')) ?? '👍';
+  await expect(firstQuick).toBeVisible();
+  const emoji = (await firstQuick.getAttribute('data-emoji')) ?? '';
+  expect(emoji).not.toBe('');
   await firstQuick.click();
 
-  const chipA = bubble.locator(TID.reactionsRowChip(emojiA));
-  await expect(chipA).toBeVisible({ timeout: 15_000 });
-  await chipA.click();
-  await expect(bubble.locator(TID.reactionsRowChip(emojiA))).toHaveCount(0, {
-    timeout: 10_000,
-  });
+  const chip = bubble.locator(`[data-testid="reactions-row__chip"][data-emoji="${emoji}"]`);
+  // Local DB write + ReactionsChanged event + patchMessage refresh — all
+  // synchronous on dc-core's side. Network not on the critical path.
+  await expect(chip).toBeVisible({ timeout: 10_000 });
+  await expect(chip).toHaveAttribute('data-mine', 'true');
 
-  // Multi-emoji: A then B. Re-open menu each time (the menu unmounts on pick).
-  await bubble.click({ button: 'right' });
-  await page.locator('[data-testid="message-context-menu__quick-emoji"]').nth(0).click();
-  await expect(bubble.locator(`[data-testid="reactions-row__chip"]`)).toHaveCount(1, {
-    timeout: 15_000,
-  });
-  await bubble.click({ button: 'right' });
-  await page.locator('[data-testid="message-context-menu__quick-emoji"]').nth(1).click();
+  // Tap own chip → clears it (toggleReaction sends `[]`).
+  await chip.click();
+  await expect(chip).toHaveCount(0, { timeout: 10_000 });
+});
 
-  await expect(bubble.locator(TID.reactionsRow)).toBeVisible();
-  await expect(
-    bubble.locator(`[data-testid="reactions-row__chip"]`),
-  ).toHaveCount(2, { timeout: 15_000 });
+test('reaction replace: picking a different emoji supplants the prior one', async ({ qxpPaired, page }) => {
+  const bubble = await seedIncoming(qxpPaired, page, `react-replace ${Date.now()}`);
+
+  await bubble.click({ button: 'right' });
+  const firstQuick = page.locator('[data-testid="message-context-menu__quick-emoji"]').first();
+  const emojiA = (await firstQuick.getAttribute('data-emoji')) ?? '';
+  await firstQuick.click();
+  const chipA = bubble.locator(`[data-testid="reactions-row__chip"][data-emoji="${emojiA}"]`);
+  await expect(chipA).toBeVisible({ timeout: 10_000 });
+
+  await bubble.click({ button: 'right' });
+  const secondQuick = page.locator('[data-testid="message-context-menu__quick-emoji"]').nth(1);
+  const emojiB = (await secondQuick.getAttribute('data-emoji')) ?? '';
+  expect(emojiB).not.toBe(emojiA);
+  await secondQuick.click();
+
+  // After replace: chip A is gone, chip B is the only chip.
+  await expect(chipA).toHaveCount(0, { timeout: 10_000 });
+  const allChips = bubble.locator(`[data-testid="reactions-row__chip"]`);
+  await expect(allChips).toHaveCount(1);
+  await expect(allChips.first()).toHaveAttribute('data-emoji', emojiB);
+  await expect(allChips.first()).toHaveAttribute('data-mine', 'true');
 });
