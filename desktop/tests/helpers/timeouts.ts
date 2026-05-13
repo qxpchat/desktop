@@ -2,14 +2,17 @@
 // and so we can dial individual phases up/down without sed-ing 200 specs.
 
 /** Time we wait for a message sent from peer→main to surface as a bubble.
- *  Chatmail delivery is fast (<5s typical) but not deterministic; the relay
- *  may delay during high load. p99 in practice is well under 30s. */
-export const ARRIVAL_TIMEOUT_MS = 30_000;
+ *  Chatmail delivery is fast (<5s typical) but not deterministic — heavier
+ *  payloads (gif, video, mp4) plus IMAP IDLE wake-up latency push p99
+ *  above 30s in practice. 60s leaves headroom without slowing the
+ *  happy path (green tests don't approach this). */
+export const ARRIVAL_TIMEOUT_MS = 60_000;
 
 /** Time we wait for an outgoing message's state glyph to reach `delivered`.
- *  Distinct from arrival — we're observing local SMTP+relay round-trip, not
- *  the peer-side IMAP poll. */
-export const DELIVERED_TIMEOUT_MS = 20_000;
+ *  Distinct from arrival — we're observing local SMTP+relay round-trip,
+ *  not the peer-side IMAP poll. Media attachments specifically take
+ *  longer on chatmail than text. */
+export const DELIVERED_TIMEOUT_MS = 45_000;
 
 /** Time we wait for the chat list to populate after onboarding completes. */
 export const CHATLIST_READY_MS = 10_000;

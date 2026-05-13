@@ -24,25 +24,29 @@ test('add-member: picker adds a verified contact to the group', async ({ qxpTrio
     page.locator(TID.chatInfoMemberByName(peer2.displayName)),
   ).toHaveCount(0);
 
-  // Open the picker, select peer2, confirm.
+  // Open the picker. Address-based lookup is more reliable than display
+  // name — the chatmail secure_join handshake doesn't always propagate
+  // peer's `displayname` config into main's local contact record, so
+  // `contact.displayName` may be empty when reading from a cold template.
   await page.locator(TID.chatInfoAddMember).click();
   await expect(page.locator(TID.chatInfoAddMemberDialog)).toBeVisible();
-  const row = page.locator(TID.chatInfoAddMemberRowByName(peer2.displayName));
+  const row = page.locator(TID.chatInfoAddMemberRowByAddress(peer2.email));
   await expect(row).toBeVisible({ timeout: 5_000 });
   await row.click();
   await page.locator(TID.chatInfoAddMemberConfirm).click();
   await expect(page.locator(TID.chatInfoAddMemberDialog)).toHaveCount(0);
 
-  // UI: members list now contains peer2.
-  await expect(
-    page.locator(TID.chatInfoMemberByName(peer2.displayName)),
-  ).toBeVisible({ timeout: 5_000 });
-
   // Daemon-side: peer2's contactId is in the chat's contactIds.
   const accountId = (await mainRpc.call<number[]>('get_all_account_ids'))[0];
   const entries = await mainRpc.call<number[]>('get_chatlist_entries', [accountId, null, groupName, null]);
   const peerContactId = await mainRpc.call<number | null>('lookup_contact_id_by_addr', [accountId, peer2.email]);
-  const full = await mainRpc.call<{ contactIds: number[] }>('get_full_chat_by_id', [accountId, entries[0]]);
   expect(peerContactId).not.toBeNull();
+  const full = await mainRpc.call<{ contactIds: number[] }>('get_full_chat_by_id', [accountId, entries[0]]);
   expect(full.contactIds).toContain(peerContactId!);
+
+  // UI: members list now contains peer2. Look up by contact-id rather
+  // than display name for the same reason as above.
+  await expect(
+    page.locator(`[data-testid="chat-info__member"][data-contact-id="${peerContactId}"]`),
+  ).toBeVisible({ timeout: 5_000 });
 });

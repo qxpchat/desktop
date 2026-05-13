@@ -19,7 +19,7 @@ import {
 import { TID } from '../../helpers/selectors.js';
 import { ARRIVAL_TIMEOUT_MS, DELIVERED_TIMEOUT_MS } from '../../helpers/timeouts.js';
 
-test.setTimeout(120_000);
+test.setTimeout(300_000);
 
 test('text message round-trips between peer and main with full state glyph progression', async ({
   qxpPaired,

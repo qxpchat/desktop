@@ -339,7 +339,11 @@ export async function openChatByName(page: Page, name: string): Promise<void> {
 export async function waitForOutgoingRead(
   peer: { markSeen(timeoutMs?: number): Promise<void> },
   bubble: Locator,
-  timeoutMs = 90_000,
+  // 180s budget covers the full SMTP-out → relay → peer IMAP poll →
+  // peer markseen → peer SMTP → relay → main IMAP poll → main MDN
+  // processing round-trip. On chatmail under load, media attachments
+  // (mp4, gif) consistently exceed the previous 90s default.
+  timeoutMs = 180_000,
 ): Promise<void> {
   const deadline = Date.now() + timeoutMs;
   while (Date.now() < deadline) {

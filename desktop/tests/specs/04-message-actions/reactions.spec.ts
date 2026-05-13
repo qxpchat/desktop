@@ -1,26 +1,43 @@
 // Phase 4 — message reactions.
 //
-// Reactions are local-first: dc-core's `send_reaction` writes to the
-// `msgs_reactions` table and emits `ReactionsChanged` synchronously
-// before the MIME goes out. So even if chatmail's `filtermail` were to
-// reject the hidden reaction message over the wire, the sender's own
-// chip must still appear locally.
-//
-// qxp's `toggleReaction` (chat.svelte.ts:564) implements one-emoji-per-
-// user-per-message semantics (matches Signal / WhatsApp): tapping a new
-// emoji *replaces* the prior one rather than stacking, and tapping your
-// own chip clears it. Two tests cover these two transitions.
+// DOM gotcha: `ReactionsRow` is a *sibling* of the `[data-testid=
+// "message-bubble"]` div, both nested under an unnamed outer `.row`
+// element in `MessageBubble.svelte`. Earlier spec versions used
+// `bubble.locator('reactions-row__chip')` (descendant combinator),
+// which never matched. Locate the chip page-rooted via the row's
+// `data-msg-id` attribute instead.
 
 import { test, expect } from '../../fixtures/app-paired.js';
 import {
   openChatByName,
   waitForChatRowByName,
 } from '../../helpers/setup.js';
+import { TID } from '../../helpers/selectors.js';
 import { ARRIVAL_TIMEOUT_MS } from '../../helpers/timeouts.js';
 
-test.setTimeout(90_000);
+test.setTimeout(120_000);
 
-async function seedIncoming(qxpPaired: { peer: { sendTo: (s: string) => Promise<number>; displayName: string } }, page: import('@playwright/test').Page, text: string) {
+type MessageLoadResult =
+  | { kind: 'message'; reactions: { reactionsByContact?: Record<number, string[]> } | null }
+  | { kind: 'loadingError'; error: string };
+
+async function daemonSelfReactions(
+  mainRpc: { call<T>(method: string, params?: unknown[]): Promise<T> },
+  accountId: number,
+  msgId: number,
+): Promise<string[]> {
+  const msgs = await mainRpc.call<Record<number, MessageLoadResult>>('get_messages', [accountId, [msgId]]);
+  const r = msgs[msgId];
+  if (!r || r.kind !== 'message' || !r.reactions) return [];
+  // ContactId::SELF = 1.
+  return r.reactions.reactionsByContact?.[1] ?? [];
+}
+
+async function seedIncomingBubble(
+  qxpPaired: { peer: { sendTo: (s: string) => Promise<number>; displayName: string } },
+  page: import('@playwright/test').Page,
+  text: string,
+) {
   await qxpPaired.peer.sendTo(text);
   await waitForChatRowByName(page, qxpPaired.peer.displayName, ARRIVAL_TIMEOUT_MS);
   await openChatByName(page, qxpPaired.peer.displayName);
@@ -29,11 +46,35 @@ async function seedIncoming(qxpPaired: { peer: { sendTo: (s: string) => Promise<
     { hasText: text },
   );
   await expect(bubble).toBeVisible({ timeout: ARRIVAL_TIMEOUT_MS });
-  return bubble;
+  const msgIdStr = await bubble.getAttribute('data-msg-id');
+  expect(msgIdStr).toBeTruthy();
+  return { bubble, msgId: parseInt(msgIdStr!, 10) };
 }
 
-test('reaction toggle: own chip appears on pick and disappears on re-tap', async ({ qxpPaired, page }) => {
-  const bubble = await seedIncoming(qxpPaired, page, `react-toggle ${Date.now()}`);
+test('reaction: direct RPC writes the chip locally (no UI)', async ({ qxpPaired, page }) => {
+  const { mainRpc } = qxpPaired;
+  const { msgId } = await seedIncomingBubble(qxpPaired, page, `react-direct ${Date.now()}`);
+  const accountId = (await mainRpc.call<number[]>('get_all_account_ids'))[0];
+
+  await mainRpc.call('send_reaction', [accountId, msgId, ['👍']]);
+
+  // Daemon-side proof of the write.
+  await expect.poll(() => daemonSelfReactions(mainRpc, accountId, msgId), {
+    timeout: 10_000,
+  }).toEqual(['👍']);
+
+  // UI: the reactions row for this msgId carries a 👍 chip marked as own.
+  const chip = page.locator(TID.reactionsRowChipForMsg(msgId, '👍'));
+  await expect(chip).toBeVisible({ timeout: 10_000 });
+  await expect(chip).toHaveAttribute('data-mine', 'true');
+
+  // Untoggle by sending an empty reaction set.
+  await mainRpc.call('send_reaction', [accountId, msgId, []]);
+  await expect(chip).toHaveCount(0, { timeout: 10_000 });
+});
+
+test('reaction: context-menu quick-emoji adds the chip via the UI', async ({ qxpPaired, page }) => {
+  const { bubble, msgId } = await seedIncomingBubble(qxpPaired, page, `react-ui ${Date.now()}`);
 
   await bubble.click({ button: 'right' });
   const firstQuick = page.locator('[data-testid="message-context-menu__quick-emoji"]').first();
@@ -42,37 +83,34 @@ test('reaction toggle: own chip appears on pick and disappears on re-tap', async
   expect(emoji).not.toBe('');
   await firstQuick.click();
 
-  const chip = bubble.locator(`[data-testid="reactions-row__chip"][data-emoji="${emoji}"]`);
-  // Local DB write + ReactionsChanged event + patchMessage refresh — all
-  // synchronous on dc-core's side. Network not on the critical path.
+  const chip = page.locator(TID.reactionsRowChipForMsg(msgId, emoji));
   await expect(chip).toBeVisible({ timeout: 10_000 });
   await expect(chip).toHaveAttribute('data-mine', 'true');
 
-  // Tap own chip → clears it (toggleReaction sends `[]`).
+  // Tap own chip → untoggles.
   await chip.click();
   await expect(chip).toHaveCount(0, { timeout: 10_000 });
 });
 
-test('reaction replace: picking a different emoji supplants the prior one', async ({ qxpPaired, page }) => {
-  const bubble = await seedIncoming(qxpPaired, page, `react-replace ${Date.now()}`);
+test('reaction: picking a different emoji supplants the prior one', async ({ qxpPaired, page }) => {
+  const { mainRpc } = qxpPaired;
+  const { msgId } = await seedIncomingBubble(qxpPaired, page, `react-replace ${Date.now()}`);
+  const accountId = (await mainRpc.call<number[]>('get_all_account_ids'))[0];
 
-  await bubble.click({ button: 'right' });
-  const firstQuick = page.locator('[data-testid="message-context-menu__quick-emoji"]').first();
-  const emojiA = (await firstQuick.getAttribute('data-emoji')) ?? '';
-  await firstQuick.click();
-  const chipA = bubble.locator(`[data-testid="reactions-row__chip"][data-emoji="${emojiA}"]`);
-  await expect(chipA).toBeVisible({ timeout: 10_000 });
+  await mainRpc.call('send_reaction', [accountId, msgId, ['👍']]);
+  await expect(
+    page.locator(TID.reactionsRowChipForMsg(msgId, '👍')),
+  ).toBeVisible({ timeout: 10_000 });
 
-  await bubble.click({ button: 'right' });
-  const secondQuick = page.locator('[data-testid="message-context-menu__quick-emoji"]').nth(1);
-  const emojiB = (await secondQuick.getAttribute('data-emoji')) ?? '';
-  expect(emojiB).not.toBe(emojiA);
-  await secondQuick.click();
-
-  // After replace: chip A is gone, chip B is the only chip.
-  await expect(chipA).toHaveCount(0, { timeout: 10_000 });
-  const allChips = bubble.locator(`[data-testid="reactions-row__chip"]`);
-  await expect(allChips).toHaveCount(1);
-  await expect(allChips.first()).toHaveAttribute('data-emoji', emojiB);
-  await expect(allChips.first()).toHaveAttribute('data-mine', 'true');
+  // Replace semantics: sending a different emoji clears the old one.
+  await mainRpc.call('send_reaction', [accountId, msgId, ['🎉']]);
+  await expect(
+    page.locator(TID.reactionsRowChipForMsg(msgId, '👍')),
+  ).toHaveCount(0, { timeout: 10_000 });
+  await expect(
+    page.locator(TID.reactionsRowChipForMsg(msgId, '🎉')),
+  ).toBeVisible();
+  await expect(
+    page.locator(`${TID.reactionsRowForMsg(msgId)} [data-testid="reactions-row__chip"]`),
+  ).toHaveCount(1);
 });

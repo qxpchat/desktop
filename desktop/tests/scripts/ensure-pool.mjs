@@ -484,13 +484,36 @@ async function buildTrioTemplate(trioId, mainAccount, peer1Account, peer2Account
     const peer1ChatId = await pairWithMain(peer1Rpc, peer1AcctId, 'peer1');
     const peer2ChatId = await pairWithMain(peer2Rpc, peer2AcctId, 'peer2');
 
-    await sleep(500);
+    // Settle longer than the pair template: trio handshakes leave two
+    // sets of vc-contact-confirm in flight to main, and main needs to
+    // ingest BOTH so its contact table contains both peers before we
+    // snapshot it. 500ms was enough for one peer but lost peer2's
+    // confirm under load.
+    async function mainHasBothPeers() {
+      const [p1, p2] = await Promise.all([
+        mainRpc.call('lookup_contact_id_by_addr', [mainAcctId, peer1Account.email]),
+        mainRpc.call('lookup_contact_id_by_addr', [mainAcctId, peer2Account.email]),
+      ]);
+      return p1 != null && p2 != null;
+    }
+    const settleDeadline = Date.now() + 30_000;
+    while (Date.now() < settleDeadline) {
+      if (await mainHasBothPeers()) break;
+      await sleep(1000);
+    }
+    if (!(await mainHasBothPeers())) {
+      throw new Error(
+        'trio template build: main did not register both peers as contacts within 30s after handshake',
+      );
+    }
+    // Extra grace so SMTP queue can flush before stop_io.
+    await sleep(1000);
     await Promise.all([
       mainRpc.call('stop_io', [mainAcctId]).catch(() => {}),
       peer1Rpc.call('stop_io', [peer1AcctId]).catch(() => {}),
       peer2Rpc.call('stop_io', [peer2AcctId]).catch(() => {}),
     ]);
-    await sleep(300);
+    await sleep(500);
 
     return {
       trioId,
@@ -522,6 +545,38 @@ async function buildTrioTemplate(trioId, mainAccount, peer1Account, peer2Account
     try { peer1Daemon?.proc.kill(); } catch { /* ignore */ }
     try { peer2Daemon?.proc.kill(); } catch { /* ignore */ }
     await sleep(300);
+  }
+}
+
+/** Spin up a one-shot daemon against a copy of `mainDir` and assert
+ *  both `peer1Email` and `peer2Email` appear in the contact table.
+ *  Returns true if both contacts are present, false otherwise. Never
+ *  throws — caller treats false as "snapshot is stale, rebuild". */
+async function verifyTrioSnapshot(mainDir, _mainEmail, peer1Email, peer2Email) {
+  const probeDir = await mkdtemp(path.join(tmpdir(), `qxp-tpl-probe-`));
+  let daemon;
+  let rpc;
+  try {
+    await cp(mainDir, probeDir, { recursive: true });
+    daemon = await spawnDaemon(probeDir);
+    rpc = new RpcClient(`ws://127.0.0.1:${daemon.port}/ws`);
+    await rpc.connect();
+    const ids = await rpc.call('get_all_account_ids');
+    if (!Array.isArray(ids) || ids.length === 0) return false;
+    const acctId = ids[0];
+    // No need to start_io — `lookup_contact_id_by_addr` is a local DB read.
+    const [p1, p2] = await Promise.all([
+      rpc.call('lookup_contact_id_by_addr', [acctId, peer1Email]),
+      rpc.call('lookup_contact_id_by_addr', [acctId, peer2Email]),
+    ]);
+    return p1 != null && p2 != null;
+  } catch {
+    return false;
+  } finally {
+    rpc?.close();
+    try { daemon?.proc.kill(); } catch { /* ignore */ }
+    await sleep(200);
+    await rm(probeDir, { recursive: true, force: true });
   }
 }
 
@@ -575,9 +630,18 @@ async function ensureTrios(env) {
       existing?.peer2Email === peer2.email;
 
     if (dirsPresent && credsMatch) {
-      console.log(`trio ${k}: cached (${main.email} ↔ ${peer1.email} + ${peer2.email})`);
-      kept++;
-      continue;
+      // Sanity-check the snapshot: spawn a daemon against a copy of the
+      // main dir and verify both peers' addresses landed in the contact
+      // table. Earlier builds with too-short settle time produced
+      // snapshots where only peer1's vc-contact-confirm had been
+      // ingested, leaving peer2 invisible to the picker.
+      const ok = await verifyTrioSnapshot(mainDir, main.email, peer1.email, peer2.email);
+      if (ok) {
+        console.log(`trio ${k}: cached (${main.email} ↔ ${peer1.email} + ${peer2.email})`);
+        kept++;
+        continue;
+      }
+      console.log(`trio ${k}: cached snapshot is incomplete (missing peer in main's contacts) — rebuilding`);
     }
 
     process.stdout.write(`trio ${k}: building ... `);

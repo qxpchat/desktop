@@ -347,7 +347,7 @@
     <p class="muted">{t('Loading…')}</p>
   {:else}
     <div class="header">
-      {#if (isGroup || isBroadcast) && chat.selfInGroup}
+      {#if (isGroup && chat.selfInGroup) || isBroadcast}
         <button
           class="avatar-edit"
           onclick={pickAvatar}
@@ -530,6 +530,7 @@
                 data-testid="chat-info__add-member-row"
                 data-contact-id={c.id}
                 data-name={c.displayName}
+                data-address={c.address}
               >
                 <Avatar name={c.displayName} color={c.color} imagePath={c.profileImage} size={32} />
                 <span class="m-meta">

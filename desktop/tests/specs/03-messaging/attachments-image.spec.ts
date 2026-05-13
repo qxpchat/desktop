@@ -15,7 +15,7 @@ import { TID } from '../../helpers/selectors.js';
 import { ensureFixtures, mediaPath } from '../../helpers/media.js';
 import { ARRIVAL_TIMEOUT_MS, DELIVERED_TIMEOUT_MS } from '../../helpers/timeouts.js';
 
-test.setTimeout(120_000);
+test.setTimeout(300_000);
 
 test.beforeAll(() => {
   ensureFixtures();

@@ -100,6 +100,8 @@ export const TID = {
   chatInfoAddMemberRow: '[data-testid="chat-info__add-member-row"]',
   chatInfoAddMemberRowByName: (name: string) =>
     `[data-testid="chat-info__add-member-row"][data-name="${name}"]`,
+  chatInfoAddMemberRowByAddress: (addr: string) =>
+    `[data-testid="chat-info__add-member-row"][data-address="${addr}"]`,
   chatInfoAddMemberConfirm: '[data-testid="chat-info__add-member-confirm"]',
   chatInfoAddMemberCancel: '[data-testid="chat-info__add-member-cancel"]',
   chatInfoAvatarEdit: '[data-testid="chat-info__avatar-edit"]',
@@ -296,10 +298,15 @@ export const TID = {
   chatPickerRowByName: (name: string) =>
     `[data-testid="chat-picker__row"][data-name="${name}"]`,
 
-  // -- Reactions row on a bubble --
+  // -- Reactions row on a bubble (sibling of the bubble in the DOM, not
+  //    a child — addressable by `data-msg-id` to pair it back up). --
   reactionsRow: '[data-testid="reactions-row"]',
+  reactionsRowForMsg: (msgId: number) =>
+    `[data-testid="reactions-row"][data-msg-id="${msgId}"]`,
   reactionsRowChip: (emoji: string) =>
     `[data-testid="reactions-row__chip"][data-emoji="${emoji}"]`,
+  reactionsRowChipForMsg: (msgId: number, emoji: string) =>
+    `[data-testid="reactions-row"][data-msg-id="${msgId}"] [data-testid="reactions-row__chip"][data-emoji="${emoji}"]`,
 
   // -- Multi-select selection bar --
   selectionBar: '[data-testid="selection-bar"]',

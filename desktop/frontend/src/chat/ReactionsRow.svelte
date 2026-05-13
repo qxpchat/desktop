@@ -36,7 +36,7 @@
 </script>
 
 {#if reactions.length > 0}
-  <div class="row" role="group" aria-label={t('Reactions')} data-testid="reactions-row">
+  <div class="row" role="group" aria-label={t('Reactions')} data-testid="reactions-row" data-msg-id={message.id}>
     {#each reactions as r (r.emoji)}
       {@const actionable = r.isFromSelf || isGroup}
       <button
