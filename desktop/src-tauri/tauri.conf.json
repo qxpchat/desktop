@@ -36,6 +36,9 @@
     "icon": ["icons/icon.png"],
     "category": "SocialNetworking",
     "shortDescription": "Self-hostable Delta Chat client",
-    "longDescription": "qxp is a Delta Chat client packaged as a native desktop application. It bundles the deltachat-core daemon and its Svelte UI into a single window."
+    "longDescription": "qxp is a Delta Chat client packaged as a native desktop application. It bundles the deltachat-core daemon and its Svelte UI into a single window.",
+    "macOS": {
+      "signingIdentity": "-"
+    }
   }
 }
