@@ -50,6 +50,9 @@ let pendingQuery = '';
 let queryDebounce: ReturnType<typeof setTimeout> | null = null;
 let loadGen = 0;
 
+/** DC_GCL_ADD_SELF — `get_contacts` flag to include SELF in the list. */
+export const GCL_ADD_SELF = 0x02;
+
 export function setContactsScope(accountId: number | null, flags: number = 0): void {
   if (contacts.accountId === accountId && contacts.flags === flags) return;
   contacts.accountId = accountId;

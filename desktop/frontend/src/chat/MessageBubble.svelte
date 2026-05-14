@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { CONTACT_ID_SELF, chat, messageStateGlyph, type Message } from '../lib/state/chat.svelte';
+  import { CONTACT_ID_SELF, MSG_STATE, chat, messageStateGlyph, type Message } from '../lib/state/chat.svelte';
   import { chatlist } from '../lib/state/chatlist.svelte';
   import { formatShortTime } from '../lib/format/timestamp';
   import ImageCell from './cells/ImageCell.svelte';

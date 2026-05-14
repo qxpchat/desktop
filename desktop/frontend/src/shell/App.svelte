@@ -5,7 +5,7 @@
   import { startEventLoop } from '../lib/events';
   import { startLogCapture } from '../lib/state/logs.svelte';
   import { accounts, refreshAccounts, purgeUnconfigured } from '../lib/state/accounts.svelte';
-  import { chatlist, setActiveAccount } from '../lib/state/chatlist.svelte';
+  import { setActiveAccount } from '../lib/state/chatlist.svelte';
   import { onboarding } from '../lib/state/onboarding.svelte';
   import { selection, selectChat } from '../lib/state/selection.svelte';
   import { refreshProfiles, recomputeAllFreshCounts, profiles } from '../lib/state/profiles.svelte';

@@ -31,7 +31,10 @@
   };
 
   let { message, x, y, onPickEmoji, onMoreEmoji, actions, onClose }: Props = $props();
-  void message; // reserved for future aria-label naming the target bubble
+  // `message` is intentionally unread for now — reserved for a future
+  // aria-label that names the target bubble. Wrapped in a closure so
+  // svelte-check doesn't warn about initial-value capture.
+  void (() => message);
 
   // Quick row mirrors the user's recents (filled with QUICK_REACTIONS until
   // they've used enough emoji). Reactive: re-derives if recents change while
