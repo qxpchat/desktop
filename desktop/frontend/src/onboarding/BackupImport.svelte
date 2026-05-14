@@ -1,5 +1,6 @@
 <script lang="ts">
   import { importBackup } from '../lib/state/onboarding.svelte';
+  import { dropZone } from '../lib/dragdrop.svelte';
   import ProgressOverlay from './ProgressOverlay.svelte';
   import { t } from '../lib/i18n/i18n.svelte';
 
@@ -9,16 +10,20 @@
 
   let { onBack }: Props = $props();
 
+  let dropEl: HTMLElement | undefined = $state();
   let dragOver = $state(false);
   let uploading = $state(false);
   let errorMsg = $state<string | null>(null);
 
+  function rejectNonTar(name: string): boolean {
+    if (name.toLowerCase().endsWith('.tar')) return false;
+    errorMsg = 'Backup files must end in `.tar`.';
+    return true;
+  }
+
   async function handleFile(file: File) {
     errorMsg = null;
-    if (!file.name.toLowerCase().endsWith('.tar')) {
-      errorMsg = 'Backup files must end in `.tar`.';
-      return;
-    }
+    if (rejectNonTar(file.name)) return;
     try {
       uploading = true;
       const res = await fetch('/upload?ext=tar', {
@@ -43,18 +48,34 @@
     }
   }
 
+  async function handleDroppedPath(path: string) {
+    errorMsg = null;
+    if (rejectNonTar(path)) return;
+    // Tauri drag-drop hands us the OS path; the daemon shares the filesystem,
+    // so `import_backup` can read it directly — no /upload round-trip.
+    try {
+      await importBackup(path);
+    } catch (err) {
+      if (errorMsg == null) {
+        errorMsg = err instanceof Error ? err.message : String(err);
+      }
+    }
+  }
+
   function onPick(e: Event) {
     const input = e.currentTarget as HTMLInputElement;
     const file = input.files?.[0];
     if (file) void handleFile(file);
   }
 
-  function onDrop(e: DragEvent) {
-    e.preventDefault();
-    dragOver = false;
-    const file = e.dataTransfer?.files[0];
-    if (file) void handleFile(file);
-  }
+  dropZone({
+    el: () => dropEl ?? null,
+    onState: (s) => (dragOver = s === 'over'),
+    onDrop: async (paths) => {
+      const path = paths[0];
+      if (path) await handleDroppedPath(path);
+    },
+  });
 </script>
 
 <header class="topbar" data-tauri-drag-region>
@@ -64,20 +85,11 @@
 
 <main class="page" data-testid="onboarding-backup-import">
   <div
+    bind:this={dropEl}
     class="dropzone"
     class:hover={dragOver}
     role="region"
     aria-label={t('Drop backup file here')}
-    ondragenter={(e) => {
-      e.preventDefault();
-      dragOver = true;
-    }}
-    ondragover={(e) => {
-      e.preventDefault();
-      dragOver = true;
-    }}
-    ondragleave={() => (dragOver = false)}
-    ondrop={onDrop}
   >
     <div class="placeholder" aria-hidden="true"></div>
     <h2>{t('Drop a .tar backup file here')}</h2>

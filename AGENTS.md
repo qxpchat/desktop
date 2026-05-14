@@ -9,27 +9,23 @@ User instructions **always** override this file.
 
 ## Versioning
 
-Bump the version on every change that ships behavior:
-
-- **Bug fix → patch** (rightmost number): `0.1.0` → `0.1.1`.
-- **Feature → minor** (middle number) and reset patch to 0: `0.1.3` → `0.2.0`.
-- **Breaking change → major** (leftmost) and reset the rest: `0.2.5` → `1.0.0`.
-
-Keep the four version sites in lock-step — bump them together in the same change:
-
-- `desktop/frontend/package.json`
-- `desktop/src-tauri/Cargo.toml`
-- `desktop/src-tauri/tauri.conf.json`
-- `desktop/server/Cargo.toml`
-
-Use `desktop/scripts/sync-versions.py` to read/bump/set across all four:
+Bump the version on every change that ships behavior. **Always use the script — never hand-edit the version files.**
 
 ```
-desktop/scripts/sync-versions.py             # print current, exit 1 on drift
-desktop/scripts/sync-versions.py bump patch  # bug fix
-desktop/scripts/sync-versions.py bump minor  # feature
-desktop/scripts/sync-versions.py set 1.2.3   # explicit
+desktop/scripts/sync-versions.sh             # print current, exit 1 on drift
+desktop/scripts/sync-versions.sh bump patch  # bug fix
+desktop/scripts/sync-versions.sh bump minor  # feature
+desktop/scripts/sync-versions.sh bump major  # breaking change
+desktop/scripts/sync-versions.sh set 1.2.3   # explicit
 ```
+
+What each bump means:
+
+- **Bug fix → patch** (rightmost): `0.1.0` → `0.1.1`.
+- **Feature → minor** (middle), patch resets to 0: `0.1.3` → `0.2.0`.
+- **Breaking change → major** (leftmost), the rest reset: `0.2.5` → `1.0.0`.
+
+The script keeps the four version sites in lock-step (`desktop/frontend/package.json`, `desktop/src-tauri/Cargo.toml`, `desktop/src-tauri/tauri.conf.json`, `desktop/server/Cargo.toml`). The plain run (no args) verifies they agree — use it before sending a PR.
 
 Pure refactors, doc-only edits, and internal cleanup that ships no user-visible behavior do not bump.
 

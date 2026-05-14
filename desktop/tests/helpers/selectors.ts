@@ -244,6 +244,8 @@ export const TID = {
   composerAttach: '[data-testid="composer__attach"]',
   composerEmoji: '[data-testid="composer__emoji"]',
   composerFileInput: '[data-testid="composer__file-input"]',
+  composerAttachmentBar: '[data-testid="composer__attachment-bar"]',
+  composerAttachmentBarClose: '[data-testid="composer__attachment-bar-close"]',
 
   // -- Attach menu --
   attachMenu: '[data-testid="attach-menu"]',

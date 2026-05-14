@@ -2,9 +2,10 @@
 //
 // Construct a real `File` in the page context, dispatch synthetic
 // `dragenter` + `drop` events on the chat-view drop target with a
-// `DataTransfer` carrying the file. The handler calls
-// `uploadBlob → sendMessage(viewtype=Image)` and an outgoing bubble
-// surfaces.
+// `DataTransfer` carrying the file. The drop stages the file as the
+// composer's pending attachment (preview row above the textarea); the
+// user clicks send to actually deliver. We assert both halves: the
+// preview surfaces, the send produces an outgoing Image bubble.
 //
 // Headless Chromium doesn't let Playwright simulate native OS-file
 // drag-drop directly (no synthetic DragEvent with `dataTransfer.files`
@@ -23,7 +24,7 @@ test.setTimeout(90_000);
 const PNG_B64 =
   'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVQYV2NgAAIAAAUAAarVyFEAAAAASUVORK5CYII=';
 
-test('drag-drop an image onto chat-view → outgoing image bubble', async ({ qxpPaired, page }) => {
+test('drag-drop an image onto chat-view → stages, then send → outgoing image bubble', async ({ qxpPaired, page }) => {
   const { peer } = qxpPaired;
   await openChatByName(page, peer.displayName);
 
@@ -49,6 +50,13 @@ test('drag-drop an image onto chat-view → outgoing image bubble', async ({ qxp
     { b64: PNG_B64, target: TID.chatView },
   );
 
+  // The drop stages the file as the composer's pending attachment —
+  // not sent yet. The preview bar shows up above the textarea.
+  await expect(page.locator(TID.composerAttachmentBar)).toBeVisible();
+
+  // Send button is enabled even with empty text once an attachment is staged.
+  await page.locator(TID.composerSend).click();
+
   // Outgoing image bubble surfaces and reaches `delivered`.
   const bubble = page.locator(
     `[data-testid="message-bubble"][data-direction="outgoing"][data-view-type="Image"]`,
@@ -57,4 +65,7 @@ test('drag-drop an image onto chat-view → outgoing image bubble', async ({ qxp
   await expect(bubble).toHaveAttribute('data-state', 'delivered', {
     timeout: DELIVERED_TIMEOUT_MS,
   });
+
+  // Pending attachment is cleared after send.
+  await expect(page.locator(TID.composerAttachmentBar)).not.toBeVisible();
 });

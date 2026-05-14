@@ -16,7 +16,14 @@
 import { rpc } from '../rpc';
 import { onEvent, type DcEvent } from '../events';
 import { windowFocus } from './windowFocus.svelte';
-import { uploadBlob, viewtypeForFile } from '../files';
+import { convertFileSrc } from '@tauri-apps/api/core';
+import {
+  fileUrl,
+  isImageViewtype,
+  uploadBlob,
+  viewtypeForFile,
+  viewtypeForName,
+} from '../files';
 
 /** Self contact id in deltachat-core (always 1). */
 export const CONTACT_ID_SELF = 1;
@@ -132,6 +139,19 @@ export type ActiveChat = {
   chatId: number;
 };
 
+export type PendingAttachment = {
+  viewtype: MessageViewtype;
+  /** What `send_msg`'s `file` field receives. Either a daemon path under
+   *  `_uploads/` (file-picker / HTML drop, uploaded as bytes) or a raw OS
+   *  path (Tauri drag-drop) — core copies into the blobdir either way. */
+  file: string;
+  filename: string;
+  /** URL for an image thumbnail in the composer preview, or null for a type
+   *  icon. Uploads use a daemon `/file` URL; Tauri drag-drop uses an `asset:`
+   *  URL (`convertFileSrc`) — scoped to `$HOME` in tauri.conf.json. */
+  previewUrl: string | null;
+};
+
 export type ChatState = {
   active: ActiveChat | null;
   /** Full ordered list of every message id in the chat (oldest first).
@@ -158,6 +178,11 @@ export type ChatState = {
   replyToId: number | null;
   /** Composer state: id of own message being edited. */
   editingId: number | null;
+  /** Composer state: file staged for sending alongside the next message.
+   *  Set by drag-drop / attach-menu pick; cleared by send or by the user
+   *  hitting the X on the attachment preview. At most one file at a time
+   *  (extras are rejected — deltachat sends one file per message). */
+  pendingAttachment: PendingAttachment | null;
   /** Highlight pulse target — ChatView animates the bubble briefly on jump. */
   highlightId: number | null;
   /** Active jump-to-message target. Set by `jumpToMessage` for the
@@ -185,6 +210,7 @@ export const chat = $state<ChatState>({
   error: null,
   replyToId: null,
   editingId: null,
+  pendingAttachment: null,
   highlightId: null,
   jumpTargetId: null,
 });
@@ -197,6 +223,17 @@ export function setReplyTo(id: number | null): void {
 export function setEditing(id: number | null): void {
   chat.editingId = id;
   chat.replyToId = null;
+  // Editing an existing message can't carry a new attachment — clear the
+  // staged file so we don't silently lose it on the next send.
+  chat.pendingAttachment = null;
+}
+
+export function setPendingAttachment(att: PendingAttachment | null): void {
+  chat.pendingAttachment = att;
+  // Staging an attachment exits edit mode — you can't attach a file to an
+  // existing-message edit request (core only edits text). Reply mode stays
+  // intact since "reply with a file" is a normal action.
+  if (att != null) chat.editingId = null;
 }
 
 let flashGen = 0;
@@ -223,6 +260,7 @@ export function setActiveChat(active: ActiveChat | null): void {
   chat.error = null;
   chat.replyToId = null;
   chat.editingId = null;
+  chat.pendingAttachment = null;
   chat.highlightId = null;
   // `jumpTargetId` deliberately *not* cleared here: when a search hit
   // for a different chat fires the jump, `selectChat` → `setActiveChat`
@@ -573,19 +611,42 @@ export async function markNoticed(): Promise<void> {
   }
 }
 
-/** Upload + send a file attachment in the active chat. The viewtype is
- *  inferred from the file's extension/mime via `viewtypeForFile`. */
-export async function sendFile(file: File, text?: string): Promise<void> {
-  const active = chat.active;
-  if (active == null) return;
+/** Upload `file` (as bytes) and stage it as the chat's pending attachment so
+ *  the user can add a caption before sending. The `_uploads/`-backed copy is
+ *  servable by the daemon, so image attachments get a thumbnail preview.
+ *  Replaces any previously staged file. */
+export async function stageAttachment(file: File): Promise<void> {
+  if (chat.active == null) return;
   const ext = (file.name.split('.').pop() ?? 'bin').toLowerCase();
   const path = await uploadBlob(file, ext);
-  await sendMessage({
-    viewtype: viewtypeForFile(file),
+  const viewtype = viewtypeForFile(file);
+  setPendingAttachment({
+    viewtype,
     file: path,
     filename: file.name,
-    text: text || undefined,
+    previewUrl: isImageViewtype(viewtype) ? (fileUrl(path) ?? null) : null,
   });
+}
+
+/** Stage an OS-path source (Tauri drag-drop) without an upload round-trip —
+ *  `send_msg` copies the file into the blobdir at send time. Image previews
+ *  load the OS path straight into the webview via Tauri's asset protocol. */
+export async function stageAttachmentFromPath(localPath: string): Promise<void> {
+  if (chat.active == null) return;
+  const name = basename(localPath);
+  const viewtype = viewtypeForName(name);
+  setPendingAttachment({
+    viewtype,
+    file: localPath,
+    filename: name,
+    previewUrl: isImageViewtype(viewtype) ? convertFileSrc(localPath) : null,
+  });
+}
+
+function basename(p: string): string {
+  const trimmed = p.replace(/[\\/]+$/, '');
+  const idx = Math.max(trimmed.lastIndexOf('/'), trimmed.lastIndexOf('\\'));
+  return idx >= 0 ? trimmed.slice(idx + 1) : trimmed;
 }
 
 /** Send a geographic location as a message in the active chat. */

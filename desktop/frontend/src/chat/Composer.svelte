@@ -5,7 +5,8 @@
     sendMessage,
     sendContact,
     sendLocation,
-    sendFile,
+    stageAttachment,
+    setPendingAttachment,
     chat,
     setReplyTo,
     setEditing,
@@ -14,6 +15,7 @@
   import { uploadBlob } from '../lib/files';
   import { VoiceRecorder, pickMimeType, extensionForMime } from '../lib/audio/recorder';
   import AttachMenu from './AttachMenu.svelte';
+  import AttachmentBar from './AttachmentBar.svelte';
   import ContactPickerModal from './ContactPickerModal.svelte';
   import EmojiPicker from './EmojiPicker.svelte';
   import LocationPicker from './LocationPicker.svelte';
@@ -94,15 +96,34 @@
 
   let replyTarget = $derived(chat.replyToId != null ? (chat.messages.get(chat.replyToId) ?? null) : null);
   let editTarget = $derived(chat.editingId != null ? (chat.messages.get(chat.editingId) ?? null) : null);
+  let pendingAttachment = $derived(chat.pendingAttachment);
 
-  let canSend = $derived(text.trim().length > 0 && !sending && chat.active != null);
+  let canSend = $derived(
+    !sending &&
+      chat.active != null &&
+      (text.trim().length > 0 || pendingAttachment != null),
+  );
 
   async function send() {
     if (!canSend) return;
+    const att = pendingAttachment;
     const toSend = text;
     sending = true;
     try {
-      await sendText(toSend);
+      if (att != null) {
+        const trimmed = toSend.trim();
+        await sendMessage({
+          viewtype: att.viewtype,
+          file: att.file,
+          filename: att.filename,
+          text: trimmed.length > 0 ? trimmed : undefined,
+          quotedMessageId: chat.replyToId ?? undefined,
+        });
+        setPendingAttachment(null);
+        if (chat.replyToId != null) setReplyTo(null);
+      } else {
+        await sendText(toSend);
+      }
       text = '';
       await tick();
       autosize();
@@ -189,16 +210,10 @@
   // ---------- attachments ----------
 
   async function pushFile(file: File): Promise<void> {
-    const draft = text;
-    text = '';
-    sending = true;
     try {
-      await sendFile(file, draft);
+      await stageAttachment(file);
     } catch (err) {
-      text = draft;
-      alert(`Send failed: ${err instanceof Error ? err.message : String(err)}`);
-    } finally {
-      sending = false;
+      alert(`Could not attach file: ${err instanceof Error ? err.message : String(err)}`);
     }
   }
 
@@ -333,6 +348,12 @@
   {:else if replyTarget}
     <QuoteBar target={replyTarget} mode="reply" onClose={() => setReplyTo(null)} />
   {/if}
+  {#if pendingAttachment}
+    <AttachmentBar
+      attachment={pendingAttachment}
+      onClose={() => setPendingAttachment(null)}
+    />
+  {/if}
   <div class="composer" data-testid="composer">
   {#if recording}
     <button class="cancel-rec" onclick={cancelRecording} aria-label={t('Cancel recording')}>
@@ -399,7 +420,7 @@
     />
   </div>
 
-  {#if text.trim().length === 0}
+  {#if text.trim().length === 0 && pendingAttachment == null}
     {#if voiceSupported}
       <button
         class="mic"

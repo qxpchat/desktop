@@ -2,6 +2,7 @@
 
 import { test, expect } from '../../fixtures/app-paired.js';
 import {
+  attachAndSendFile,
   openChatByName,
   waitForOutgoingRead,
 } from '../../helpers/setup.js';
@@ -27,7 +28,7 @@ test('file attachment round-trips with full state glyph progression', async ({ q
   ).first();
   await expect(incomingBubble).toBeVisible({ timeout: ARRIVAL_TIMEOUT_MS });
 
-  await page.locator(TID.composerFileInput).setInputFiles(filePath);
+  await attachAndSendFile(page, filePath);
 
   const outgoingBubble = page.locator(
     `[data-testid="message-bubble"][data-direction="outgoing"][data-view-type="File"]`,

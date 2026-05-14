@@ -7,7 +7,8 @@
     setActiveChat,
     markNoticed,
     flashMessage,
-    sendMessage,
+    stageAttachment,
+    stageAttachmentFromPath,
     toggleReaction,
     deleteMessages,
     deleteMessagesForAll,
@@ -19,7 +20,7 @@
     canRecallMessage,
     type Message,
   } from '../lib/state/chat.svelte';
-  import { uploadBlob, viewtypeForFile } from '../lib/files';
+  import { dropZone } from '../lib/dragdrop.svelte';
   import { jumpToMessage } from '../lib/state/jump';
   import { formatDayLabel } from '../lib/format/timestamp';
   import { t } from '../lib/i18n/i18n.svelte';
@@ -455,11 +456,21 @@
   }
 
   // -------- drag and drop --------
-  // Counter, not boolean — dragenter/dragleave fire as the cursor crosses
-  // child boundaries, so a plain flag would flicker on every nested element.
+  // Two pathways. Tauri intercepts OS file drops at the WKWebView level
+  // (`dragDropEnabled: true` in tauri.conf.json) — HTML `ondrop` never
+  // fires in production macOS builds, so we also listen via `dropZone` and
+  // pass local paths to the daemon. The HTML handlers stay for browser-mode
+  // Playwright runs, which fire synthetic DragEvents the test relies on.
+  //
+  // Drop = stage the file in the composer (preview row above the textarea);
+  // the user adds an optional caption and hits send. One file at a time —
+  // extras in a multi-file drop are dropped with a hint.
+  //
+  // dragDepth is a counter, not boolean — dragenter/dragleave fire as the
+  // cursor crosses child boundaries, so a plain flag would flicker.
+  let chatViewEl: HTMLElement | undefined = $state();
   let dragDepth = $state(0);
   let dragActive = $derived(dragDepth > 0);
-  let dropSending = $state(false);
 
   function hasFiles(e: DragEvent): boolean {
     return Array.from(e.dataTransfer?.types ?? []).includes('Files');
@@ -482,28 +493,31 @@
     if (!hasFiles(e)) return;
     e.preventDefault();
     dragDepth = 0;
-    const files = Array.from(e.dataTransfer?.files ?? []);
-    if (files.length === 0) return;
-    dropSending = true;
+    await stageFirst(Array.from(e.dataTransfer?.files ?? []), stageAttachment);
+  }
+
+  // Stage the first dropped item as the composer attachment. One at a time —
+  // deltachat sends one file per message; extras get a hint. Works for both
+  // the HTML `File[]` and the Tauri `string[]` (OS paths) pathways.
+  async function stageFirst<T>(items: T[], stage: (item: T) => Promise<void>) {
+    if (items.length === 0) return;
+    if (items.length > 1) alert(t('Only one file at a time can be attached.'));
     try {
-      for (const file of files) {
-        const ext = (file.name.split('.').pop() ?? 'bin').toLowerCase();
-        const path = await uploadBlob(file, ext);
-        await sendMessage({
-          viewtype: viewtypeForFile(file),
-          file: path,
-          filename: file.name,
-        });
-      }
+      await stage(items[0]);
     } catch (err) {
-      alert(`Send failed: ${err instanceof Error ? err.message : String(err)}`);
-    } finally {
-      dropSending = false;
+      alert(`Could not attach file: ${err instanceof Error ? err.message : String(err)}`);
     }
   }
+
+  dropZone({
+    el: () => chatViewEl ?? null,
+    onState: (s) => (dragDepth = s === 'over' ? 1 : 0),
+    onDrop: (paths) => stageFirst(paths, stageAttachmentFromPath),
+  });
 </script>
 
 <div
+  bind:this={chatViewEl}
   class="chat-view"
   role="region"
   aria-label={t('Conversation')}
@@ -517,8 +531,8 @@
     <div class="drop-overlay" role="presentation">
       <div class="drop-card">
         <div class="drop-icon" aria-hidden="true">⤓</div>
-        <div class="drop-title">{dropSending ? t('Sending…') : t('Drop to send')}</div>
-        <div class="drop-hint">{t('Files attach as image, video, audio, or document.')}</div>
+        <div class="drop-title">{t('Drop to attach')}</div>
+        <div class="drop-hint">{t('Add a caption, then hit send.')}</div>
       </div>
     </div>
   {/if}

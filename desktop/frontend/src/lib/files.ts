@@ -43,15 +43,33 @@ export async function uploadBlob(blob: Blob, ext: string): Promise<string> {
   return path;
 }
 
+type FileViewtype = 'Image' | 'Video' | 'Gif' | 'Audio' | 'File';
+
+/** Whether a viewtype renders as a still image — i.e. is worth a thumbnail. */
+export function isImageViewtype(v: string): boolean {
+  return v === 'Image' || v === 'Gif';
+}
+
 /** Pick the deltachat-core viewtype that best matches a file. Images, videos,
  *  audio and GIFs get their own bubble treatments; everything else falls
  *  through to a generic File cell. */
-export function viewtypeForFile(
-  file: File,
-): 'Image' | 'Video' | 'Gif' | 'Audio' | 'File' {
+export function viewtypeForFile(file: File): FileViewtype {
   if (file.type === 'image/gif') return 'Gif';
   if (file.type.startsWith('image/')) return 'Image';
   if (file.type.startsWith('video/')) return 'Video';
   if (file.type.startsWith('audio/')) return 'Audio';
+  return viewtypeForName(file.name);
+}
+
+/** Extension-only fallback when no MIME is available (e.g. Tauri drag-drop,
+ *  which surfaces only OS paths). */
+export function viewtypeForName(name: string): FileViewtype {
+  const ext = (name.split('.').pop() ?? '').toLowerCase();
+  if (ext === 'gif') return 'Gif';
+  if (['jpg', 'jpeg', 'png', 'webp', 'heic', 'heif', 'bmp', 'avif'].includes(ext))
+    return 'Image';
+  if (['mp4', 'mov', 'm4v', 'webm', 'mkv', 'avi'].includes(ext)) return 'Video';
+  if (['mp3', 'm4a', 'aac', 'wav', 'ogg', 'opus', 'flac', 'oga', 'weba'].includes(ext))
+    return 'Audio';
   return 'File';
 }

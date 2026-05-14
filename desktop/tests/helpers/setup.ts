@@ -5,7 +5,7 @@
 // Setting that up via UI clicks for every test would be slow and noisy;
 // these helpers wrap the canonical patterns.
 
-import type { Locator, Page } from '@playwright/test';
+import { expect, type Locator, type Page } from '@playwright/test';
 import {
   spawnTempDaemon,
   configureAccount,
@@ -373,4 +373,14 @@ export async function sendComposerText(page: Page, text: string): Promise<void> 
     TID.composerTextarea,
     { timeout: 5_000 },
   );
+}
+
+/** Pick `filePath` via the composer's hidden file input, wait for the
+ *  attachment-preview row to appear, then click send. Mirrors the
+ *  production flow: the file picker stages the attachment in the
+ *  composer rather than sending it directly. */
+export async function attachAndSendFile(page: Page, filePath: string): Promise<void> {
+  await page.locator(TID.composerFileInput).setInputFiles(filePath);
+  await expect(page.locator(TID.composerAttachmentBar)).toBeVisible();
+  await page.locator(TID.composerSend).click();
 }

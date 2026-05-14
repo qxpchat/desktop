@@ -8,6 +8,7 @@
 
 import { test, expect } from '../../fixtures/app-paired.js';
 import {
+  attachAndSendFile,
   openChatByName,
   waitForOutgoingRead,
 } from '../../helpers/setup.js';
@@ -45,7 +46,7 @@ test('image attachment round-trips end-to-end through the attach menu', async ({
   await page.locator(TID.composerAttach).click();
   await expect(page.locator(TID.attachMenu)).toBeVisible();
   await page.locator(TID.attachMenuItem('file')).click();
-  await page.locator(TID.composerFileInput).setInputFiles(filePath);
+  await attachAndSendFile(page, filePath);
 
   // Menu should close as a side-effect of the pick.
   await expect(page.locator(TID.attachMenu)).toHaveCount(0);
