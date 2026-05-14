@@ -1,60 +1,57 @@
-/* Light theme — default. */
+/* Colour palette is anchors + deltas.
+ *
+ * Anchors are the small set of hand-picked colours that don't follow from
+ * anything else: bg surfaces, fg, brand accent, status colours, shadow/
+ * backdrop alphas. Each theme block redeclares only those.
+ *
+ * Deltas are the derived tokens (hover, borders, secondary fg, soft accents)
+ * defined ONCE at the bottom of this file via `color-mix`. They reference
+ * `var(--color-fg)` / `var(--color-bg)` / `var(--color-accent)` and so
+ * resolve correctly for whichever theme is active — no per-theme copy.
+ *
+ * Hand-tuned look: percentages here are a compromise that reads well in
+ * both themes. If a derived token starts looking wrong in one mode,
+ * promote it to an anchor rather than asymmetrically forking the formula.
+ */
+
+/* Brand — identical across themes. */
+:root {
+  --color-accent: #22ccaa;
+  --color-accent-fg: #0a0a0a;
+}
+
+/* Light — default. */
 :root {
   --color-bg: #fafafa;
   --color-bg-pane: #ffffff;
   --color-bg-elevated: #ffffff;
-  --color-bg-hover: #f0f0f2;
-  /* Selection + soft-accent track the current accent (App.svelte writes
-     `--color-accent` dynamically; the `color-mix` re-evaluates). The
-     percentages are intentionally low — the selection bg should read as
-     a *hint* of the accent, not the accent itself. */
-  --color-bg-selected: color-mix(in srgb, var(--color-accent) 10%, var(--color-bg-pane));
-  --color-accent-soft: color-mix(in srgb, var(--color-accent) 14%, var(--color-bg));
-
   --color-fg: #1a1a1a;
-  --color-fg-secondary: #555;
-  --color-fg-tertiary: #8a8a8a;
-
-  --color-border: #e5e5e7;
-  --color-border-strong: #d0d0d4;
-
-  /* qxp brand accent — matches ios AccentColor.colorset (rgb 0x22 0xCC 0xAA). */
-  --color-accent: #22ccaa;
-  --color-accent-fg: #0a0a0a;
 
   --color-danger: #d83838;
-  --color-danger-soft: color-mix(in srgb, var(--color-danger) 12%, var(--color-bg-elevated));
   --color-success: #34c759;
   --color-warning: #d89e00;
 
   --color-shadow: rgba(0, 0, 0, 0.06);
-  /* Unified backdrop opacity for modal overlays — see lib/Modal.svelte. */
   --color-backdrop: rgba(0, 0, 0, 0.4);
 
   color-scheme: light;
 }
 
-/* Explicit dark. */
+/* Explicit dark.
+ *
+ * Background surfaces step through bg / bg-pane / bg-elevated by mixing
+ * `--color-bg-tilt` into pure black at increasing percentages. Swap the
+ * tilt for a hue-shifted value (e.g. `#52847a` for a teal cast) to tint
+ * the whole palette in one place — derived tokens (border, hover,
+ * fg-secondary…) follow automatically via `var(--color-bg)`. */
 :root[data-theme='dark'] {
-  --color-bg: #0f0f10;
-  --color-bg-pane: #18181a;
-  --color-bg-elevated: #232325;
-  --color-bg-hover: #232326;
-  --color-bg-selected: color-mix(in srgb, var(--color-accent) 14%, var(--color-bg-pane));
-  --color-accent-soft: color-mix(in srgb, var(--color-accent) 18%, var(--color-bg));
-
+  --color-bg-tilt: #6b6b72;
+  --color-bg: color-mix(in srgb, var(--color-bg-tilt) 14%, #000);
+  --color-bg-pane: color-mix(in srgb, var(--color-bg-tilt) 22%, #000);
+  --color-bg-elevated: color-mix(in srgb, var(--color-bg-tilt) 33%, #000);
   --color-fg: #ededed;
-  --color-fg-secondary: #aaa;
-  --color-fg-tertiary: #777;
-
-  --color-border: #2a2a2c;
-  --color-border-strong: #3a3a3c;
-
-  --color-accent: #22ccaa;
-  --color-accent-fg: #0a0a0a;
 
   --color-danger: #ef5350;
-  --color-danger-soft: color-mix(in srgb, var(--color-danger) 14%, var(--color-bg-elevated));
   --color-success: #30d158;
   --color-warning: #ffcc00;
 
@@ -64,28 +61,16 @@
   color-scheme: dark;
 }
 
-/* System: follow OS preference. */
+/* System — follow OS. */
 @media (prefers-color-scheme: dark) {
   :root[data-theme='system'] {
-    --color-bg: #0f0f10;
-    --color-bg-pane: #18181a;
-    --color-bg-elevated: #232325;
-    --color-bg-hover: #232326;
-    --color-bg-selected: color-mix(in srgb, var(--color-accent) 14%, var(--color-bg-pane));
-    --color-accent-soft: color-mix(in srgb, var(--color-accent) 18%, var(--color-bg));
-
+    --color-bg-tilt: #6b6b72;
+    --color-bg: color-mix(in srgb, var(--color-bg-tilt) 14%, #000);
+    --color-bg-pane: color-mix(in srgb, var(--color-bg-tilt) 22%, #000);
+    --color-bg-elevated: color-mix(in srgb, var(--color-bg-tilt) 33%, #000);
     --color-fg: #ededed;
-    --color-fg-secondary: #aaa;
-    --color-fg-tertiary: #777;
-
-    --color-border: #2a2a2c;
-    --color-border-strong: #3a3a3c;
-
-    --color-accent: #22ccaa;
-    --color-accent-fg: #0a0a0a;
 
     --color-danger: #ef5350;
-    --color-danger-soft: color-mix(in srgb, var(--color-danger) 14%, var(--color-bg-elevated));
     --color-success: #30d158;
     --color-warning: #ffcc00;
 
@@ -94,4 +79,21 @@
 
     color-scheme: dark;
   }
+}
+
+/* Derived — single declaration, applies to every theme.
+ * `var()` resolves at lookup time, so each rule recomputes when the
+ * active theme flips. */
+:root {
+  --color-bg-hover: color-mix(in srgb, var(--color-fg) 7%, var(--color-bg));
+  --color-bg-selected: color-mix(in srgb, var(--color-accent) 12%, var(--color-bg-pane));
+  --color-accent-soft: color-mix(in srgb, var(--color-accent) 15%, var(--color-bg));
+
+  --color-fg-secondary: color-mix(in srgb, var(--color-fg) 68%, var(--color-bg));
+  --color-fg-tertiary: color-mix(in srgb, var(--color-fg) 50%, var(--color-bg));
+
+  --color-border: color-mix(in srgb, var(--color-fg) 13%, var(--color-bg));
+  --color-border-strong: color-mix(in srgb, var(--color-fg) 22%, var(--color-bg));
+
+  --color-danger-soft: color-mix(in srgb, var(--color-danger) 13%, var(--color-bg-elevated));
 }

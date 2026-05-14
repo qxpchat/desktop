@@ -9,13 +9,22 @@
     <link rel="apple-touch-icon" href="/icon-512.png" />
     <link rel="manifest" href="/manifest.webmanifest" />
     <style>
-      /* Paint the webview black before any CSS bundle loads so the OS window
-       * (also set to #000 in tauri.conf.json) is never visibly covered by an
-       * unstyled white frame during startup. reset.css then overrides this
-       * with `var(--color-bg)` once the bundle parses. */
+      /* Match the Tauri window bg (set in tauri.conf.json) so there's no
+       * unstyled white frame before reset.css applies `var(--color-bg)`.
+       * `prefers-color-scheme` covers light/dark OS settings; explicit
+       * theme prefs from localStorage briefly mismatch but only for one
+       * frame before the JS bundle runs. */
       html,
       body {
-        background: #000;
+        background: #fafafa;
+      }
+      @media (prefers-color-scheme: dark) {
+        html,
+        body {
+          /* Pre-computed `color-mix(in srgb, #6b6b72 14%, #000)` —
+           * matches `--color-bg` in theme.css. Update both together. */
+          background: #0f0f10;
+        }
       }
     </style>
   </head>
