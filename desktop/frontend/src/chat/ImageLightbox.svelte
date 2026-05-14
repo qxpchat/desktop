@@ -2,6 +2,7 @@
   import { onMount, onDestroy } from 'svelte';
   import { lightbox, closeLightbox } from '../lib/state/lightbox.svelte';
   import { t } from '../lib/i18n/i18n.svelte';
+  import IconButton from '../lib/IconButton.svelte';
 
   function onKey(e: KeyboardEvent) {
     if (e.key === 'Escape') closeLightbox();
@@ -43,7 +44,12 @@
     {#if lightbox.item.caption}
       <div class="caption">{lightbox.item.caption}</div>
     {/if}
-    <button class="close" onclick={closeLightbox} aria-label={t('Close')}>✕</button>
+    <IconButton
+      class="lightbox-close"
+      icon="x"
+      label={t('Close')}
+      onclick={closeLightbox}
+    />
   </div>
 {/if}
 
@@ -76,19 +82,9 @@
     text-align: center;
     cursor: default;
   }
-  .close {
+  .overlay :global(.lightbox-close) {
     position: absolute;
     top: 16px;
     right: 16px;
-    width: 36px;
-    height: 36px;
-    border-radius: 50%;
-    background: rgba(255, 255, 255, 0.18);
-    color: white;
-    font-size: 16px;
-    line-height: 1;
-  }
-  .close:hover {
-    background: rgba(255, 255, 255, 0.3);
   }
 </style>
