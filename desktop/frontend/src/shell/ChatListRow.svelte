@@ -96,7 +96,11 @@
           </span>
         {/if}
         {#if showUnread}
-          <span class="unread" aria-label={t('Unread')} data-testid="chat-list-row__unread"></span>
+          <span
+            class="unread"
+            aria-label={t('{n} unread', { n: chat.freshMessageCounter })}
+            data-testid="chat-list-row__unread"
+          >{chat.freshMessageCounter > 99 ? '99+' : chat.freshMessageCounter}</span>
         {:else if chat.isPinned}
           <span class="pin" aria-label={t('pinned')} title={t('Pinned')} data-testid="chat-list-row__pin"><Icon name="pin" size={12} /></span>
         {/if}
@@ -200,10 +204,19 @@
   }
   .unread {
     flex: 0 0 auto;
-    width: 10px;
-    height: 10px;
-    border-radius: 50%;
+    min-width: 18px;
+    height: 18px;
+    padding: 0 6px;
+    border-radius: 9px;
     background: var(--color-accent);
+    color: var(--color-accent-fg);
+    font-size: var(--text-xs);
+    font-weight: 700;
+    line-height: 1;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-variant-numeric: tabular-nums;
   }
   .pin {
     font-size: 12px;

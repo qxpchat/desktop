@@ -25,6 +25,9 @@ test('mark-as-unread restores the unread badge after a chat was read', async ({ 
   await expect(row.locator(TID.chatListRowUnread)).toBeVisible({
     timeout: ARRIVAL_TIMEOUT_MS,
   });
+  // The badge renders the unread count, not just a dot — one message
+  // sent above must yield exactly "1".
+  await expect(row.locator(TID.chatListRowUnread)).toHaveText('1');
 
   // Open the chat → markNoticed → badge clears.
   await row.click();
