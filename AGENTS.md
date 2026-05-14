@@ -3,6 +3,36 @@
 qxp is a cross-platform client for the delta chat protocol.
 User instructions **always** override this file.
 
+## Active platform
+
+- The user is currently only running and testing on **macOS** (desktop, WKWebView). Linux/Windows desktop paths and iOS are not being exercised right now — prioritize macOS-correct fixes and call out cross-platform implications instead of silently assuming parity.
+
+## Versioning
+
+Bump the version on every change that ships behavior:
+
+- **Bug fix → patch** (rightmost number): `0.1.0` → `0.1.1`.
+- **Feature → minor** (middle number) and reset patch to 0: `0.1.3` → `0.2.0`.
+- **Breaking change → major** (leftmost) and reset the rest: `0.2.5` → `1.0.0`.
+
+Keep the four version sites in lock-step — bump them together in the same change:
+
+- `desktop/frontend/package.json`
+- `desktop/src-tauri/Cargo.toml`
+- `desktop/src-tauri/tauri.conf.json`
+- `desktop/server/Cargo.toml`
+
+Use `desktop/scripts/sync-versions.py` to read/bump/set across all four:
+
+```
+desktop/scripts/sync-versions.py             # print current, exit 1 on drift
+desktop/scripts/sync-versions.py bump patch  # bug fix
+desktop/scripts/sync-versions.py bump minor  # feature
+desktop/scripts/sync-versions.py set 1.2.3   # explicit
+```
+
+Pure refactors, doc-only edits, and internal cleanup that ships no user-visible behavior do not bump.
+
 ## Repository layout
 
 - `ios/` — iOS app (SwiftUI), share extension, tests, Xcode project, iOS-only build scripts. Currently on hold. **For iOS work, also read `ios/AGENTS.md`** — it has iOS-specific project state, layout, and active plans.
