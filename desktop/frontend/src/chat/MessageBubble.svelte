@@ -1,6 +1,7 @@
 <script lang="ts">
-  import { CONTACT_ID_SELF, MSG_STATE, chat, type Message } from '../lib/state/chat.svelte';
+  import { CONTACT_ID_SELF, chat, messageStateGlyph, type Message } from '../lib/state/chat.svelte';
   import { chatlist } from '../lib/state/chatlist.svelte';
+  import { formatShortTime } from '../lib/format/timestamp';
   import ImageCell from './cells/ImageCell.svelte';
   import VideoCell from './cells/VideoCell.svelte';
   import FileCell from './cells/FileCell.svelte';
@@ -10,7 +11,7 @@
   import VoiceCell from './cells/VoiceCell.svelte';
   import YouTubeEmbed from './cells/YouTubeEmbed.svelte';
   import ReactionsRow from './ReactionsRow.svelte';
-  import Icon, { type IconName } from '../lib/Icon.svelte';
+  import Icon from '../lib/Icon.svelte';
   import { linkify } from '../lib/format/linkify';
   import { openChatByEmail } from '../lib/chatActions';
   import { detectYouTubeId } from '../lib/format/youtube';
@@ -45,31 +46,8 @@
 
   let outgoing = $derived(message.fromId === CONTACT_ID_SELF);
   let highlighted = $derived(chat.highlightId === message.id);
-
-  type Glyph = { icon: IconName; kind: 'pending' | 'delivered' | 'read' | 'failed' };
-  let stateGlyph = $derived.by((): Glyph | null => {
-    if (!outgoing) return null;
-    switch (message.state) {
-      case MSG_STATE.OutPreparing:
-      case MSG_STATE.OutPending:
-        return { icon: 'loader', kind: 'pending' };
-      case MSG_STATE.OutDelivered:
-        return { icon: 'check', kind: 'delivered' };
-      case MSG_STATE.OutMdnRcvd:
-        return { icon: 'check-check', kind: 'read' };
-      case MSG_STATE.OutFailed:
-        return { icon: 'alert-circle', kind: 'failed' };
-      default:
-        return null;
-    }
-  });
-
-  let timeLabel = $derived(formatTime(message.timestamp));
-  function formatTime(unixSec: number): string {
-    if (unixSec <= 0) return '';
-    const d = new Date(unixSec * 1000);
-    return new Intl.DateTimeFormat(undefined, { hour: '2-digit', minute: '2-digit' }).format(d);
-  }
+  let stateGlyph = $derived(outgoing ? messageStateGlyph(message.state) : null);
+  let timeLabel = $derived(formatShortTime(message.timestamp));
 
   let senderName = $derived(message.overrideSenderName || message.sender?.displayName || '');
   let senderColor = $derived(message.sender?.color ?? 'var(--color-accent)');
@@ -462,8 +440,8 @@
     border-bottom-left-radius: 2px;
   }
   .bubble.failed {
-    background: var(--color-danger-soft, #fee);
-    color: var(--color-danger, #b00);
+    background: var(--color-danger-soft);
+    color: var(--color-danger);
   }
   .sender {
     font-weight: 600;

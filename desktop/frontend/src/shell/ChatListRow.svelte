@@ -1,9 +1,9 @@
 <script lang="ts">
   import type { ChatListItem } from '../lib/state/chatlist.svelte';
   import { formatRelativeTimestamp } from '../lib/format/timestamp';
-  import { MSG_STATE } from '../lib/state/chat.svelte';
+  import { messageStateGlyph } from '../lib/state/chat.svelte';
   import Avatar from '../lib/Avatar.svelte';
-  import Icon, { type IconName } from '../lib/Icon.svelte';
+  import Icon from '../lib/Icon.svelte';
   import { liveLocations } from '../lib/state/liveLocations.svelte';
   import { windowFocus } from '../lib/state/windowFocus.svelte';
   import { t } from '../lib/i18n/i18n.svelte';
@@ -39,25 +39,9 @@
     chat.freshMessageCounter > 0 && !(selected && windowFocus.focused),
   );
   let peerStreaming = $derived(liveLocations.chatIds.has(chat.id));
-
-  // Mirror of iOS ChatListRow's stateGlyph — only shown for outgoing message
-  // states. Incoming states (Undefined/InFresh/InNoticed/InSeen) return null.
-  type Glyph = { icon: IconName; kind: 'pending' | 'delivered' | 'read' | 'failed' };
-  let stateGlyph = $derived.by((): Glyph | null => {
-    switch (chat.summaryStatus) {
-      case MSG_STATE.OutPreparing:
-      case MSG_STATE.OutPending:
-        return { icon: 'loader', kind: 'pending' };
-      case MSG_STATE.OutDelivered:
-        return { icon: 'check', kind: 'delivered' };
-      case MSG_STATE.OutMdnRcvd:
-        return { icon: 'check-check', kind: 'read' };
-      case MSG_STATE.OutFailed:
-        return { icon: 'alert-circle', kind: 'failed' };
-      default:
-        return null;
-    }
-  });
+  // Only outgoing-state summaries get a glyph; the helper returns null for
+  // incoming states (Undefined/InFresh/InNoticed/InSeen) by default.
+  let stateGlyph = $derived(messageStateGlyph(chat.summaryStatus));
 </script>
 
 <button

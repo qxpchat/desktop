@@ -1,17 +1,19 @@
 #!/usr/bin/env node
 // Convert the iOS app's `Localizable.xcstrings` (Apple's modern JSON format
 // for SwiftUI / iOS 26 string catalogs) into a flat `{ "<source>": "<en>" }`
-// map for the web frontend's tiny i18n helper (see `web/frontend/src/lib/i18n/i18n.ts`).
+// map for the desktop frontend's tiny i18n helper (see
+// `desktop/frontend/src/lib/i18n/i18n.svelte.ts`).
 //
-// Usage (from `web/`):
-//   node scripts/sync-strings.mjs
+// Usage (from the repo root):
+//   node desktop/scripts/sync-strings.mjs
 //
-// Output: web/frontend/locales/en.json (overwritten).
+// Output: desktop/frontend/public/locales/en.json (overwritten).
 //
 // The iOS catalog uses the source English string as the key, so the output
-// is essentially the identity map — its purpose is to (a) lock in the set
-// of canonical strings for translation work and (b) serve as the lookup
-// table the daemon ships from `/locales/<lang>.json`.
+// is essentially the identity map — its purpose is to lock in the set of
+// canonical strings for translation work, and to serve as the lookup table
+// the Vite build serves from `/locales/<lang>.json` (Vite copies anything
+// under `public/` to the URL root).
 
 import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
@@ -20,9 +22,7 @@ import { fileURLToPath } from 'node:url';
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const repoRoot = resolve(__dirname, '..', '..');
 const xcstringsPath = resolve(repoRoot, 'ios/qxp/Localizable.xcstrings');
-// Vite serves files from `public/` at the URL root, so `/locales/en.json`
-// resolves to `web/frontend/public/locales/en.json`.
-const outPath = resolve(repoRoot, 'web/frontend/public/locales/en.json');
+const outPath = resolve(repoRoot, 'desktop/frontend/public/locales/en.json');
 
 const raw = readFileSync(xcstringsPath, 'utf8');
 const catalog = JSON.parse(raw);

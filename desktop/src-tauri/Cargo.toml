@@ -6,10 +6,10 @@ description = "qxp Tauri desktop shell — wraps the qxp-web daemon + Svelte SPA
 license = "MPL-2.0"
 
 [build-dependencies]
-tauri-build = { version = "2", features = [] }
+tauri-build = "2"
 
 [dependencies]
-tauri = { version = "2", features = [] }
+tauri = "2"
 tauri-plugin-notification = "2"
 tauri-plugin-opener = "2"
 

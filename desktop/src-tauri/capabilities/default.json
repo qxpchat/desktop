@@ -12,8 +12,7 @@
       "allow": [
         { "url": "https://*" },
         { "url": "http://*" },
-        { "url": "mailto:*" },
-        { "url": "tel:*" }
+        { "url": "mailto:*" }
       ]
     }
   ]

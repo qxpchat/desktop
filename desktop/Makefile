@@ -1,4 +1,4 @@
-.PHONY: help server ui tauri-dev tauri-build install build clean
+.PHONY: help server ui tauri-dev tauri-build build check clean
 
 help:
 	@echo "qxp desktop app — local dev"
@@ -8,8 +8,8 @@ help:
 	@echo
 	@echo "  make server         Run only the Rust daemon (server/)        [127.0.0.1:4041]"
 	@echo "  make ui             Run only the Vite dev server              [0.0.0.0:4040]"
-	@echo "  make install        npm install in frontend/"
 	@echo "  make build          Production build of the frontend (dist/)"
+	@echo "  make check          Run svelte-check on the frontend"
 	@echo "  make clean          Remove target/, node_modules/, dist/"
 
 server:
@@ -24,8 +24,6 @@ tauri-dev: frontend/node_modules
 tauri-build: frontend/node_modules
 	cd src-tauri && cargo tauri build
 
-install: frontend/node_modules
-
 # Treat node_modules as an order-dependent target so the npm install only
 # runs on a fresh clone (or after a manual `rm -rf node_modules`). Avoids
 # the "sh: vite: command not found" trap.
@@ -35,6 +33,9 @@ frontend/node_modules: frontend/package.json
 
 build:
 	cd frontend && npm run build
+
+check: frontend/node_modules
+	cd frontend && npm run check
 
 clean:
 	rm -rf server/target src-tauri/target frontend/node_modules frontend/dist

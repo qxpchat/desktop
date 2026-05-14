@@ -235,10 +235,3 @@ onEvent('ChatlistItemChanged', (ev) => {
   if (typeof chatId === 'number') void patchItem(chatId);
   else void load(); // null = "all visible items" — simplest is reload
 });
-
-// Defensive triggers — usually redundant with ChatlistChanged but inexpensive.
-for (const kind of ['IncomingMsg', 'MsgsChanged', 'ChatModified', 'ChatDeleted', 'ContactsChanged']) {
-  onEvent(kind, (ev) => {
-    if (isForActiveAccount(ev)) void load();
-  });
-}

@@ -3,11 +3,11 @@
   // they used. Mirrors the iOS ReactionDetailSheet — tapping a chip opens
   // this sheet instead of toggling the user's own reaction.
 
-  import { onMount, onDestroy } from 'svelte';
   import { rpc } from '../lib/rpc';
   import { chat, CONTACT_ID_SELF } from '../lib/state/chat.svelte';
   import type { Contact } from '../lib/state/contacts.svelte';
   import Avatar from '../lib/Avatar.svelte';
+  import Modal from '../lib/Modal.svelte';
   import { t } from '../lib/i18n/i18n.svelte';
 
   type Props = {
@@ -79,20 +79,10 @@
   function avatarFor(contactId: number): string | null {
     return contactsById.get(contactId)?.profileImage ?? null;
   }
-
-  function onWindowKey(e: KeyboardEvent) {
-    if (open && e.key === 'Escape') {
-      e.stopPropagation();
-      onClose();
-    }
-  }
-  onMount(() => window.addEventListener('keydown', onWindowKey));
-  onDestroy(() => window.removeEventListener('keydown', onWindowKey));
 </script>
 
-{#if open}
-  <button class="backdrop" onclick={onClose} aria-label={t('Close')}></button>
-  <div class="card" role="dialog" aria-modal="true" aria-label={t('Reactions')}>
+<Modal {open} {onClose} size="md" ariaLabel={t('Reactions')}>
+  <div class="content">
     <h2>{t('Reactions')}</h2>
     {#if rows.length === 0}
       <p class="empty">{t('No reactions yet.')}</p>
@@ -113,43 +103,25 @@
       </ul>
     {/if}
   </div>
-{/if}
+</Modal>
 
 <style>
-  .backdrop {
-    position: fixed;
-    inset: 0;
-    background: rgba(0, 0, 0, 0.4);
-    z-index: var(--z-modal);
-    border: 0;
-  }
-  .card {
-    position: fixed;
-    z-index: calc(var(--z-modal) + 1);
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    width: min(420px, calc(100vw - 24px));
-    max-height: min(560px, calc(100vh - 48px));
-    background: var(--color-bg-elevated);
-    border-radius: var(--radius-lg);
-    border: 1px solid var(--color-border);
-    padding: 16px 0 12px;
+  .content {
+    padding: var(--space-4) 0 var(--space-3);
     display: flex;
     flex-direction: column;
-    gap: 8px;
-    box-shadow: 0 16px 48px var(--color-shadow);
-    overflow: hidden;
+    gap: var(--space-2);
+    max-height: min(560px, calc(100vh - 2 * var(--space-5)));
   }
   h2 {
     margin: 0;
-    padding: 0 20px;
+    padding: 0 var(--space-5);
     font-size: var(--text-md);
     font-weight: 600;
   }
   .empty {
     margin: 0;
-    padding: 12px 20px 16px;
+    padding: var(--space-3) var(--space-5) var(--space-4);
     color: var(--color-fg-secondary);
     font-size: var(--text-sm);
   }
@@ -162,8 +134,8 @@
   .row {
     display: flex;
     align-items: center;
-    gap: 12px;
-    padding: 8px 20px;
+    gap: var(--space-3);
+    padding: var(--space-2) var(--space-5);
   }
   .name {
     flex: 1;

@@ -16,6 +16,7 @@
 import { rpc } from '../rpc';
 import { onEvent, type DcEvent } from '../events';
 import { windowFocus } from './windowFocus.svelte';
+import { uploadBlob, viewtypeForFile } from '../files';
 
 /** Self contact id in deltachat-core (always 1). */
 export const CONTACT_ID_SELF = 1;
@@ -47,6 +48,36 @@ export const MSG_STATE = {
   OutDelivered: 26,
   OutMdnRcvd: 28,
 } as const;
+
+/** Icon + semantic kind for an outgoing message-state indicator. ChatListRow
+ *  and MessageBubble share this mapping; the only difference is whether the
+ *  caller has already gated on "outgoing." Incoming states always return null. */
+export type StateGlyph = { icon: 'loader' | 'check' | 'check-check' | 'alert-circle'; kind: 'pending' | 'delivered' | 'read' | 'failed' };
+export function messageStateGlyph(state: number): StateGlyph | null {
+  switch (state) {
+    case MSG_STATE.OutPreparing:
+    case MSG_STATE.OutPending:
+      return { icon: 'loader', kind: 'pending' };
+    case MSG_STATE.OutDelivered:
+      return { icon: 'check', kind: 'delivered' };
+    case MSG_STATE.OutMdnRcvd:
+      return { icon: 'check-check', kind: 'read' };
+    case MSG_STATE.OutFailed:
+      return { icon: 'alert-circle', kind: 'failed' };
+    default:
+      return null;
+  }
+}
+
+/** Whether deltachat-core will accept a "delete for everyone" recall for
+ *  this message. Mirrors core: only the user's own messages that have
+ *  already been delivered (or had a read-receipt) can be recalled. */
+export function canRecallMessage(m: { fromId: number; state: number }): boolean {
+  return (
+    m.fromId === CONTACT_ID_SELF &&
+    (m.state === MSG_STATE.OutDelivered || m.state === MSG_STATE.OutMdnRcvd)
+  );
+}
 
 export type Sender = {
   id: number;
@@ -168,10 +199,14 @@ export function setEditing(id: number | null): void {
   chat.replyToId = null;
 }
 
+let flashGen = 0;
 export function flashMessage(id: number): void {
   chat.highlightId = id;
+  const my = ++flashGen;
   setTimeout(() => {
-    if (chat.highlightId === id) chat.highlightId = null;
+    // Only clear if no newer flash superseded us — back-to-back jumps
+    // would otherwise have the first timer kill the second's highlight.
+    if (flashGen === my) chat.highlightId = null;
   }, 1200);
 }
 
@@ -202,8 +237,11 @@ function sameChat(a: ActiveChat | null, b: ActiveChat | null): boolean {
   return a.accountId === b.accountId && a.chatId === b.chatId;
 }
 
-/** Fetch all ids (cheap) + the newest INITIAL_WINDOW messages. */
-async function loadInitial(): Promise<void> {
+/** Refetch all ids + hydrate the newest `targetCount` messages.
+ *  - `loadInitial` (active-chat swap) passes INITIAL_WINDOW.
+ *  - `loadAll` (full-reload event, msgId=0) preserves the current visible
+ *    window size so the user's scroll position survives. */
+async function loadWindow(targetCount: number): Promise<void> {
   const active = chat.active;
   if (active == null) return;
   const gen = ++loadGen;
@@ -217,53 +255,6 @@ async function loadInitial(): Promise<void> {
     ]);
     if (gen !== loadGen || !sameChat(active, chat.active)) return;
 
-    const window = allIds.slice(Math.max(0, allIds.length - INITIAL_WINDOW));
-    const map = await rpc.call<Record<number, MessageLoadResult>>('get_messages', [
-      active.accountId,
-      window,
-    ]);
-    if (gen !== loadGen || !sameChat(active, chat.active)) return;
-
-    const messages = new Map<number, Message>();
-    const visibleIds: number[] = [];
-    for (const id of window) {
-      const r = map[id];
-      if (r && r.kind === 'message') {
-        messages.set(id, r as unknown as Message);
-        visibleIds.push(id);
-      }
-    }
-    chat.allIds = allIds;
-    chat.ids = visibleIds;
-    chat.messages = messages;
-    chat.hasMoreOlder = visibleIds.length < allIds.length;
-    chat.error = null;
-  } catch (err) {
-    if (gen === loadGen) chat.error = errString(err);
-  } finally {
-    if (gen === loadGen) chat.loading = false;
-  }
-}
-
-/** Convenience for code paths that previously called `loadAll()` — fetches
- *  every id and reloads the full window. Used after a full-reload event
- *  (`MsgsChanged` with msgId=0). The current visible window keeps its
- *  size when possible so the user's scroll position is preserved. */
-async function loadAll(): Promise<void> {
-  const active = chat.active;
-  if (active == null) return;
-  const gen = ++loadGen;
-  chat.loading = true;
-  try {
-    const allIds = await rpc.call<number[]>('get_message_ids', [
-      active.accountId,
-      active.chatId,
-      false,
-      false,
-    ]);
-    if (gen !== loadGen || !sameChat(active, chat.active)) return;
-
-    const targetCount = Math.max(INITIAL_WINDOW, chat.ids.length);
     const window = allIds.slice(Math.max(0, allIds.length - targetCount));
     const map = await rpc.call<Record<number, MessageLoadResult>>('get_messages', [
       active.accountId,
@@ -292,14 +283,42 @@ async function loadAll(): Promise<void> {
   }
 }
 
+const loadInitial = (): Promise<void> => loadWindow(INITIAL_WINDOW);
+const loadAll = (): Promise<void> => loadWindow(Math.max(INITIAL_WINDOW, chat.ids.length));
+
+/** Hydrate `toLoad` (a contiguous prefix of `chat.allIds` that's older than
+ *  the current `chat.ids` head) and prepend its successfully-loaded ids
+ *  onto `chat.ids`. Returns the number of ids actually prepended. Bails
+ *  silently if the active chat changed during the RPC await. */
+async function prependMessages(toLoad: number[]): Promise<number> {
+  const active = chat.active;
+  if (active == null || toLoad.length === 0) return 0;
+  const map = await rpc.call<Record<number, MessageLoadResult>>('get_messages', [
+    active.accountId,
+    toLoad,
+  ]);
+  if (!sameChat(active, chat.active)) return 0;
+  const next = new Map(chat.messages);
+  const prepended: number[] = [];
+  for (const id of toLoad) {
+    const r = map[id];
+    if (r && r.kind === 'message') {
+      next.set(id, r as unknown as Message);
+      prepended.push(id);
+    }
+  }
+  chat.messages = next;
+  chat.ids = [...prepended, ...chat.ids];
+  chat.hasMoreOlder = chat.ids.length < chat.allIds.length;
+  return prepended.length;
+}
+
 /** Extend the loaded window backwards by `PAGE_SIZE`. Returns the number of
  *  newly loaded ids — callers (ChatView) use this to preserve scroll
  *  position when the prepended bubbles change `scrollHeight`. */
 export async function loadOlder(): Promise<number> {
-  const active = chat.active;
-  if (active == null || !chat.hasMoreOlder || chat.loadingOlder) return 0;
+  if (!chat.hasMoreOlder || chat.loadingOlder) return 0;
   chat.loadingOlder = true;
-  const gen = loadGen;
   try {
     const startInAll = chat.allIds.length - chat.ids.length;
     const from = Math.max(0, startInAll - PAGE_SIZE);
@@ -308,29 +327,12 @@ export async function loadOlder(): Promise<number> {
       chat.hasMoreOlder = false;
       return 0;
     }
-    const map = await rpc.call<Record<number, MessageLoadResult>>('get_messages', [
-      active.accountId,
-      toLoad,
-    ]);
-    if (gen !== loadGen || !sameChat(active, chat.active)) return 0;
-    const next = new Map(chat.messages);
-    const prepended: number[] = [];
-    for (const id of toLoad) {
-      const r = map[id];
-      if (r && r.kind === 'message') {
-        next.set(id, r as unknown as Message);
-        prepended.push(id);
-      }
-    }
-    chat.messages = next;
-    chat.ids = [...prepended, ...chat.ids];
-    chat.hasMoreOlder = chat.ids.length < chat.allIds.length;
-    return prepended.length;
+    return await prependMessages(toLoad);
   } catch (err) {
     chat.error = errString(err);
     return 0;
   } finally {
-    if (gen === loadGen) chat.loadingOlder = false;
+    chat.loadingOlder = false;
   }
 }
 
@@ -340,8 +342,7 @@ export async function loadOlder(): Promise<number> {
  *  pipeline to handle quote-taps / search hits / media-browser entries
  *  that point at messages older than the currently rendered window. */
 export async function loadUntilInWindow(msgId: number): Promise<boolean> {
-  const active = chat.active;
-  if (active == null) return false;
+  if (chat.active == null) return false;
   if (chat.ids.includes(msgId)) return true;
 
   const idx = chat.allIds.indexOf(msgId);
@@ -353,31 +354,14 @@ export async function loadUntilInWindow(msgId: number): Promise<boolean> {
   if (toLoad.length === 0) return true;
 
   chat.loadingOlder = true;
-  const gen = loadGen;
   try {
-    const map = await rpc.call<Record<number, MessageLoadResult>>('get_messages', [
-      active.accountId,
-      toLoad,
-    ]);
-    if (gen !== loadGen || !sameChat(active, chat.active)) return false;
-    const next = new Map(chat.messages);
-    const prepended: number[] = [];
-    for (const id of toLoad) {
-      const r = map[id];
-      if (r && r.kind === 'message') {
-        next.set(id, r as unknown as Message);
-        prepended.push(id);
-      }
-    }
-    chat.messages = next;
-    chat.ids = [...prepended, ...chat.ids];
-    chat.hasMoreOlder = chat.ids.length < chat.allIds.length;
+    await prependMessages(toLoad);
     return chat.ids.includes(msgId);
   } catch (err) {
     chat.error = errString(err);
     return false;
   } finally {
-    if (gen === loadGen) chat.loadingOlder = false;
+    chat.loadingOlder = false;
   }
 }
 
@@ -393,9 +377,6 @@ async function patchMessage(msgId: number, opts: { appendIfNew: boolean }): Prom
     const r = map[msgId];
     if (!r || r.kind !== 'message') return;
     const m = r as unknown as Message;
-    // Defensive: this message might belong to a different chat (deltachat
-    // sometimes broadcasts MsgsChanged across chats). Drop if so.
-    if (m.chatId !== active.chatId) return;
 
     const next = new Map(chat.messages);
     next.set(msgId, m);
@@ -590,6 +571,63 @@ export async function markNoticed(): Promise<void> {
   } catch {
     /* best-effort */
   }
+}
+
+/** Upload + send a file attachment in the active chat. The viewtype is
+ *  inferred from the file's extension/mime via `viewtypeForFile`. */
+export async function sendFile(file: File, text?: string): Promise<void> {
+  const active = chat.active;
+  if (active == null) return;
+  const ext = (file.name.split('.').pop() ?? 'bin').toLowerCase();
+  const path = await uploadBlob(file, ext);
+  await sendMessage({
+    viewtype: viewtypeForFile(file),
+    file: path,
+    filename: file.name,
+    text: text || undefined,
+  });
+}
+
+/** Send a geographic location as a message in the active chat. */
+export async function sendLocation(lat: number, lon: number, text?: string): Promise<void> {
+  const active = chat.active;
+  if (active == null) return;
+  await sendMessage({
+    viewtype: 'Text',
+    text: text || undefined,
+    location: [lat, lon],
+  });
+}
+
+/** Build a vcard for `contactId` via `make_vcard`, upload as a blob, and
+ *  send it as a Vcard attachment in the active chat. */
+export async function sendContact(contactId: number, text?: string): Promise<void> {
+  const active = chat.active;
+  if (active == null) return;
+  const vcard = await rpc.call<string>('make_vcard', [active.accountId, [contactId]]);
+  const blob = new Blob([vcard], { type: 'text/vcard' });
+  const path = await uploadBlob(blob, 'vcf');
+  await sendMessage({
+    viewtype: 'Vcard',
+    file: path,
+    filename: 'contact.vcf',
+    text: text || undefined,
+  });
+}
+
+/** Hydrate a batch of messages by id, filtering out load-errors at the
+ *  state-module boundary so callers receive a clean `Message[]` without the
+ *  `kind: 'message' | 'loadingError'` wire discriminator. Used by
+ *  MediaBrowser and the message-search results pane. */
+export async function loadMessages(accountId: number, ids: number[]): Promise<Message[]> {
+  if (ids.length === 0) return [];
+  const map = await rpc.call<Record<number, MessageLoadResult>>('get_messages', [accountId, ids]);
+  const out: Message[] = [];
+  for (const id of ids) {
+    const r = map[id];
+    if (r && r.kind === 'message') out.push(r as unknown as Message);
+  }
+  return out;
 }
 
 function errString(err: unknown): string {

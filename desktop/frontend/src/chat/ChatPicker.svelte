@@ -5,6 +5,7 @@
   // previous inline avatar only painted the initial letter).
   import { chatlist } from '../lib/state/chatlist.svelte';
   import Avatar from '../lib/Avatar.svelte';
+  import Modal from '../lib/Modal.svelte';
   import { t } from '../lib/i18n/i18n.svelte';
 
   type Props = {
@@ -26,9 +27,8 @@
   });
 </script>
 
-{#if open}
-  <button class="backdrop" onclick={onClose} aria-label={t('Close picker')}></button>
-  <div class="card" role="dialog" aria-label={t('Forward to chat')} data-testid="chat-picker">
+<Modal {open} {onClose} size="md" ariaLabel={t('Forward to chat')} data-testid="chat-picker">
+  <div class="content">
     <header>
       <h2>{t('Forward to…')}</h2>
       <button class="close" onclick={onClose} aria-label={t('Close')} data-testid="chat-picker__close">✕</button>
@@ -54,35 +54,18 @@
       {/if}
     </ul>
   </div>
-{/if}
+</Modal>
 
 <style>
-  .backdrop {
-    position: fixed;
-    inset: 0;
-    background: rgba(0, 0, 0, 0.4);
-    z-index: var(--z-modal);
-    border: 0;
-  }
-  .card {
-    position: fixed;
-    z-index: calc(var(--z-modal) + 1);
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    width: min(420px, calc(100vw - 24px));
-    max-height: 70vh;
-    background: var(--color-bg-elevated);
-    border-radius: var(--radius-lg);
-    border: 1px solid var(--color-border);
+  .content {
     display: flex;
     flex-direction: column;
-    overflow: hidden;
+    max-height: 70vh;
   }
   header {
     display: flex;
     align-items: center;
-    padding: 12px 16px;
+    padding: var(--space-3) var(--space-4);
     border-bottom: 1px solid var(--color-border);
   }
   h2 {
@@ -101,7 +84,7 @@
     background: var(--color-bg-hover);
   }
   .search {
-    margin: 12px 16px 0;
+    margin: var(--space-3) var(--space-4) 0;
     height: 32px;
     padding: 0 var(--space-3);
     border-radius: var(--radius-md);
@@ -115,15 +98,15 @@
   .list {
     overflow-y: auto;
     flex: 1;
-    margin-top: 8px;
+    margin-top: var(--space-2);
   }
   .row {
     display: flex;
     align-items: center;
     justify-content: flex-start;
-    gap: 12px;
+    gap: var(--space-3);
     width: 100%;
-    padding: 10px 16px;
+    padding: var(--space-2) var(--space-4);
     text-align: left;
     background: transparent;
     color: var(--color-fg);
@@ -136,7 +119,7 @@
     font-weight: 500;
   }
   .empty {
-    padding: 20px;
+    padding: var(--space-5);
     text-align: center;
     color: var(--color-fg-tertiary);
   }

@@ -10,6 +10,7 @@
 const time = new Intl.DateTimeFormat(undefined, { hour: '2-digit', minute: '2-digit' });
 const weekday = new Intl.DateTimeFormat(undefined, { weekday: 'short' });
 const date = new Intl.DateTimeFormat(undefined, { dateStyle: 'short' });
+const dateMedium = new Intl.DateTimeFormat(undefined, { dateStyle: 'medium' });
 
 export function formatRelativeTimestamp(unixMs: number | null | undefined): string {
   if (unixMs == null || unixMs <= 0) return '';
@@ -19,6 +20,27 @@ export function formatRelativeTimestamp(unixMs: number | null | undefined): stri
   const days = wholeDaysBetween(d, now);
   if (days < 7) return weekday.format(d);
   return date.format(d);
+}
+
+/** Short HH:MM clock label for a message bubble's footer.
+ *  Input is unix **seconds** (deltachat-core's message-payload format), not ms. */
+export function formatShortTime(unixSec: number | null | undefined): string {
+  if (unixSec == null || unixSec <= 0) return '';
+  return time.format(new Date(unixSec * 1000));
+}
+
+/** Day-marker label between consecutive message bubbles:
+ *    - "Today" / "Yesterday" for the two most-recent days
+ *    - locale `medium` date for older messages.
+ *  `t` is the i18n lookup; passed in so this stays a plain .ts module. */
+export function formatDayLabel(unixSec: number, t: (k: string) => string): string {
+  const d = new Date(unixSec * 1000);
+  const today = new Date();
+  if (sameDay(d, today)) return t('Today');
+  const yest = new Date(today);
+  yest.setDate(today.getDate() - 1);
+  if (sameDay(d, yest)) return t('Yesterday');
+  return dateMedium.format(d);
 }
 
 function sameDay(a: Date, b: Date): boolean {

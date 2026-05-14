@@ -7,6 +7,7 @@
 
 import { rpc } from '../rpc';
 import { onEvent } from '../events';
+import { chatlist } from './chatlist.svelte';
 
 export type Profile = {
   id: number;
@@ -26,6 +27,13 @@ export const profiles = $state<{ list: Profile[] }>({ list: [] });
 // requests and muted chats, so a fresh DM from another profile landing as
 // an unaccepted request leaves the count at 0.
 async function computeFreshCount(accountId: number): Promise<number> {
+  // Active account: chatlist already keeps a live mirror of the same
+  // per-row counts. Sum from there instead of issuing the same RPC pair.
+  if (accountId === chatlist.accountId) {
+    let count = 0;
+    for (const item of chatlist.items.values()) count += item.freshMessageCounter;
+    return count;
+  }
   const ids = await rpc.call<number[]>('get_chatlist_entries', [accountId, null, null, null]);
   if (ids.length === 0) return 0;
   const entries = await rpc.call<
@@ -59,11 +67,13 @@ export async function refreshProfiles(ids: number[]): Promise<void> {
         | { kind: 'Unconfigured'; id: number }
       >('get_account_info', [id]);
       if (info.kind !== 'Configured') continue;
-      let freshCount = 0;
+      let freshCount: number;
       try {
         freshCount = await computeFreshCount(id);
       } catch {
-        /* skip */
+        // Preserve the prior count on transient RPC failure — wiping to 0
+        // hides legitimately unread messages from the profile rail.
+        freshCount = profiles.list.find((p) => p.id === id)?.freshCount ?? 0;
       }
       out.push({
         id: info.id,
@@ -87,11 +97,9 @@ async function patchFresh(accountId: number) {
     const freshCount = await computeFreshCount(accountId);
     const idx = profiles.list.findIndex((p) => p.id === accountId);
     if (idx < 0) return;
-    const next = profiles.list.slice();
-    next[idx] = { ...next[idx], freshCount };
-    profiles.list = next;
+    profiles.list[idx] = { ...profiles.list[idx], freshCount };
   } catch {
-    /* skip */
+    /* skip — keep prior count */
   }
 }
 
@@ -103,8 +111,25 @@ export async function recomputeAllFreshCounts(): Promise<void> {
   await Promise.all(ids.map((id) => patchFresh(id)));
 }
 
-onEvent('IncomingMsg', (ev) => void patchFresh(ev.contextId));
-onEvent('MsgsNoticed', (ev) => void patchFresh(ev.contextId));
-onEvent('MsgsChanged', (ev) => void patchFresh(ev.contextId));
-onEvent('ChatlistChanged', (ev) => void patchFresh(ev.contextId));
-onEvent('ChatlistItemChanged', (ev) => void patchFresh(ev.contextId));
+// Five event kinds fan out the same "freshCount for this account may have
+// moved" signal. Coalesce per-account so one arriving message triggers one
+// RPC pair instead of five.
+const dirtyAccounts = new Set<number>();
+let drainScheduled = false;
+function markFreshDirty(accountId: number): void {
+  dirtyAccounts.add(accountId);
+  if (drainScheduled) return;
+  drainScheduled = true;
+  queueMicrotask(() => {
+    drainScheduled = false;
+    const ids = Array.from(dirtyAccounts);
+    dirtyAccounts.clear();
+    for (const id of ids) void patchFresh(id);
+  });
+}
+
+onEvent('IncomingMsg', (ev) => markFreshDirty(ev.contextId));
+onEvent('MsgsNoticed', (ev) => markFreshDirty(ev.contextId));
+onEvent('MsgsChanged', (ev) => markFreshDirty(ev.contextId));
+onEvent('ChatlistChanged', (ev) => markFreshDirty(ev.contextId));
+onEvent('ChatlistItemChanged', (ev) => markFreshDirty(ev.contextId));

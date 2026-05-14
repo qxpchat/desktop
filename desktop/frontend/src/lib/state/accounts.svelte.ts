@@ -44,10 +44,10 @@ export async function refreshAccounts(): Promise<void> {
     accounts.configuredIds = configuredIds;
     accounts.selectedId = selectedId;
   } catch (err) {
+    // Leave the previously-rendered list in place on transient failure —
+    // wiping it on every refresh hiccup turns a brief daemon stall into a
+    // visible "no accounts" boot screen.
     console.error('refreshAccounts failed', err);
-    accounts.ids = [];
-    accounts.configuredIds = [];
-    accounts.selectedId = null;
   } finally {
     accounts.loaded = true;
   }

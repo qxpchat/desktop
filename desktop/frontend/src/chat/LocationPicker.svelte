@@ -9,6 +9,9 @@
   // `set_location` RPCs exposed via deltachat-jsonrpc; those aren't in this
   // build of core, so the live-mode button is omitted here.
   import Icon from '../lib/Icon.svelte';
+  import Modal from '../lib/Modal.svelte';
+  import Button from '../lib/Button.svelte';
+  import { osmEmbedUrl } from '../lib/format/openstreetmap';
   import { t } from '../lib/i18n/i18n.svelte';
 
   type Props = {
@@ -67,90 +70,56 @@
     onClose();
   }
 
-  // OSM's official iframe embed — more reliable than the community
-  // static-map endpoint (which gets blocked / rate-limited in places).
-  // bbox is a tight ~1km box around the point so zoom looks roughly
-  // similar to a static-map at zoom 15.
-  let mapUrl = $derived.by(() => {
-    if (!coord) return null;
-    const d = 0.005;
-    const bbox = [coord.lon - d, coord.lat - d, coord.lon + d, coord.lat + d].join(',');
-    return `https://www.openstreetmap.org/export/embed.html?bbox=${bbox}&layer=mapnik&marker=${coord.lat},${coord.lon}`;
-  });
+  let mapUrl = $derived(coord ? osmEmbedUrl(coord.lat, coord.lon) : null);
 
+  // Enter-to-send is a quality-of-life shortcut; Modal handles Escape.
   function onKey(e: KeyboardEvent) {
-    if (!open) return;
-    if (e.key === 'Escape') onClose();
-    else if (e.key === 'Enter' && coord) send();
+    if (open && e.key === 'Enter' && coord) send();
   }
 </script>
 
 <svelte:window onkeydown={onKey} />
 
-{#if open}
-  <div class="overlay" role="dialog" aria-modal="true" aria-label={t('Send Location')} data-testid="location-picker">
-    <button class="backdrop" onclick={onClose} aria-label={t('Close')}></button>
-    <div class="card">
-      <header>
-        <h2>{t('Send Location')}</h2>
-        <button class="close" onclick={onClose} aria-label={t('Close')}>✕</button>
-      </header>
+<Modal {open} {onClose} size="lg" ariaLabel={t('Send Location')} data-testid="location-picker">
+  <div class="content">
+    <header>
+      <h2>{t('Send Location')}</h2>
+      <button class="close" onclick={onClose} aria-label={t('Close')}>✕</button>
+    </header>
 
-      <div class="body">
-        {#if busy}
-          <div class="placeholder muted">{t('Locating…')}</div>
-        {:else if error}
-          <div class="placeholder error">{error}</div>
-          <button class="link" onclick={requestLocation}>{t('Try again')}</button>
-        {:else if coord && mapUrl}
-          <iframe
-            class="map"
-            src={mapUrl}
-            title={t('Map preview')}
-            loading="lazy"
-            referrerpolicy="no-referrer"
-          ></iframe>
-          <p class="coord">
-            <span class="latlon">{coord.lat.toFixed(5)}, {coord.lon.toFixed(5)}</span>
-            <span class="acc">±{Math.round(coord.accuracy)} m</span>
-          </p>
-        {/if}
-      </div>
+    <div class="body">
+      {#if busy}
+        <div class="placeholder muted">{t('Locating…')}</div>
+      {:else if error}
+        <div class="placeholder error">{error}</div>
+        <button class="link" onclick={requestLocation}>{t('Try again')}</button>
+      {:else if coord && mapUrl}
+        <iframe
+          class="map"
+          src={mapUrl}
+          title={t('Map preview')}
+          loading="lazy"
+          referrerpolicy="no-referrer"
+        ></iframe>
+        <p class="coord">
+          <span class="latlon">{coord.lat.toFixed(5)}, {coord.lon.toFixed(5)}</span>
+          <span class="acc">±{Math.round(coord.accuracy)} m</span>
+        </p>
+      {/if}
+    </div>
 
-      <div class="actions">
-        <button onclick={onClose} data-testid="location-picker__cancel">{t('Cancel')}</button>
-        <button class="primary" onclick={send} disabled={!coord || busy} data-testid="location-picker__send">
-          <Icon name="map-pin" size={14} stroke={2.5} />
-          {t('Send this location')}
-        </button>
-      </div>
+    <div class="actions">
+      <Button variant="secondary" onclick={onClose} data-testid="location-picker__cancel">{t('Cancel')}</Button>
+      <Button variant="primary" onclick={send} disabled={!coord || busy} data-testid="location-picker__send">
+        <Icon name="map-pin" size={14} stroke={2.5} />
+        {t('Send this location')}
+      </Button>
     </div>
   </div>
-{/if}
+</Modal>
 
 <style>
-  .overlay {
-    position: fixed;
-    inset: 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: var(--z-modal);
-  }
-  .backdrop {
-    position: absolute;
-    inset: 0;
-    background: rgba(0, 0, 0, 0.45);
-    backdrop-filter: blur(4px);
-    border: 0;
-  }
-  .card {
-    position: relative;
-    width: min(520px, calc(100vw - 2 * var(--space-4)));
-    background: var(--color-bg-elevated);
-    border-radius: var(--radius-lg);
-    box-shadow: 0 16px 48px var(--color-shadow);
-    overflow: hidden;
+  .content {
     display: flex;
     flex-direction: column;
   }
@@ -232,27 +201,5 @@
     gap: var(--space-3);
     padding: var(--space-3) var(--space-4);
     border-top: 1px solid var(--color-border);
-  }
-  .actions button {
-    height: 36px;
-    padding: 0 var(--space-4);
-    border-radius: var(--radius-md);
-    font-weight: 600;
-    background: var(--color-bg-hover);
-    color: var(--color-fg);
-  }
-  .actions button:hover:not(:disabled) {
-    background: var(--color-border);
-  }
-  .actions .primary {
-    background: var(--color-accent);
-    color: var(--color-accent-fg);
-  }
-  .actions .primary:hover:not(:disabled) {
-    filter: brightness(1.05);
-  }
-  .actions button:disabled {
-    opacity: 0.5;
-    cursor: default;
   }
 </style>

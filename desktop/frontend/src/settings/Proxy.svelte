@@ -12,6 +12,8 @@
   import SettingsSection from '../lib/SettingsSection.svelte';
   import SettingsRow from '../lib/SettingsRow.svelte';
   import Toggle from '../lib/Toggle.svelte';
+  import Modal from '../lib/Modal.svelte';
+  import Button from '../lib/Button.svelte';
   import ShareProxy from './ShareProxy.svelte';
   import { t } from '../lib/i18n/i18n.svelte';
 
@@ -54,20 +56,22 @@
   }
 
   // `check_qr` exposes the parsed `host` for proxy URLs; same field the
-  // QrDispatcher uses. Cache one host lookup per URL.
+  // QrDispatcher uses. Cache one host lookup per URL. Parallel since
+  // `check_qr` is parser-level and side-effect-free.
   async function resolveHosts() {
     if (accounts.selectedId == null) return;
     const id = accounts.selectedId;
-    const next: Record<string, string> = {};
-    for (const url of proxies) {
-      try {
-        const obj = await rpc.call<{ kind: string; host?: string }>('check_qr', [id, url]);
-        next[url] = obj.host ?? url;
-      } catch {
-        next[url] = url;
-      }
-    }
-    hosts = next;
+    const pairs = await Promise.all(
+      proxies.map(async (url) => {
+        try {
+          const obj = await rpc.call<{ kind: string; host?: string }>('check_qr', [id, url]);
+          return [url, obj.host ?? url] as const;
+        } catch {
+          return [url, url] as const;
+        }
+      }),
+    );
+    hosts = Object.fromEntries(pairs);
   }
 
   onEvent('ConnectivityChanged', () => void load());
@@ -241,44 +245,43 @@
   <p class="error">{errorMsg}</p>
 {/if}
 
-{#if addOpen}
-  <div class="overlay" role="dialog" aria-modal="true">
-    <div class="dialog">
-      <h3>{t('Add Proxy')}</h3>
-      <p>{t('Supported proxy types: HTTP(S), SOCKS5 and Shadowsocks.')}</p>
-      <!-- svelte-ignore a11y_autofocus -->
-      <input
-        type="url"
-        bind:value={addValue}
-        placeholder="socks5://user:pass@host:1080"
-        autofocus
-        spellcheck="false"
-        autocapitalize="off"
-        autocorrect="off"
-      />
-      <div class="actions">
-        <button onclick={() => (addOpen = false)} disabled={busy}>{t('Cancel')}</button>
-        <button class="primary" onclick={submitAdd} disabled={busy || !addValue.trim()}>
-          {busy ? t('Adding…') : t('Use Proxy')}
-        </button>
-      </div>
+<Modal open={addOpen} onClose={() => (addOpen = false)} size="md">
+  <div class="dialog-body">
+    <h3>{t('Add Proxy')}</h3>
+    <p>{t('Supported proxy types: HTTP(S), SOCKS5 and Shadowsocks.')}</p>
+    <!-- svelte-ignore a11y_autofocus -->
+    <input
+      type="url"
+      bind:value={addValue}
+      placeholder="socks5://user:pass@host:1080"
+      autofocus
+      spellcheck="false"
+      autocapitalize="off"
+      autocorrect="off"
+    />
+    <div class="actions">
+      <Button variant="secondary" onclick={() => (addOpen = false)} disabled={busy}>{t('Cancel')}</Button>
+      <Button variant="primary" onclick={submitAdd} disabled={busy || !addValue.trim()}>
+        {busy ? t('Adding…') : t('Use Proxy')}
+      </Button>
     </div>
   </div>
-{/if}
+</Modal>
 
-{#if removeTarget}
-  <div class="overlay" role="dialog" aria-modal="true">
-    <div class="dialog small">
-      <h3>{t('Delete proxy "{name}"?', { name: hosts[removeTarget] ?? removeTarget })}</h3>
+<Modal open={removeTarget != null} onClose={() => (removeTarget = null)} size="sm" role="alertdialog">
+  {#if removeTarget}
+    {@const r = removeTarget}
+    <div class="dialog-body">
+      <h3>{t('Delete proxy "{name}"?', { name: hosts[r] ?? r })}</h3>
       <div class="actions">
-        <button onclick={() => (removeTarget = null)} disabled={busy}>{t('Cancel')}</button>
-        <button class="primary danger" onclick={confirmRemove} disabled={busy}>
+        <Button variant="secondary" onclick={() => (removeTarget = null)} disabled={busy}>{t('Cancel')}</Button>
+        <Button variant="danger" onclick={confirmRemove} disabled={busy}>
           {busy ? t('Deleting…') : t('Delete Proxy')}
-        </button>
+        </Button>
       </div>
     </div>
-  </div>
-{/if}
+  {/if}
+</Modal>
 
 {#if shareTarget}
   <ShareProxy url={shareTarget} onClose={() => (shareTarget = null)} />
@@ -384,36 +387,19 @@
     margin: var(--space-3) 0;
   }
 
-  .overlay {
-    position: fixed;
-    inset: 0;
-    background: rgba(0, 0, 0, 0.45);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: var(--z-modal);
-    backdrop-filter: blur(4px);
-  }
-  .dialog {
-    background: var(--color-bg-elevated);
-    border-radius: var(--radius-lg);
+  .dialog-body {
     padding: var(--space-5);
-    width: min(420px, calc(100vw - 2 * var(--space-4)));
-    box-shadow: 0 16px 48px var(--color-shadow);
   }
-  .dialog.small {
-    width: min(360px, calc(100vw - 2 * var(--space-4)));
-  }
-  .dialog h3 {
+  .dialog-body h3 {
     margin: 0 0 var(--space-3) 0;
     font-size: var(--text-lg);
     font-weight: 600;
   }
-  .dialog p {
+  .dialog-body p {
     margin: 0 0 var(--space-3) 0;
     color: var(--color-fg-secondary);
   }
-  .dialog input {
+  .dialog-body input {
     width: 100%;
     box-sizing: border-box;
     margin: 0 0 var(--space-4) 0;
@@ -425,35 +411,12 @@
     font-family: var(--font-mono);
     font-size: var(--text-sm);
   }
-  .dialog input:focus {
+  .dialog-body input:focus {
     outline: none;
   }
   .actions {
     display: flex;
     justify-content: flex-end;
     gap: var(--space-3);
-  }
-  .actions button {
-    height: 36px;
-    padding: 0 var(--space-4);
-    border-radius: var(--radius-md);
-    font-weight: 600;
-    background: var(--color-bg-hover);
-    color: var(--color-fg);
-  }
-  .actions .primary {
-    background: var(--color-accent);
-    color: var(--color-accent-fg);
-  }
-  .actions .primary.danger {
-    background: var(--color-danger);
-    color: white;
-  }
-  .actions .primary:hover:not(:disabled) {
-    filter: brightness(1.05);
-  }
-  .actions button:disabled {
-    opacity: 0.5;
-    cursor: default;
   }
 </style>

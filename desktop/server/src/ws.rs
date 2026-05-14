@@ -15,6 +15,11 @@ pub async fn handler(ws: WebSocketUpgrade, State(state): State<AppState>) -> imp
 async fn pump(mut socket: WebSocket, api: deltachat_jsonrpc::api::CommandApi) {
     let (client, mut out_rx) = RpcClient::new();
     let session = RpcSession::new(client, api);
+    // JoinSet scoped to this connection — any per-frame handler task we
+    // spawn is bounded by the connection's lifetime and gets aborted on
+    // disconnect rather than racing the shared `session` against a closed
+    // socket.
+    let mut tasks = tokio::task::JoinSet::new();
 
     loop {
         tokio::select! {
@@ -36,7 +41,7 @@ async fn pump(mut socket: WebSocket, api: deltachat_jsonrpc::api::CommandApi) {
                     Some(Ok(Message::Text(text))) => {
                         let session = session.clone();
                         let payload = text.as_str().to_owned();
-                        tokio::spawn(async move {
+                        tasks.spawn(async move {
                             session.handle_incoming(&payload).await;
                         });
                     }
@@ -51,5 +56,6 @@ async fn pump(mut socket: WebSocket, api: deltachat_jsonrpc::api::CommandApi) {
         }
     }
 
+    tasks.shutdown().await;
     tracing::debug!("ws connection closed");
 }

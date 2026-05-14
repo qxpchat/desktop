@@ -1,5 +1,7 @@
 <script lang="ts">
   import { onboarding, cancelOnboarding, resetOnboarding } from '../lib/state/onboarding.svelte';
+  import Modal from '../lib/Modal.svelte';
+  import Button from '../lib/Button.svelte';
   import { t } from '../lib/i18n/i18n.svelte';
 
   let phase = $derived(onboarding.phase);
@@ -24,51 +26,40 @@
       ? phase.progress
       : 0,
   );
+
+  // The Modal's `onClose` (backdrop click / Escape) must do the right thing
+  // per phase: in `failed` it dismisses + resets; in any in-flight phase the
+  // user has to explicitly hit Cancel, so the close handler is a no-op
+  // (effectively makes the in-flight overlay non-dismissable).
+  function onClose() {
+    if (phase.kind === 'failed') resetOnboarding();
+  }
 </script>
 
-{#if phase.kind === 'failed'}
-  <div class="overlay" role="dialog" aria-modal="true">
-    <div class="card">
-      <h2>{label}</h2>
+<Modal open={phase.kind !== 'idle'} {onClose} size="md" ariaLabel={label}>
+  <div class="content">
+    <h2>{label}</h2>
+    {#if phase.kind === 'failed'}
       <p class="error">{phase.message}</p>
       <div class="actions">
-        <button class="primary" onclick={resetOnboarding}>{t('OK')}</button>
+        <Button variant="primary" onclick={resetOnboarding}>{t('OK')}</Button>
       </div>
-    </div>
-  </div>
-{:else if phase.kind !== 'idle'}
-  <div class="overlay" role="dialog" aria-modal="true" aria-label={label}>
-    <div class="card">
-      <h2>{label}</h2>
+    {:else}
       <div class="progress-row">
         <progress value={progress} max="1000"></progress>
         <span class="permille">{Math.round((progress / 1000) * 100)}%</span>
       </div>
       <p class="hint">{t('Keep this tab open until configuration completes.')}</p>
       <div class="actions">
-        <button class="cancel" onclick={cancelOnboarding}>{t('Cancel')}</button>
+        <Button variant="secondary" onclick={cancelOnboarding}>{t('Cancel')}</Button>
       </div>
-    </div>
+    {/if}
   </div>
-{/if}
+</Modal>
 
 <style>
-  .overlay {
-    position: fixed;
-    inset: 0;
-    background: rgba(0, 0, 0, 0.45);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: var(--z-modal);
-    backdrop-filter: blur(4px);
-  }
-  .card {
-    background: var(--color-bg-elevated);
-    border-radius: var(--radius-lg);
+  .content {
     padding: var(--space-5);
-    width: min(420px, calc(100vw - 2 * var(--space-4)));
-    box-shadow: 0 16px 48px var(--color-shadow);
   }
   h2 {
     margin: 0 0 var(--space-3) 0;
@@ -126,26 +117,5 @@
     display: flex;
     justify-content: flex-end;
     gap: var(--space-3);
-  }
-  .actions button {
-    height: 36px;
-    padding: 0 var(--space-4);
-    border-radius: var(--radius-md);
-    font-weight: 600;
-    font-size: var(--text-md);
-  }
-  .primary {
-    background: var(--color-accent);
-    color: var(--color-accent-fg);
-  }
-  .primary:hover {
-    filter: brightness(1.05);
-  }
-  .cancel {
-    background: var(--color-bg-hover);
-    color: var(--color-fg);
-  }
-  .cancel:hover {
-    background: var(--color-border);
   }
 </style>

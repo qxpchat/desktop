@@ -2,6 +2,8 @@
   import { receiveBackup } from '../lib/state/onboarding.svelte';
   import ProgressOverlay from './ProgressOverlay.svelte';
   import Scanner from '../qr/Scanner.svelte';
+  import Modal from '../lib/Modal.svelte';
+  import Button from '../lib/Button.svelte';
   import { t } from '../lib/i18n/i18n.svelte';
 
   type Props = {
@@ -91,41 +93,37 @@
   <button class="paste" onclick={openPaste} data-testid="onboarding-backup-receive__paste-open">{t('Paste Code Manually')}</button>
 </main>
 
-{#if pasteOpen}
-  <div class="overlay" role="dialog" aria-modal="true">
-    <div class="card">
-      <h2>{t('Paste backup pair code')}</h2>
-      <p>{t('Paste the DCBACKUP… code shown on the other device.')}</p>
-      <!-- svelte-ignore a11y_autofocus -->
-      <textarea
-        bind:value={pasteValue}
-        placeholder="DCBACKUP4:…"
-        autofocus
-        rows="3"
-        spellcheck="false"
-        autocapitalize="off"
-        data-testid="onboarding-backup-receive__paste-input"
-      ></textarea>
-      <div class="actions">
-        <button onclick={cancelPaste}>{t('Cancel')}</button>
-        <button class="primary" onclick={submitPaste} disabled={!pasteValue.trim()} data-testid="onboarding-backup-receive__paste-submit">{t('Pair')}</button>
-      </div>
+<Modal open={pasteOpen} onClose={cancelPaste} size="md">
+  <div class="dialog-body">
+    <h2>{t('Paste backup pair code')}</h2>
+    <p>{t('Paste the DCBACKUP… code shown on the other device.')}</p>
+    <!-- svelte-ignore a11y_autofocus -->
+    <textarea
+      bind:value={pasteValue}
+      placeholder="DCBACKUP4:…"
+      autofocus
+      rows="3"
+      spellcheck="false"
+      autocapitalize="off"
+      data-testid="onboarding-backup-receive__paste-input"
+    ></textarea>
+    <div class="actions">
+      <Button variant="secondary" onclick={cancelPaste}>{t('Cancel')}</Button>
+      <Button variant="primary" onclick={submitPaste} disabled={!pasteValue.trim()} data-testid="onboarding-backup-receive__paste-submit">{t('Pair')}</Button>
     </div>
   </div>
-{/if}
+</Modal>
 
-{#if confirmOpen}
-  <div class="overlay" role="dialog" aria-modal="true">
-    <div class="card">
-      <h2>{t('Pair this device?')}</h2>
-      <p>{t('You\'ll receive your account from the other device.')}</p>
-      <div class="actions">
-        <button onclick={cancelConfirm}>{t('Cancel')}</button>
-        <button class="primary" onclick={confirm} data-testid="onboarding-backup-receive__confirm">{t('Pair')}</button>
-      </div>
+<Modal open={confirmOpen} onClose={cancelConfirm} size="md">
+  <div class="dialog-body">
+    <h2>{t('Pair this device?')}</h2>
+    <p>{t("You'll receive your account from the other device.")}</p>
+    <div class="actions">
+      <Button variant="secondary" onclick={cancelConfirm}>{t('Cancel')}</Button>
+      <Button variant="primary" onclick={confirm} data-testid="onboarding-backup-receive__confirm">{t('Pair')}</Button>
     </div>
   </div>
-{/if}
+</Modal>
 
 <ProgressOverlay />
 
@@ -176,34 +174,19 @@
     background: var(--color-bg-hover);
     border-radius: var(--radius-md);
   }
-
-  .overlay {
-    position: fixed;
-    inset: 0;
-    background: rgba(0, 0, 0, 0.45);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: var(--z-modal);
-    backdrop-filter: blur(4px);
-  }
-  .card {
-    background: var(--color-bg-elevated);
-    border-radius: var(--radius-lg);
+  .dialog-body {
     padding: var(--space-5);
-    width: min(420px, calc(100vw - 2 * var(--space-4)));
-    box-shadow: 0 16px 48px var(--color-shadow);
   }
-  .card h2 {
+  .dialog-body h2 {
     margin: 0 0 var(--space-3) 0;
     font-size: var(--text-lg);
     font-weight: 600;
   }
-  .card p {
+  .dialog-body p {
     margin: 0 0 var(--space-4) 0;
     color: var(--color-fg-secondary);
   }
-  .card textarea {
+  .dialog-body textarea {
     width: 100%;
     box-sizing: border-box;
     margin: 0 0 var(--space-4) 0;
@@ -217,30 +200,12 @@
     resize: vertical;
     min-height: 72px;
   }
-  .card textarea:focus {
+  .dialog-body textarea:focus {
     outline: none;
   }
   .actions {
     display: flex;
     justify-content: flex-end;
     gap: var(--space-3);
-  }
-  .actions button {
-    height: 36px;
-    padding: 0 var(--space-4);
-    border-radius: var(--radius-md);
-    font-weight: 600;
-    background: var(--color-bg-hover);
-    color: var(--color-fg);
-  }
-  .actions button:hover {
-    background: var(--color-border);
-  }
-  .actions .primary {
-    background: var(--color-accent);
-    color: var(--color-accent-fg);
-  }
-  .actions .primary:hover {
-    filter: brightness(1.05);
   }
 </style>

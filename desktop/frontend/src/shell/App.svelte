@@ -57,12 +57,13 @@
   });
 
   // Re-fetch the chatlist whenever the active account changes; clear chat
-  // selection because chat ids are scoped per account.
+  // selection because chat ids are scoped per account. The two writes
+  // happen in one effect (instead of cross-effect signalling via
+  // `chatlist.accountId`) since `chatlist.accountId` is *only* ever
+  // written by `setActiveAccount`, so reading it back was a feedback-loop
+  // shaped indirection rather than independent state.
   $effect(() => {
     setActiveAccount(accounts.selectedId);
-  });
-  $effect(() => {
-    void chatlist.accountId;
     selectChat(null);
   });
 

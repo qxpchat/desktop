@@ -42,15 +42,14 @@ fn main() {
         .expect("error while running tauri application");
 }
 
-/// Set the macOS dock-tile badge to `label` (e.g. "3", "99+", or empty to
+/// Set the macOS dock-tile badge to `label` (e.g. "3", "99+", or None to
 /// clear). The frontend calls this every time the unread total changes.
-/// No-op on non-macOS — the badge concept doesn't exist on Linux/Windows
-/// taskbars in a portable way; flashing the icon would be a separate path.
+/// No-op on Linux/Windows — there's no portable taskbar-badge primitive;
+/// the frontend's title-prefix + favicon dot covers those platforms.
 #[tauri::command]
 fn set_badge(label: Option<String>) {
     #[cfg(target_os = "macos")]
     {
-        use objc2::msg_send;
         use objc2_app_kit::NSApplication;
         use objc2_foundation::{MainThreadMarker, NSString};
 
@@ -63,14 +62,18 @@ fn set_badge(label: Option<String>) {
         };
         let app = NSApplication::sharedApplication(mtm);
         let dock_tile = app.dockTile();
-        let text = label.as_deref().unwrap_or("");
-        let ns = NSString::from_str(text);
-        unsafe {
-            let _: () = msg_send![&*dock_tile, setBadgeLabel: &*ns];
-        }
+        // Empty string would still paint an empty bubble on some macOS
+        // releases; passing nil clears it cleanly.
+        let ns = label
+            .as_deref()
+            .filter(|s| !s.is_empty())
+            .map(NSString::from_str);
+        dock_tile.setBadgeLabel(ns.as_deref());
     }
-    // Silence unused-arg warning on non-macOS.
-    let _ = label;
+    #[cfg(not(target_os = "macos"))]
+    {
+        tracing::debug!("set_badge no-op on this platform: label={:?}", label);
+    }
 }
 
 /// Spawn the qxp-web daemon in its own OS thread on a dedicated multi-thread

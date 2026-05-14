@@ -26,6 +26,8 @@
   // one). Advanced IMAP/SMTP/cert fields are hidden behind a disclosure;
   // leave them blank to let the core auto-discover.
   import Icon from '../lib/Icon.svelte';
+  import Modal from '../lib/Modal.svelte';
+  import Button from '../lib/Button.svelte';
   import { t } from '../lib/i18n/i18n.svelte';
 
   type Props =
@@ -102,7 +104,7 @@
   }
 </script>
 
-<div class="overlay" role="dialog" aria-modal="true">
+<Modal open={true} onClose={onCancel} size="lg" ariaLabel={isEdit ? t('Edit Relay') : t('Manual Setup')}>
   <div class="dialog">
     <header class="head">
       <h3>{isEdit ? t('Edit Relay') : t('Manual Setup')}</h3>
@@ -213,33 +215,19 @@
     </div>
 
     <div class="actions">
-      <button onclick={onCancel}>{t('Cancel')}</button>
-      <button class="primary" onclick={submit} disabled={!canSubmit}>
+      <Button variant="secondary" onclick={onCancel}>{t('Cancel')}</Button>
+      <Button variant="primary" onclick={submit} disabled={!canSubmit}>
         {isEdit ? t('Save') : t('Add')}
-      </button>
+      </Button>
     </div>
   </div>
-</div>
+</Modal>
 
 <style>
-  .overlay {
-    position: fixed;
-    inset: 0;
-    background: rgba(0, 0, 0, 0.45);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: var(--z-modal);
-    backdrop-filter: blur(4px);
-  }
   .dialog {
-    background: var(--color-bg-elevated);
-    border-radius: var(--radius-lg);
     padding: var(--space-5);
-    width: min(520px, calc(100vw - 2 * var(--space-4)));
-    max-height: calc(100vh - 2 * var(--space-4));
     overflow-y: auto;
-    box-shadow: 0 16px 48px var(--color-shadow);
+    max-height: calc(100vh - 4 * var(--space-5));
   }
   .head {
     display: flex;
@@ -325,24 +313,5 @@
     justify-content: flex-end;
     gap: var(--space-3);
     margin-top: var(--space-4);
-  }
-  .actions button {
-    height: 36px;
-    padding: 0 var(--space-4);
-    border-radius: var(--radius-md);
-    font-weight: 600;
-    background: var(--color-bg-hover);
-    color: var(--color-fg);
-  }
-  .actions .primary {
-    background: var(--color-accent);
-    color: var(--color-accent-fg);
-  }
-  .actions .primary:hover:not(:disabled) {
-    filter: brightness(1.05);
-  }
-  .actions button:disabled {
-    opacity: 0.5;
-    cursor: default;
   }
 </style>

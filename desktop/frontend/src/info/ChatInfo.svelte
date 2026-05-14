@@ -1,62 +1,42 @@
 <script lang="ts">
   // Unified info screen — shows contact/group/broadcast info with the right
-  // affordances per chat type. Phase 15 deliverable.
+  // affordances per chat type. All data + mutations live in
+  // `lib/state/chatInfo.svelte.ts`; this component is rendering only.
 
-  import { onMount } from 'svelte';
-  import { rpc } from '../lib/rpc';
   import { accounts } from '../lib/state/accounts.svelte';
   import { backToChat, setMainRoute } from '../lib/state/mainRoute.svelte';
   import { selectChat } from '../lib/state/selection.svelte';
   import { liveLocations } from '../lib/state/liveLocations.svelte';
   import { uploadBlob } from '../lib/files';
+  import {
+    chatInfo,
+    loadChatInfo,
+    renameChat,
+    setEphemeralTimer,
+    leaveGroupChat,
+    deleteChatLocally,
+    blockChatContact,
+    removeChatMember,
+    findAddMemberCandidates,
+    addChatMembers,
+    setChatAvatar,
+    type Contact,
+  } from '../lib/state/chatInfo.svelte';
   import Avatar from '../lib/Avatar.svelte';
   import Icon from '../lib/Icon.svelte';
+  import Modal from '../lib/Modal.svelte';
+  import Button from '../lib/Button.svelte';
+  import { osmEmbedUrl, osmShareUrl } from '../lib/format/openstreetmap';
   import { t } from '../lib/i18n/i18n.svelte';
 
   type Props = { chatId: number };
   let { chatId }: Props = $props();
 
-  type ChatTypeStr = 'Single' | 'Group' | 'Mailinglist' | 'OutBroadcast' | 'InBroadcast';
-  type FullChat = {
-    id: number;
-    name: string;
-    isEncrypted: boolean;
-    profileImage: string | null;
-    archived: boolean;
-    pinned: boolean;
-    chatType: ChatTypeStr;
-    isSelfTalk: boolean;
-    contactIds: number[];
-    pastContactIds: number[];
-    color: string;
-    isMuted: boolean;
-    ephemeralTimer: number;
-    selfInGroup: boolean;
-  };
+  let chat = $derived(chatInfo.full);
+  let members = $derived(chatInfo.members);
+  let sharedChats = $derived(chatInfo.sharedChats);
+  let loaded = $derived(chatInfo.loaded);
 
-  type Contact = {
-    id: number;
-    address: string;
-    color: string;
-    displayName: string;
-    name: string;
-    profileImage: string | null;
-    isVerified: boolean;
-    isBlocked: boolean;
-    wasSeenRecently: boolean;
-  };
-
-  type SharedChat = {
-    id: number;
-    name: string;
-    color: string;
-    profileImage: string | null;
-  };
-
-  let chat = $state<FullChat | null>(null);
-  let members = $state<Contact[]>([]);
-  let sharedChats = $state<SharedChat[]>([]);
-  let loaded = $state(false);
   let editingName = $state(false);
   let nameInput = $state('');
 
@@ -76,101 +56,18 @@
   // app, refreshed on `LocationChanged` events and a slow interval).
   let liveLoc = $derived(liveLocations.latest.get(chatId) ?? null);
 
-  let liveLocOsmLink = $derived.by(() => {
-    if (!liveLoc) return null;
-    return `https://www.openstreetmap.org/?mlat=${liveLoc.lat}&mlon=${liveLoc.lon}#map=16/${liveLoc.lat}/${liveLoc.lon}`;
-  });
-  // OSM's iframe embed. Reliable from any origin (no CORS dance, no
-  // separate static-map service that might be rate-limited). `bbox` is
-  // a tight box around the point so zoom looks similar to a zoom-15
-  // static map.
-  let liveLocEmbed = $derived.by(() => {
-    if (!liveLoc) return null;
-    const d = 0.005;
-    const bbox = [
-      liveLoc.lon - d,
-      liveLoc.lat - d,
-      liveLoc.lon + d,
-      liveLoc.lat + d,
-    ].join(',');
-    return `https://www.openstreetmap.org/export/embed.html?bbox=${bbox}&layer=mapnik&marker=${liveLoc.lat},${liveLoc.lon}`;
-  });
+  let liveLocOsmLink = $derived(liveLoc ? osmShareUrl(liveLoc.lat, liveLoc.lon) : null);
+  let liveLocEmbed = $derived(liveLoc ? osmEmbedUrl(liveLoc.lat, liveLoc.lon) : null);
 
   let liveLocSender = $derived.by(() => {
     if (!liveLoc) return null;
     return members.find((m) => m.id === liveLoc.contactId);
   });
 
-  onMount(load);
   $effect(() => {
     void chatId;
-    void load();
+    if (accounts.selectedId != null) void loadChatInfo(accounts.selectedId, chatId);
   });
-
-  async function load() {
-    if (accounts.selectedId == null) return;
-    loaded = false;
-    const id = accounts.selectedId;
-    chat = await rpc.call<FullChat>('get_full_chat_by_id', [id, chatId]);
-    if (chat.contactIds.length > 0) {
-      const map = await rpc.call<Record<number, Contact>>('get_contacts_by_ids', [
-        id,
-        chat.contactIds,
-      ]);
-      members = chat.contactIds.map((cid) => map[cid]).filter(Boolean);
-    } else {
-      members = [];
-    }
-    sharedChats = await loadSharedChats(id, chat);
-    loaded = true;
-  }
-
-  // Fetches the other chats this contact is in (iOS calls it "Shared Chats").
-  // Only meaningful for 1:1 chats — for groups there's no single "other".
-  // Filters out the current chat so we don't list ourselves.
-  async function loadSharedChats(accountId: number, c: FullChat): Promise<SharedChat[]> {
-    if (c.chatType !== 'Single') return [];
-    const other = c.contactIds.find((cid) => cid !== 1);
-    if (other == null) return [];
-    try {
-      // `queryContactId` filters the chatlist to chats containing this
-      // contact — same trick deltachat-ios uses (see `dc_get_chatlist`).
-      const ids = await rpc.call<number[]>('get_chatlist_entries', [
-        accountId,
-        null,
-        null,
-        other,
-      ]);
-      const otherIds = ids.filter((id) => id !== c.id && id !== 0);
-      if (otherIds.length === 0) return [];
-      // `ChatListItemFetchResult` has no enum-level `rename_all` in
-      // deltachat-jsonrpc, so the discriminator stays PascalCase (unlike
-      // `QrObject` which is camelCased). Same convention as `event.kind`
-      // in events.ts.
-      type FetchItem =
-        | { kind: 'ChatListItem'; id: number; name: string; color: string; avatarPath?: string | null }
-        | { kind: 'ArchiveLink' }
-        | { kind: 'Error' };
-      const map = await rpc.call<Record<number, FetchItem>>('get_chatlist_items_by_entries', [
-        accountId,
-        otherIds,
-      ]);
-      const out: SharedChat[] = [];
-      for (const id of otherIds) {
-        const item = map[id];
-        if (!item || item.kind !== 'ChatListItem') continue;
-        out.push({
-          id: item.id,
-          name: item.name,
-          color: item.color,
-          profileImage: item.avatarPath ?? null,
-        });
-      }
-      return out;
-    } catch {
-      return [];
-    }
-  }
 
   function openSharedChat(id: number) {
     selectChat(id);
@@ -184,28 +81,21 @@
 
   async function rename() {
     if (!chat || accounts.selectedId == null) return;
-    if (!nameInput.trim()) return;
-    await rpc.call('set_chat_name', [accounts.selectedId, chat.id, nameInput.trim()]);
+    const name = nameInput.trim();
+    if (!name) return;
+    await renameChat(accounts.selectedId, chat.id, name);
     editingName = false;
-    await load();
   }
 
-  // Pin / mute / archive moved to the chat-list row right-click menu
-  // (see `shell/ChatRowMenu.svelte`) — iOS keeps mute & archive here too,
-  // but the user wants the contact page to focus on contact-shaped
-  // affordances (media, members, encryption, block, delete) rather than
-  // chat-list housekeeping.
-
-  async function setEphemeral(seconds: number) {
+  async function onSetEphemeral(seconds: number) {
     if (!chat || accounts.selectedId == null) return;
-    await rpc.call('set_chat_ephemeral_timer', [accounts.selectedId, chat.id, seconds]);
-    await load();
+    await setEphemeralTimer(accounts.selectedId, chat.id, seconds);
   }
 
   async function leave() {
     if (!chat || accounts.selectedId == null) return;
     if (!confirm('Leave this group? You will need to be re-invited to rejoin.')) return;
-    await rpc.call('leave_group', [accounts.selectedId, chat.id]);
+    await leaveGroupChat(accounts.selectedId, chat.id);
     backToChat();
     selectChat(null);
   }
@@ -213,7 +103,7 @@
   async function deleteChat() {
     if (!chat || accounts.selectedId == null) return;
     if (!confirm('Delete this chat from your device? Other members will keep their copy.')) return;
-    await rpc.call('delete_chat', [accounts.selectedId, chat.id]);
+    await deleteChatLocally(accounts.selectedId, chat.id);
     backToChat();
     selectChat(null);
   }
@@ -221,7 +111,7 @@
   async function blockContact() {
     if (!other || accounts.selectedId == null) return;
     if (!confirm(`Block ${other.displayName}?`)) return;
-    await rpc.call('block_contact', [accounts.selectedId, other.id]);
+    await blockChatContact(accounts.selectedId, other.id);
     backToChat();
     selectChat(null);
   }
@@ -229,8 +119,7 @@
   async function removeMember(memberId: number) {
     if (!chat || accounts.selectedId == null) return;
     if (!confirm('Remove this member?')) return;
-    await rpc.call('remove_contact_from_chat', [accounts.selectedId, chat.id, memberId]);
-    await load();
+    await removeChatMember(accounts.selectedId, chat.id, memberId);
   }
 
   /** Open the add-member dialog. Loads all contacts on the active account,
@@ -245,17 +134,15 @@
     await refreshAddMemberCandidates();
   }
 
+  let addMemberGen = 0;
   async function refreshAddMemberCandidates() {
     if (!chat || accounts.selectedId == null) return;
-    // `get_contacts(accountId, listFlags=0, query)` returns non-blocked
-    // contacts, search-filtered server-side. Self (id=1) is excluded.
-    const all = await rpc.call<Contact[]>('get_contacts', [
-      accounts.selectedId,
-      0,
-      addMemberQuery.trim() || null,
-    ]);
-    const inGroup = new Set<number>([...(chat?.contactIds ?? []), ...(chat?.pastContactIds ?? [])]);
-    addMemberCandidates = all.filter((c) => c.id !== 1 && !inGroup.has(c.id));
+    const my = ++addMemberGen;
+    const list = await findAddMemberCandidates(accounts.selectedId, addMemberQuery);
+    // Drop stale results — a faster keystroke during the await would
+    // otherwise paint the older response on top of a newer one.
+    if (my !== addMemberGen) return;
+    addMemberCandidates = list;
   }
 
   function toggleAddMember(id: number) {
@@ -270,12 +157,9 @@
     if (!chat || accounts.selectedId == null || addMemberPicked.length === 0) return;
     addMemberBusy = true;
     try {
-      for (const cid of addMemberPicked) {
-        await rpc.call('add_contact_to_chat', [accounts.selectedId, chat.id, cid]);
-      }
+      await addChatMembers(accounts.selectedId, chat.id, addMemberPicked);
       addMemberOpen = false;
       addMemberPicked = [];
-      await load();
     } catch (err) {
       alert(`Add member failed: ${err instanceof Error ? err.message : String(err)}`);
     } finally {
@@ -300,8 +184,7 @@
     try {
       const ext = (file.name.split('.').pop() ?? 'png').toLowerCase();
       const path = await uploadBlob(file, ext);
-      await rpc.call('set_chat_profile_image', [accounts.selectedId, chat.id, path]);
-      await load();
+      await setChatAvatar(accounts.selectedId, chat.id, path);
     } catch (err) {
       alert(`Could not set image: ${err instanceof Error ? err.message : String(err)}`);
     } finally {
@@ -310,10 +193,19 @@
   }
 
   // Debounced refresh on search-input changes while the dialog is open.
+  // 200 ms matches the chatlist + global-message-search debouncing. The
+  // out-of-order guard lives inside refreshAddMemberCandidates (gen
+  // counter), so all this effect needs to do is collapse rapid keystrokes
+  // into one trailing call.
+  let addMemberDebounce: ReturnType<typeof setTimeout> | null = null;
   $effect(() => {
     if (!addMemberOpen) return;
     void addMemberQuery;
-    void refreshAddMemberCandidates();
+    if (addMemberDebounce != null) clearTimeout(addMemberDebounce);
+    addMemberDebounce = setTimeout(() => {
+      addMemberDebounce = null;
+      void refreshAddMemberCandidates();
+    }, 200);
   });
 
   function showMedia() {
@@ -386,8 +278,8 @@
       {#if editingName}
         <input bind:value={nameInput} placeholder={t('Name')} data-testid="chat-info__name-input" />
         <div class="actions">
-          <button onclick={() => (editingName = false)} data-testid="chat-info__name-cancel">{t('Cancel')}</button>
-          <button class="primary" onclick={rename} data-testid="chat-info__name-save">{t('Save')}</button>
+          <Button variant="secondary" onclick={() => (editingName = false)} data-testid="chat-info__name-cancel">{t('Cancel')}</Button>
+          <Button variant="primary" onclick={rename} data-testid="chat-info__name-save">{t('Save')}</Button>
         </div>
       {:else}
         <h2 data-testid="chat-info__name">{chat.name || t('(no name)')}</h2>
@@ -443,7 +335,7 @@
     <div class="group">
       <div class="row">
         <span class="label">{t('Disappearing messages')}</span>
-        <select onchange={(e) => void setEphemeral(Number((e.currentTarget as HTMLSelectElement).value))} value={chat.ephemeralTimer} data-testid="chat-info__ephemeral">
+        <select onchange={(e) => void onSetEphemeral(Number((e.currentTarget as HTMLSelectElement).value))} value={chat.ephemeralTimer} data-testid="chat-info__ephemeral">
           {#each EPHEMERAL_OPTIONS as o}
             <option value={o.v}>{o.l}</option>
           {/each}
@@ -510,59 +402,63 @@
     </div>
   {/if}
 
-  {#if addMemberOpen}
-    <div class="overlay" role="dialog" aria-modal="true" aria-label={t('Add members')}>
-      <div class="dialog" data-testid="chat-info__add-member-dialog">
-        <h3>{t('Add members')}</h3>
-        <input
-          class="search"
-          bind:value={addMemberQuery}
-          placeholder={t('Search contacts')}
-          data-testid="chat-info__add-member-search"
-        />
-        <ul class="picker">
-          {#each addMemberCandidates as c (c.id)}
-            <li>
-              <button
-                class="picker-row"
-                class:picked={addMemberPicked.includes(c.id)}
-                onclick={() => toggleAddMember(c.id)}
-                data-testid="chat-info__add-member-row"
-                data-contact-id={c.id}
-                data-name={c.displayName}
-                data-address={c.address}
-              >
-                <Avatar name={c.displayName} color={c.color} imagePath={c.profileImage} size={32} />
-                <span class="m-meta">
-                  <span class="m-name">{c.displayName}</span>
-                  <span class="m-addr">{c.address}</span>
-                </span>
-                {#if addMemberPicked.includes(c.id)}
-                  <Icon name="check" size={16} />
-                {/if}
-              </button>
-            </li>
-          {/each}
-          {#if addMemberCandidates.length === 0}
-            <li class="empty">{t('No contacts to add.')}</li>
-          {/if}
-        </ul>
-        <div class="actions">
-          <button
-            onclick={() => (addMemberOpen = false)}
-            disabled={addMemberBusy}
-            data-testid="chat-info__add-member-cancel"
-          >{t('Cancel')}</button>
-          <button
-            class="primary"
-            onclick={confirmAddMembers}
-            disabled={addMemberBusy || addMemberPicked.length === 0}
-            data-testid="chat-info__add-member-confirm"
-          >{addMemberBusy ? t('Adding…') : t('Add')}</button>
-        </div>
+  <Modal
+    open={addMemberOpen}
+    onClose={() => (addMemberOpen = false)}
+    size="lg"
+    ariaLabel={t('Add members')}
+  >
+    <div class="add-member-dialog" data-testid="chat-info__add-member-dialog">
+      <h3>{t('Add members')}</h3>
+      <input
+        class="search"
+        bind:value={addMemberQuery}
+        placeholder={t('Search contacts')}
+        data-testid="chat-info__add-member-search"
+      />
+      <ul class="picker">
+        {#each addMemberCandidates as c (c.id)}
+          <li>
+            <button
+              class="picker-row"
+              class:picked={addMemberPicked.includes(c.id)}
+              onclick={() => toggleAddMember(c.id)}
+              data-testid="chat-info__add-member-row"
+              data-contact-id={c.id}
+              data-name={c.displayName}
+              data-address={c.address}
+            >
+              <Avatar name={c.displayName} color={c.color} imagePath={c.profileImage} size={32} />
+              <span class="m-meta">
+                <span class="m-name">{c.displayName}</span>
+                <span class="m-addr">{c.address}</span>
+              </span>
+              {#if addMemberPicked.includes(c.id)}
+                <Icon name="check" size={16} />
+              {/if}
+            </button>
+          </li>
+        {/each}
+        {#if addMemberCandidates.length === 0}
+          <li class="empty">{t('No contacts to add.')}</li>
+        {/if}
+      </ul>
+      <div class="actions">
+        <Button
+          variant="secondary"
+          onclick={() => (addMemberOpen = false)}
+          disabled={addMemberBusy}
+          data-testid="chat-info__add-member-cancel"
+        >{t('Cancel')}</Button>
+        <Button
+          variant="primary"
+          onclick={confirmAddMembers}
+          disabled={addMemberBusy || addMemberPicked.length === 0}
+          data-testid="chat-info__add-member-confirm"
+        >{addMemberBusy ? t('Adding…') : t('Add')}</Button>
       </div>
     </div>
-  {/if}
+  </Modal>
 </section>
 
 <style>
@@ -605,13 +501,13 @@
   }
   h2 {
     margin: 0 0 4px;
-    font-size: 22px;
+    font-size: var(--text-xl);
   }
   .header input {
     padding: 8px 12px;
     border-radius: var(--radius-md);
     border: 1px solid var(--color-border);
-    font-size: 18px;
+    font-size: var(--text-lg);
     text-align: center;
     margin-top: 8px;
   }
@@ -620,10 +516,6 @@
     justify-content: center;
     gap: 8px;
     margin-top: 8px;
-  }
-  .header .actions button {
-    padding: 6px 12px;
-    border-radius: var(--radius-md);
   }
   /* Signal-style sections: no card border, just spacing + a divider
      between consecutive groups. Sits inside the info pane's padding. */
@@ -777,12 +669,6 @@
   .danger-row:hover {
     background: var(--color-bg-hover);
   }
-  .primary {
-    background: var(--color-accent);
-    color: var(--color-accent-fg);
-    font-weight: 600;
-  }
-
   /* --- avatar edit --- */
   .avatar-edit {
     position: relative;
@@ -818,28 +704,14 @@
   }
 
   /* --- add-member dialog --- */
-  .overlay {
-    position: fixed;
-    inset: 0;
-    background: rgba(0, 0, 0, 0.45);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: var(--z-modal);
-    backdrop-filter: blur(4px);
-  }
-  .dialog {
-    background: var(--color-bg-elevated);
-    border-radius: var(--radius-lg);
+  .add-member-dialog {
     padding: var(--space-5);
-    width: min(480px, calc(100vw - 2 * var(--space-4)));
-    max-height: 80vh;
     display: flex;
     flex-direction: column;
     gap: var(--space-3);
-    box-shadow: 0 16px 48px var(--color-shadow);
+    max-height: 80vh;
   }
-  .dialog h3 {
+  .add-member-dialog h3 {
     margin: 0;
     font-size: var(--text-lg);
     font-weight: 600;
@@ -878,30 +750,14 @@
     background: color-mix(in srgb, var(--color-accent) 12%, transparent);
     color: var(--color-accent);
   }
-  .empty {
+  .add-member-dialog .empty {
     color: var(--color-fg-tertiary);
     padding: var(--space-3);
     text-align: center;
   }
-  .actions {
+  .add-member-dialog .actions {
     display: flex;
     justify-content: flex-end;
     gap: var(--space-2);
-  }
-  .actions button {
-    height: 36px;
-    padding: 0 var(--space-4);
-    border-radius: var(--radius-md);
-    background: var(--color-bg-hover);
-    color: var(--color-fg);
-    font-weight: 600;
-  }
-  .actions .primary {
-    background: var(--color-accent);
-    color: var(--color-accent-fg);
-  }
-  .actions button:disabled {
-    opacity: 0.5;
-    cursor: default;
   }
 </style>

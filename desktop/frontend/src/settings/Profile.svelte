@@ -5,6 +5,7 @@
   import { refreshProfiles, profiles } from '../lib/state/profiles.svelte';
   import { uploadBlob } from '../lib/files';
   import Avatar from '../lib/Avatar.svelte';
+  import Button from '../lib/Button.svelte';
   import { t } from '../lib/i18n/i18n.svelte';
 
   let displayName = $state('');
@@ -139,9 +140,9 @@
   </label>
 
   <div class="actions">
-    <button class="primary" onclick={save} disabled={saving} data-testid="settings-profile__save">
+    <Button variant="primary" onclick={save} disabled={saving} data-testid="settings-profile__save">
       {saving ? t('Saving…') : recentlySaved ? t('Saved') : t('Save')}
-    </button>
+    </Button>
   </div>
 {/if}
 
@@ -229,20 +230,5 @@
     max-width: 480px;
     display: flex;
     justify-content: flex-end;
-  }
-  .primary {
-    height: 36px;
-    padding: 0 var(--space-5);
-    border-radius: var(--radius-md);
-    background: var(--color-accent);
-    color: var(--color-accent-fg);
-    font-weight: 600;
-  }
-  .primary:hover:not(:disabled) {
-    filter: brightness(1.05);
-  }
-  .primary:disabled {
-    opacity: 0.5;
-    cursor: default;
   }
 </style>

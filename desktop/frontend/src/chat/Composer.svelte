@@ -3,15 +3,15 @@
   import {
     sendText,
     sendMessage,
+    sendContact,
+    sendLocation,
+    sendFile,
     chat,
     setReplyTo,
     setEditing,
     CONTACT_ID_SELF,
-    type MessageData,
   } from '../lib/state/chat.svelte';
-  import { accounts } from '../lib/state/accounts.svelte';
-  import { rpc } from '../lib/rpc';
-  import { uploadBlob, viewtypeForFile } from '../lib/files';
+  import { uploadBlob } from '../lib/files';
   import { VoiceRecorder, pickMimeType, extensionForMime } from '../lib/audio/recorder';
   import AttachMenu from './AttachMenu.svelte';
   import ContactPickerModal from './ContactPickerModal.svelte';
@@ -79,19 +79,16 @@
   });
 
   // When the user toggles edit mode on a message, seed the textarea with its
-  // current text so they can revise.
+  // current text so they can revise. Escape (handled in onKeyDown) is what
+  // resets `text` on exit; this effect only owns the seed-on-enter side.
   let lastEditingId: number | null = null;
   $effect(() => {
     const id = chat.editingId;
-    if (id !== lastEditingId) {
-      lastEditingId = id;
-      if (id != null) {
-        const m = chat.messages.get(id);
-        if (m) text = m.text;
-      } else {
-        // dropped out of edit mode
-        if (text === '' && lastKey) text = '';
-      }
+    if (id === lastEditingId) return;
+    lastEditingId = id;
+    if (id != null) {
+      const m = chat.messages.get(id);
+      if (m) text = m.text;
     }
   });
 
@@ -192,19 +189,13 @@
   // ---------- attachments ----------
 
   async function pushFile(file: File): Promise<void> {
-    const ext = (file.name.split('.').pop() ?? 'bin').toLowerCase();
+    const draft = text;
+    text = '';
     sending = true;
     try {
-      const path = await uploadBlob(file, ext);
-      const data: MessageData = {
-        viewtype: viewtypeForFile(file),
-        file: path,
-        filename: file.name,
-        text: text || undefined,
-      };
-      text = '';
-      await sendMessage(data);
+      await sendFile(file, draft);
     } catch (err) {
+      text = draft;
       alert(`Send failed: ${err instanceof Error ? err.message : String(err)}`);
     } finally {
       sending = false;
@@ -216,15 +207,13 @@
   }
 
   async function sendPickedLocation(lat: number, lon: number) {
+    const draft = text;
+    text = '';
     sending = true;
     try {
-      await sendMessage({
-        viewtype: 'Text',
-        text: text || undefined,
-        location: [lat, lon],
-      });
-      text = '';
+      await sendLocation(lat, lon, draft);
     } catch (err) {
+      text = draft;
       alert(`${t('Could not send location')}: ${err instanceof Error ? err.message : String(err)}`);
     } finally {
       sending = false;
@@ -232,20 +221,13 @@
   }
 
   async function shareContact(contactId: number) {
-    if (accounts.selectedId == null) return;
+    const draft = text;
+    text = '';
     sending = true;
     try {
-      const vcard = await rpc.call<string>('make_vcard', [accounts.selectedId, [contactId]]);
-      const blob = new Blob([vcard], { type: 'text/vcard' });
-      const path = await uploadBlob(blob, 'vcf');
-      await sendMessage({
-        viewtype: 'Vcard',
-        file: path,
-        filename: 'contact.vcf',
-        text: text || undefined,
-      });
-      text = '';
+      await sendContact(contactId, draft);
     } catch (err) {
+      text = draft;
       alert(`Could not share contact: ${err instanceof Error ? err.message : String(err)}`);
     } finally {
       sending = false;

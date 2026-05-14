@@ -1,5 +1,4 @@
 <script lang="ts">
-  import { onMount } from 'svelte';
   import { profiles } from '../lib/state/profiles.svelte';
   import { setMainRoute, mainRoute } from '../lib/state/mainRoute.svelte';
   import { accounts } from '../lib/state/accounts.svelte';
@@ -39,11 +38,11 @@
       /* nothing — the icon falls back to the outline form */
     }
   }
-  onMount(refreshProxyState);
   // Switching profiles changes which account's `proxy_enabled` we mirror.
-  // The previous account's value would otherwise linger until the next
-  // ConnectivityChanged event fires (which it might never, if both profiles
-  // are idle).
+  // The effect's initial run covers mount; reading `accounts.selectedId`
+  // re-runs it on profile switch. The previous account's value would
+  // otherwise linger until the next ConnectivityChanged event fires
+  // (which it might never, if both profiles are idle).
   $effect(() => {
     void accounts.selectedId;
     void refreshProxyState();

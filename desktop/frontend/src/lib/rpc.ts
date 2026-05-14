@@ -26,7 +26,6 @@ class RpcClient {
   private url: string;
   private nextId = 1;
   private pending = new Map<number, Pending>();
-  private notifHandlers = new Map<string, Set<(params: unknown) => void>>();
   private statusHandlers = new Set<(s: ConnectionStatus) => void>();
   private currentStatus: ConnectionStatus = 'idle';
   private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
@@ -91,16 +90,6 @@ class RpcClient {
     });
   }
 
-  on(method: string, handler: (params: unknown) => void): () => void {
-    let set = this.notifHandlers.get(method);
-    if (!set) {
-      set = new Set();
-      this.notifHandlers.set(method, set);
-    }
-    set.add(handler);
-    return () => set!.delete(handler);
-  }
-
   onStatus(handler: (s: ConnectionStatus) => void): () => void {
     this.statusHandlers.add(handler);
     handler(this.currentStatus); // immediate snapshot
@@ -110,23 +99,19 @@ class RpcClient {
   }
 
   private handleMessage(data: string) {
-    let msg: { id?: number; method?: string; params?: unknown; result?: unknown; error?: { code: number; message: string; data?: unknown } };
+    let msg: { id?: number; result?: unknown; error?: { code: number; message: string; data?: unknown } };
     try {
       msg = JSON.parse(data);
     } catch (err) {
       console.error('rpc: invalid JSON', err);
       return;
     }
-    if (typeof msg.id === 'number') {
-      const p = this.pending.get(msg.id);
-      if (!p) return;
-      this.pending.delete(msg.id);
-      if (msg.error) p.reject(new RpcError(msg.error.code, msg.error.message, msg.error.data));
-      else p.resolve(msg.result);
-    } else if (typeof msg.method === 'string') {
-      const handlers = this.notifHandlers.get(msg.method);
-      if (handlers) for (const h of handlers) h(msg.params);
-    }
+    if (typeof msg.id !== 'number') return;
+    const p = this.pending.get(msg.id);
+    if (!p) return;
+    this.pending.delete(msg.id);
+    if (msg.error) p.reject(new RpcError(msg.error.code, msg.error.message, msg.error.data));
+    else p.resolve(msg.result);
   }
 
   private failPending(err: RpcError) {

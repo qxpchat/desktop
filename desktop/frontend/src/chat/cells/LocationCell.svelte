@@ -7,6 +7,7 @@
   import { rpc } from '../../lib/rpc';
   import { accounts } from '../../lib/state/accounts.svelte';
   import { chat } from '../../lib/state/chat.svelte';
+  import { osmEmbedUrl, osmShareUrl } from '../../lib/format/openstreetmap';
   import { t } from '../../lib/i18n/i18n.svelte';
 
   type Props = {
@@ -58,17 +59,8 @@
     }
   }
 
-  let mapEmbed = $derived.by(() => {
-    if (!coord) return null;
-    const d = 0.005;
-    const bbox = [coord.lon - d, coord.lat - d, coord.lon + d, coord.lat + d].join(',');
-    return `https://www.openstreetmap.org/export/embed.html?bbox=${bbox}&layer=mapnik&marker=${coord.lat},${coord.lon}`;
-  });
-
-  let osmLink = $derived.by(() => {
-    if (!coord) return null;
-    return `https://www.openstreetmap.org/?mlat=${coord.lat}&mlon=${coord.lon}#map=16/${coord.lat}/${coord.lon}`;
-  });
+  let mapEmbed = $derived(coord ? osmEmbedUrl(coord.lat, coord.lon) : null);
+  let osmLink = $derived(coord ? osmShareUrl(coord.lat, coord.lon) : null);
 </script>
 
 {#if message.hasLocation}

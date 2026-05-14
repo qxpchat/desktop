@@ -5,6 +5,21 @@ import './styles/reset.css';
 import './styles/tokens.css';
 import './styles/theme.css';
 
+// The 36px titlebar gutter only exists to clear macOS's traffic-light
+// overlay (`titleBarStyle: 'Overlay'` in tauri.conf.json — a macOS-only
+// option). On Linux/Windows native chrome supplies its own title bar, and
+// in `make ui` browser mode there's no window chrome at all — so the
+// gutter shows as a wasted 36px strip at the top of every pane. Zero it
+// out everywhere except Tauri-on-macOS.
+{
+  const isTauri = '__TAURI_INTERNALS__' in window;
+  const isMac =
+    /Mac|Darwin/i.test(navigator.userAgent) || navigator.platform.startsWith('Mac');
+  if (!(isTauri && isMac)) {
+    document.documentElement.style.setProperty('--titlebar-gutter', '0px');
+  }
+}
+
 const target = document.getElementById('app');
 if (!target) throw new Error('#app not found');
 
@@ -29,7 +44,7 @@ document.addEventListener('click', (e) => {
   if (a.hasAttribute('download')) return;
   const href = a.getAttribute('href');
   if (!href) return;
-  if (!/^(https?|mailto|tel):/i.test(href)) return;
+  if (!/^(https?|mailto):/i.test(href)) return;
   e.preventDefault();
   void openUrl(href);
 });

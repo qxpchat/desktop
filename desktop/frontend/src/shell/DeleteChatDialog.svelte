@@ -3,12 +3,9 @@
   // desktop UX: a single danger button whose label switches to
   // "Leave & Delete for Me" for encrypted groups the user is still in
   // (those need a `leave_group` before the local delete).
-  //
-  // We use this instead of the native `window.confirm()` so the prompt
-  // renders inside the Tauri webview consistently across platforms and
-  // matches the rest of the app's modal styling (see DeleteMessageDialog).
 
-  import { onMount, onDestroy } from 'svelte';
+  import Modal from '../lib/Modal.svelte';
+  import Button from '../lib/Button.svelte';
   import { t } from '../lib/i18n/i18n.svelte';
 
   type Props = {
@@ -31,27 +28,18 @@
     onConfirm();
     onClose();
   }
-
-  function onWindowKey(e: KeyboardEvent) {
-    if (open && e.key === 'Escape') {
-      e.stopPropagation();
-      onClose();
-    }
-  }
-  onMount(() => window.addEventListener('keydown', onWindowKey));
-  onDestroy(() => window.removeEventListener('keydown', onWindowKey));
 </script>
 
-{#if open}
-  <button class="backdrop" onclick={onClose} aria-label={t('Cancel')}></button>
-  <div
-    class="card"
-    role="alertdialog"
-    aria-modal="true"
-    aria-labelledby="delete-chat-dialog-title"
-    aria-describedby="delete-chat-dialog-body"
-    data-testid="delete-chat-dialog"
-  >
+<Modal
+  {open}
+  {onClose}
+  size="sm"
+  role="alertdialog"
+  ariaLabelledBy="delete-chat-dialog-title"
+  ariaDescribedBy="delete-chat-dialog-body"
+  data-testid="delete-chat-dialog"
+>
+  <div class="content">
     <h2 id="delete-chat-dialog-title">{t('Delete chat?')}</h2>
     <p id="delete-chat-dialog-body">
       {chatName || t('(no name)')}
@@ -59,40 +47,23 @@
       <span class="hint">{t('All messages in this chat will be deleted locally.')}</span>
     </p>
     <div class="actions">
-      <button class="btn danger" onclick={confirm} data-testid="delete-chat-dialog__confirm">
+      <Button variant="danger-text" onclick={confirm} data-testid="delete-chat-dialog__confirm">
         {confirmLabel}
-      </button>
+      </Button>
       <!-- svelte-ignore a11y_autofocus -->
-      <button class="btn" onclick={onClose} autofocus data-testid="delete-chat-dialog__cancel">
+      <Button variant="secondary" onclick={onClose} autofocus data-testid="delete-chat-dialog__cancel">
         {t('Cancel')}
-      </button>
+      </Button>
     </div>
   </div>
-{/if}
+</Modal>
 
 <style>
-  .backdrop {
-    position: fixed;
-    inset: 0;
-    background: rgba(0, 0, 0, 0.4);
-    z-index: var(--z-modal);
-    border: 0;
-  }
-  .card {
-    position: fixed;
-    z-index: calc(var(--z-modal) + 1);
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    width: min(360px, calc(100vw - 24px));
-    background: var(--color-bg-elevated);
-    border-radius: var(--radius-lg);
-    border: 1px solid var(--color-border);
-    padding: 20px;
+  .content {
+    padding: var(--space-5);
     display: flex;
     flex-direction: column;
-    gap: 8px;
-    box-shadow: 0 16px 48px var(--color-shadow);
+    gap: var(--space-2);
   }
   h2 {
     margin: 0;
@@ -111,22 +82,6 @@
     display: flex;
     flex-direction: column;
     gap: 6px;
-    margin-top: 8px;
-  }
-  .btn {
-    height: 36px;
-    border-radius: var(--radius-md);
-    background: var(--color-bg-hover);
-    color: var(--color-fg);
-    font-size: var(--text-md);
-    font-weight: 500;
-    border: 0;
-    cursor: pointer;
-  }
-  .btn:hover {
-    background: var(--color-border);
-  }
-  .btn.danger {
-    color: var(--color-danger);
+    margin-top: var(--space-2);
   }
 </style>

@@ -11,6 +11,8 @@
   import Icon from '../lib/Icon.svelte';
   import SettingsSection from '../lib/SettingsSection.svelte';
   import SettingsRow from '../lib/SettingsRow.svelte';
+  import Modal from '../lib/Modal.svelte';
+  import Button from '../lib/Button.svelte';
   import Proxy from './Proxy.svelte';
   import TransportForm, { type LoginParam } from './TransportForm.svelte';
   import { t } from '../lib/i18n/i18n.svelte';
@@ -128,9 +130,15 @@
     }
   }
 
-  onEvent('ConnectivityChanged', () => void load());
+  // Both events fire for any account in the daemon; gate on the active one
+  // so a noisy background account doesn't thrash this pane's four RPCs.
+  onEvent('ConnectivityChanged', (ev) => {
+    if (ev.contextId === accounts.selectedId) void load();
+  });
   // Emitted after backup-restore and around transport changes.
-  onEvent('AccountsItemChanged', () => void load());
+  onEvent('AccountsItemChanged', (ev) => {
+    if (ev.contextId === accounts.selectedId) void load();
+  });
 
   // Actions ---------------------------------------------------------------
 
@@ -350,46 +358,42 @@
   {/if}
 
   <!-- Add-options chooser -->
-  {#if addOptionsOpen}
-    <div class="overlay" role="dialog" aria-modal="true">
-      <div class="dialog small">
-        <h3>{t('Add Relay')}</h3>
-        <div class="chooser">
-          <button onclick={findRelays}>{t('Find Relays…')}</button>
-          <button onclick={chooseManual}>{t('Manual Setup')}</button>
-          <button onclick={choosePaste}>{t('Paste Account Code')}</button>
-        </div>
-        <div class="actions">
-          <button onclick={() => (addOptionsOpen = false)}>{t('Cancel')}</button>
-        </div>
+  <Modal open={addOptionsOpen} onClose={() => (addOptionsOpen = false)} size="sm">
+    <div class="dialog-body">
+      <h3>{t('Add Relay')}</h3>
+      <div class="chooser">
+        <button onclick={findRelays}>{t('Find Relays…')}</button>
+        <button onclick={chooseManual}>{t('Manual Setup')}</button>
+        <button onclick={choosePaste}>{t('Paste Account Code')}</button>
+      </div>
+      <div class="actions">
+        <Button variant="secondary" onclick={() => (addOptionsOpen = false)}>{t('Cancel')}</Button>
       </div>
     </div>
-  {/if}
+  </Modal>
 
   <!-- Paste-QR modal -->
-  {#if pasteOpen}
-    <div class="overlay" role="dialog" aria-modal="true">
-      <div class="dialog">
-        <h3>{t('Paste Account Code')}</h3>
-        <p>{t('Paste a DCACCOUNT:… code from the relay you want to add.')}</p>
-        <!-- svelte-ignore a11y_autofocus -->
-        <textarea
-          bind:value={pasteValue}
-          placeholder="DCACCOUNT:https://…"
-          autofocus
-          rows="3"
-          spellcheck="false"
-          autocapitalize="off"
-        ></textarea>
-        <div class="actions">
-          <button onclick={() => (pasteOpen = false)} disabled={busy}>{t('Cancel')}</button>
-          <button class="primary" onclick={submitPaste} disabled={busy || !pasteValue.trim()}>
-            {busy ? t('Adding…') : t('Add')}
-          </button>
-        </div>
+  <Modal open={pasteOpen} onClose={() => (pasteOpen = false)} size="md">
+    <div class="dialog-body">
+      <h3>{t('Paste Account Code')}</h3>
+      <p>{t('Paste a DCACCOUNT:… code from the relay you want to add.')}</p>
+      <!-- svelte-ignore a11y_autofocus -->
+      <textarea
+        bind:value={pasteValue}
+        placeholder="DCACCOUNT:https://…"
+        autofocus
+        rows="3"
+        spellcheck="false"
+        autocapitalize="off"
+      ></textarea>
+      <div class="actions">
+        <Button variant="secondary" onclick={() => (pasteOpen = false)} disabled={busy}>{t('Cancel')}</Button>
+        <Button variant="primary" onclick={submitPaste} disabled={busy || !pasteValue.trim()}>
+          {busy ? t('Adding…') : t('Add')}
+        </Button>
       </div>
     </div>
-  {/if}
+  </Modal>
 
   <!-- Manual transport form (add) -->
   {#if manualForm}
@@ -411,20 +415,21 @@
   {/if}
 
   <!-- Remove confirmation -->
-  {#if removeTarget}
-    <div class="overlay" role="dialog" aria-modal="true">
-      <div class="dialog small">
-        <h3>{t('Remove {domain}?', { domain: removeTarget.domain })}</h3>
+  <Modal open={removeTarget != null} onClose={() => (removeTarget = null)} size="sm" role="alertdialog">
+    {#if removeTarget}
+      {@const r = removeTarget}
+      <div class="dialog-body">
+        <h3>{t('Remove {domain}?', { domain: r.domain })}</h3>
         <p>{t('This relay will be deleted from this account.')}</p>
         <div class="actions">
-          <button onclick={() => (removeTarget = null)} disabled={busy}>{t('Cancel')}</button>
-          <button class="danger primary" onclick={confirmRemove} disabled={busy}>
+          <Button variant="secondary" onclick={() => (removeTarget = null)} disabled={busy}>{t('Cancel')}</Button>
+          <Button variant="danger" onclick={confirmRemove} disabled={busy}>
             {busy ? t('Removing…') : t('Remove')}
-          </button>
+          </Button>
         </div>
       </div>
-    </div>
-  {/if}
+    {/if}
+  </Modal>
 {/if}
 
 <style>
@@ -498,13 +503,13 @@
     height: 6px;
   }
   .dot[data-dot='green'] {
-    background: #34c759;
+    background: var(--color-success);
   }
   .dot[data-dot='yellow'] {
-    background: #ffcc00;
+    background: var(--color-warning);
   }
   .dot[data-dot='red'] {
-    background: #ff3b30;
+    background: var(--color-danger);
   }
   .dot[data-dot='gray'] {
     background: var(--color-fg-tertiary);
@@ -523,10 +528,10 @@
     height: 100%;
   }
   .fill[data-dot='red'] {
-    background: #ff3b30;
+    background: var(--color-danger);
   }
   .fill[data-dot='yellow'] {
-    background: #ffcc00;
+    background: var(--color-warning);
   }
   .fill[data-dot='gray'] {
     background: var(--color-fg-tertiary);
@@ -581,37 +586,20 @@
     margin: var(--space-3) 0;
   }
 
-  /* Dialog / modal shared styles */
-  .overlay {
-    position: fixed;
-    inset: 0;
-    background: rgba(0, 0, 0, 0.45);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: var(--z-modal);
-    backdrop-filter: blur(4px);
-  }
-  .dialog {
-    background: var(--color-bg-elevated);
-    border-radius: var(--radius-lg);
+  /* Dialog body — padded layer inside Modal.svelte's card. */
+  .dialog-body {
     padding: var(--space-5);
-    width: min(480px, calc(100vw - 2 * var(--space-4)));
-    box-shadow: 0 16px 48px var(--color-shadow);
   }
-  .dialog.small {
-    width: min(360px, calc(100vw - 2 * var(--space-4)));
-  }
-  .dialog h3 {
+  .dialog-body h3 {
     margin: 0 0 var(--space-3) 0;
     font-size: var(--text-lg);
     font-weight: 600;
   }
-  .dialog p {
+  .dialog-body p {
     margin: 0 0 var(--space-3) 0;
     color: var(--color-fg-secondary);
   }
-  .dialog textarea {
+  .dialog-body textarea {
     width: 100%;
     box-sizing: border-box;
     margin: 0 0 var(--space-4) 0;
@@ -625,7 +613,7 @@
     resize: vertical;
     min-height: 72px;
   }
-  .dialog textarea:focus {
+  .dialog-body textarea:focus {
     outline: none;
   }
   .chooser {
@@ -651,28 +639,5 @@
     display: flex;
     justify-content: flex-end;
     gap: var(--space-3);
-  }
-  .actions button {
-    height: 36px;
-    padding: 0 var(--space-4);
-    border-radius: var(--radius-md);
-    font-weight: 600;
-    background: var(--color-bg-hover);
-    color: var(--color-fg);
-  }
-  .actions .primary {
-    background: var(--color-accent);
-    color: var(--color-accent-fg);
-  }
-  .actions .danger.primary {
-    background: var(--color-danger);
-    color: white;
-  }
-  .actions .primary:hover:not(:disabled) {
-    filter: brightness(1.05);
-  }
-  .actions button:disabled {
-    opacity: 0.5;
-    cursor: default;
   }
 </style>

@@ -5,9 +5,7 @@
 //! The binary at `src/main.rs` is now a thin wrapper that parses CLI flags
 //! and delegates to [`run`].
 
-pub mod assets;
 pub mod file;
-pub mod rpc;
 pub mod upload;
 pub mod ws;
 
@@ -36,20 +34,11 @@ pub struct DaemonConfig {
     pub accounts_dir: PathBuf,
 }
 
-/// What [`bind`] returns: the bound socket address (useful when the caller
-/// asked for port 0) plus a future that runs the server until stopped.
-pub struct BoundDaemon {
-    pub addr: SocketAddr,
-    pub serve: tokio::task::JoinHandle<Result<()>>,
-}
-
-/// Open the daemon's accounts dir, build the axum router, bind a socket, and
-/// return immediately with a JoinHandle that drives the server. The handle
-/// resolves when the server stops (via `serve.abort()` or process exit).
-///
-/// Embedders typically call this from a Tokio runtime, then either await
-/// the handle directly or hold it for the lifetime of the embedding app.
-pub async fn bind(config: DaemonConfig) -> Result<BoundDaemon> {
+/// Open the daemon's accounts dir, build the axum router, bind the listener,
+/// and serve it until the future completes (typically: ctrl-c, or the
+/// in-process spawn task panics). On graceful shutdown deltachat IO is
+/// stopped so we don't leave half-flushed databases behind.
+pub async fn run(config: DaemonConfig) -> Result<()> {
     tracing::info!(accounts_dir = %config.accounts_dir.display(), "opening accounts");
     let accounts = deltachat_jsonrpc::api::Accounts::new(config.accounts_dir.clone(), true)
         .await
@@ -67,7 +56,6 @@ pub async fn bind(config: DaemonConfig) -> Result<BoundDaemon> {
     let accounts_dir = Arc::new(config.accounts_dir.clone());
 
     let app = Router::new()
-        .route("/", get(index))
         .route("/ws", get(ws::handler))
         .route("/upload", post(upload::handler))
         .route("/file", get(file::handler))
@@ -84,38 +72,16 @@ pub async fn bind(config: DaemonConfig) -> Result<BoundDaemon> {
     let accounts_for_shutdown = accounts.clone();
     let serve = tokio::spawn(async move {
         let result = axum::serve(listener, app).await;
-        // On shutdown, gracefully stop deltachat IO so we don't leave
-        // half-flushed databases behind.
         tracing::info!("stopping IO before shutdown");
         accounts_for_shutdown.read().await.stop_io().await;
         result.context("axum server error")
     });
 
-    Ok(BoundDaemon { addr, serve })
-}
-
-/// Run the daemon in the foreground until the future completes
-/// (typically: ctrl-c, or the JoinHandle resolves). Used by the standalone
-/// binary; Tauri callers prefer [`bind`] so they can hold a handle.
-pub async fn run(config: DaemonConfig) -> Result<()> {
-    let bound = bind(config).await?;
     tokio::select! {
-        result = bound.serve => result.context("daemon task panicked")?,
+        result = serve => result.context("daemon task panicked")?,
         _ = tokio::signal::ctrl_c() => {
             tracing::info!("ctrl-c received, shutting down");
             Ok(())
         }
     }
-}
-
-async fn index() -> axum::response::Html<&'static str> {
-    axum::response::Html(
-        r#"<!doctype html><html lang="en"><head><meta charset="utf-8"><title>qxp-web</title>
-<style>body{font-family:system-ui,sans-serif;max-width:42rem;margin:3rem auto;padding:0 1rem;line-height:1.5}code{background:#f3f3f3;padding:.1em .3em;border-radius:.2em}</style>
-</head><body>
-<h1>qxp-web</h1>
-<p>The Rust daemon is running. The SPA isn't served from here yet — start the Vite dev server in <code>web/frontend</code> and open <code>http://localhost:4040</code>.</p>
-<p>WebSocket endpoint: <code>/ws</code> (JSON-RPC 2.0).</p>
-</body></html>"#,
-    )
 }

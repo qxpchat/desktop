@@ -53,7 +53,7 @@
   }
   .indicator[data-state='connecting'],
   .indicator[data-state='idle'] {
-    color: #b88500;
+    color: var(--color-warning);
   }
   .indicator[data-state='disconnected'] {
     color: var(--color-danger);

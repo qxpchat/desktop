@@ -105,4 +105,11 @@ function sameLatest(a: Map<number, LivePoint>, b: Map<number, LivePoint>): boole
 }
 
 onEvent('LocationChanged', () => void refreshLiveLocations());
-setInterval(() => void refreshLiveLocations(), TICK_MS);
+// Slow ticker so streams drop out when their window expires. Skip when the
+// window is hidden or no account is configured — both make the RPC + DB
+// scan pure overhead.
+setInterval(() => {
+  if (typeof document !== 'undefined' && document.hidden) return;
+  if (accounts.selectedId == null) return;
+  void refreshLiveLocations();
+}, TICK_MS);

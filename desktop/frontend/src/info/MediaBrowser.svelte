@@ -2,10 +2,9 @@
   // In-chat media browser — Gallery (image+gif+video), Audio (audio+voice),
   // Files. Backed by `get_chat_media`.
 
-  import { onMount } from 'svelte';
   import { rpc } from '../lib/rpc';
   import { accounts } from '../lib/state/accounts.svelte';
-  import { CONTACT_ID_SELF, MSG_STATE } from '../lib/state/chat.svelte';
+  import { canRecallMessage, loadMessages, type Message } from '../lib/state/chat.svelte';
   import { jumpToMessage } from '../lib/state/jump';
   import { backToChat } from '../lib/state/mainRoute.svelte';
   import { fileUrl, formatBytes } from '../lib/files';
@@ -19,20 +18,6 @@
 
   type Tab = 'gallery' | 'audio' | 'files';
   let tab = $state<Tab>('gallery');
-
-  type Message = {
-    id: number;
-    chatId: number;
-    fromId: number;
-    state: number;
-    viewType: string;
-    file: string | null;
-    fileName: string | null;
-    fileBytes: number;
-    text: string;
-    timestamp: number;
-    duration: number;
-  };
 
   let items = $state<Message[]>([]);
   let loading = $state(true);
@@ -48,8 +33,6 @@
     void tab;
     void load();
   });
-
-  onMount(load);
 
   async function load() {
     if (accounts.selectedId == null) return;
@@ -67,15 +50,9 @@
         items = [];
         return;
       }
-      // get_messages returns map; sort newest-first.
-      const map = await rpc.call<
-        Record<number, { kind: 'message' } & Message | { kind: 'loadingError' }>
-      >('get_messages', [accounts.selectedId, ids]);
-      const out: Message[] = [];
-      for (const id of ids) {
-        const r = map[id];
-        if (r && r.kind === 'message') out.push(r as Message);
-      }
+      // loadMessages unwraps the wire union at the state-module boundary —
+      // we get clean `Message[]` without `kind === 'message'` checks here.
+      const out = await loadMessages(accounts.selectedId, ids);
       out.sort((a, b) => b.timestamp - a.timestamp);
       items = out;
     } catch (err) {
@@ -101,11 +78,7 @@
 
   function deleteItem(msgId: number) {
     const m = items.find((it) => it.id === msgId);
-    const canDeleteForAll =
-      m != null &&
-      m.fromId === CONTACT_ID_SELF &&
-      (m.state === MSG_STATE.OutDelivered || m.state === MSG_STATE.OutMdnRcvd);
-    deleteTarget = { id: msgId, canDeleteForAll };
+    deleteTarget = { id: msgId, canDeleteForAll: m != null && canRecallMessage(m) };
   }
 
   async function performDelete(forAll: boolean) {

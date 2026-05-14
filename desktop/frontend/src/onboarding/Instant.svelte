@@ -1,6 +1,7 @@
 <script lang="ts">
   import { onboarding, createInstantAccount } from '../lib/state/onboarding.svelte';
   import ProgressOverlay from './ProgressOverlay.svelte';
+  import Button from '../lib/Button.svelte';
   import { t } from '../lib/i18n/i18n.svelte';
 
   type Props = {
@@ -55,12 +56,12 @@
     </a>.
   </p>
 
-  <button class="primary" disabled={!canCreate} onclick={create} data-testid="onboarding-instant__submit">{t('Create Profile')}</button>
+  <Button variant="primary" size="lg" block disabled={!canCreate} onclick={create} data-testid="onboarding-instant__submit">{t('Create Profile')}</Button>
 
   <div class="alt">
-    <button class="secondary" aria-haspopup="menu" aria-expanded={altMenuOpen} onclick={() => (altMenuOpen = !altMenuOpen)}>
+    <Button variant="accent-text" size="lg" block aria-haspopup="menu" aria-expanded={altMenuOpen} onclick={() => (altMenuOpen = !altMenuOpen)}>
       {t('Use Other Server')}
-    </button>
+    </Button>
 
     {#if altMenuOpen}
       <div class="alt-menu" role="menu">
@@ -150,33 +151,6 @@
   }
   .privacy a:hover {
     text-decoration: underline;
-  }
-  .primary,
-  .secondary {
-    width: 100%;
-    height: 48px;
-    border-radius: var(--radius-md);
-    font-size: var(--text-md);
-    font-weight: 600;
-    justify-content: center;
-  }
-  .primary {
-    background: var(--color-accent);
-    color: var(--color-accent-fg);
-  }
-  .primary:disabled {
-    opacity: 0.5;
-    cursor: default;
-  }
-  .primary:not(:disabled):hover {
-    filter: brightness(1.05);
-  }
-  .secondary {
-    background: transparent;
-    color: var(--color-accent);
-  }
-  .secondary:hover {
-    background: var(--color-bg-hover);
   }
   .alt {
     width: 100%;

@@ -7,6 +7,8 @@
   import { onMount } from 'svelte';
   import { rpc } from '../lib/rpc';
   import Icon from '../lib/Icon.svelte';
+  import Modal from '../lib/Modal.svelte';
+  import Button from '../lib/Button.svelte';
   import { t } from '../lib/i18n/i18n.svelte';
 
   type Props = {
@@ -39,8 +41,8 @@
   }
 </script>
 
-<div class="overlay" role="dialog" aria-modal="true">
-  <div class="dialog">
+<Modal open={true} {onClose} size="md" ariaLabel={t('Share Proxy')}>
+  <div class="dialog-body">
     <header class="head">
       <h3>{t('Share Proxy')}</h3>
       <button class="close" onclick={onClose} aria-label={t('Done')}><Icon name="x" size={16} /></button>
@@ -59,31 +61,17 @@
 
       <code class="url">{url}</code>
 
-      <button class="primary" onclick={copyLink}>
+      <Button variant="primary" onclick={copyLink}>
         <Icon name="copy" size={14} />
         {copied ? t('Copied') : t('Copy Link')}
-      </button>
+      </Button>
     </div>
   </div>
-</div>
+</Modal>
 
 <style>
-  .overlay {
-    position: fixed;
-    inset: 0;
-    background: rgba(0, 0, 0, 0.45);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: var(--z-modal);
-    backdrop-filter: blur(4px);
-  }
-  .dialog {
-    background: var(--color-bg-elevated);
-    border-radius: var(--radius-lg);
+  .dialog-body {
     padding: var(--space-5);
-    width: min(420px, calc(100vw - 2 * var(--space-4)));
-    box-shadow: 0 16px 48px var(--color-shadow);
   }
   .head {
     display: flex;
@@ -152,20 +140,6 @@
     font-size: var(--text-xs);
     word-break: break-all;
     text-align: center;
-  }
-  .primary {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    height: 38px;
-    padding: 0 var(--space-4);
-    border-radius: var(--radius-md);
-    background: var(--color-accent);
-    color: var(--color-accent-fg);
-    font-weight: 600;
-  }
-  .primary:hover {
-    filter: brightness(1.05);
   }
   .error {
     color: var(--color-danger);

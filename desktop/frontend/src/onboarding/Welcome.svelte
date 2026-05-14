@@ -1,5 +1,6 @@
 <script lang="ts">
   import Logo from '../lib/Logo.svelte';
+  import Button from '../lib/Button.svelte';
   import { t } from '../lib/i18n/i18n.svelte';
 
   type Props = {
@@ -50,18 +51,20 @@
   </div>
 
   <div class="actions">
-    <button class="primary" onclick={signUp} data-testid="onboarding-welcome__sign-up">{t('Sign Up')}</button>
+    <Button variant="primary" size="lg" block onclick={signUp} data-testid="onboarding-welcome__sign-up">{t('Sign Up')}</Button>
 
     <div class="alt">
-      <button
-        class="secondary"
+      <Button
+        variant="accent-text"
+        size="lg"
+        block
         aria-haspopup="menu"
         aria-expanded={altMenuOpen}
         onclick={toggleAlt}
         data-testid="onboarding-welcome__alt-toggle"
       >
         {t('I Already Have a Profile')}
-      </button>
+      </Button>
 
       {#if altMenuOpen}
         <div class="alt-menu" role="menu">
@@ -115,36 +118,6 @@
     flex-direction: column;
     gap: var(--space-3);
   }
-  .primary,
-  .secondary {
-    width: 100%;
-    height: 48px;
-    border-radius: var(--radius-md);
-    font-size: var(--text-md);
-    font-weight: 600;
-    justify-content: center;
-    transition:
-      background 0.12s,
-      transform 0.05s;
-  }
-  .primary {
-    background: var(--color-accent);
-    color: var(--color-accent-fg);
-  }
-  .primary:hover {
-    filter: brightness(1.05);
-  }
-  .primary:active {
-    transform: scale(0.98);
-  }
-  .secondary {
-    background: transparent;
-    color: var(--color-accent);
-  }
-  .secondary:hover {
-    background: var(--color-bg-hover);
-  }
-
   .alt {
     position: relative;
   }

@@ -6,6 +6,7 @@
   import type { ChatListItem } from '../lib/state/chatlist.svelte';
   import { canLeaveBeforeDelete } from '../lib/chatActions';
   import Icon from '../lib/Icon.svelte';
+  import Popover from '../lib/Popover.svelte';
   import { t } from '../lib/i18n/i18n.svelte';
 
   // Mirrors deltachat-jsonrpc's `MuteDuration` (PascalCase tags — the enum
@@ -51,22 +52,8 @@
     return chat.chatType === 'InBroadcast' ? t('Leave channel') : t('Leave group');
   });
 
-  let menu: HTMLDivElement | undefined = $state();
-  // svelte-ignore state_referenced_locally
-  let style = $state(`top: ${y}px; left: ${x}px;`);
   // 'main' shows pin / mute / archive; 'mute' replaces with duration picks.
   let view = $state<'main' | 'mute'>('main');
-
-  // Clamp into viewport once the menu's rect is known.
-  $effect(() => {
-    if (!menu) return;
-    const rect = menu.getBoundingClientRect();
-    let left = x;
-    let top = y;
-    if (left + rect.width > window.innerWidth - 8) left = window.innerWidth - rect.width - 8;
-    if (top + rect.height > window.innerHeight - 8) top = window.innerHeight - rect.height - 8;
-    style = `top: ${Math.max(8, top)}px; left: ${Math.max(8, left)}px;`;
-  });
 
   function fire(fn: () => void) {
     fn();
@@ -90,21 +77,15 @@
     { label: () => t('Forever'), duration: { kind: 'Forever' } },
   ];
 
-  function onKey(e: KeyboardEvent) {
-    if (e.key === 'Escape') {
-      if (view === 'mute') view = 'main';
-      else onClose();
-    }
+  // Escape backs out of the mute submenu first, then dismisses the popover.
+  function onEscape() {
+    if (view === 'mute') view = 'main';
+    else onClose();
   }
 </script>
 
-<svelte:window onkeydown={onKey} />
-
-<!-- Invisible backdrop catches outside-clicks. Keyboard-dismissable via
-     window Escape above; the backdrop itself doesn't need its own keydown. -->
-<button class="backdrop" aria-label={t('Close menu')} onclick={onClose}></button>
-
-<div bind:this={menu} class="menu" role="menu" {style} data-testid="chat-row-menu">
+<Popover {x} {y} {onClose} {onEscape} data-testid="chat-row-menu">
+  <div class="items">
   {#if view === 'main'}
     {#if chat.freshMessageCounter > 0}
       <button role="menuitem" onclick={() => fire(onMarkRead)} data-testid="chat-row-menu-item" data-action="mark-read">
@@ -152,29 +133,17 @@
       </button>
     {/each}
   {/if}
-</div>
+  </div>
+</Popover>
 
 <style>
-  .backdrop {
-    position: fixed;
-    inset: 0;
-    background: transparent;
-    border: 0;
-    z-index: var(--z-overlay);
-  }
-  .menu {
-    position: fixed;
-    z-index: calc(var(--z-overlay) + 1);
+  .items {
     min-width: 180px;
     padding: 4px;
-    background: var(--color-bg-elevated);
-    border: 1px solid var(--color-border);
-    border-radius: var(--radius-md);
-    box-shadow: 0 12px 32px var(--color-shadow);
     display: flex;
     flex-direction: column;
   }
-  .menu button {
+  .items button {
     display: flex;
     align-items: center;
     justify-content: flex-start;
@@ -186,14 +155,14 @@
     border-radius: var(--radius-sm);
     font-size: var(--text-sm);
   }
-  .menu button:hover {
+  .items button:hover {
     background: var(--color-bg-hover);
   }
   .sub-back {
     color: var(--color-fg-secondary);
     font-weight: 600;
   }
-  .menu button.danger {
+  .items button.danger {
     color: var(--color-danger);
   }
   .separator {

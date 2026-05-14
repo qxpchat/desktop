@@ -16,11 +16,12 @@
     setEditing,
     loadOlder,
     CONTACT_ID_SELF,
-    MSG_STATE,
+    canRecallMessage,
     type Message,
   } from '../lib/state/chat.svelte';
   import { uploadBlob, viewtypeForFile } from '../lib/files';
   import { jumpToMessage } from '../lib/state/jump';
+  import { formatDayLabel } from '../lib/format/timestamp';
   import { t } from '../lib/i18n/i18n.svelte';
   import { chatlist } from '../lib/state/chatlist.svelte';
   import MessageBubble from './MessageBubble.svelte';
@@ -100,39 +101,32 @@
   });
   onDestroy(() => {
     if (firstPaintTimer != null) clearTimeout(firstPaintTimer);
+    if (scrollIdleTimer != null) clearTimeout(scrollIdleTimer);
   });
 
   // Jump-to-message: `jumpToMessage` (lib/state/jump.ts) sets
   // `chat.jumpTargetId`, then runs the switch-chat + paginate pipeline.
-  // We own the scroll: when the target lands in `chat.ids`, flash +
-  // scroll from inside the same render cycle that mounted the bubble.
-  // Doing it here (rather than in jump.ts) avoids the race where the
-  // external scroll fires before Svelte commits the new bubble, or
-  // where the bottom-pin loop is still running when we try to scroll.
+  // We own the scroll: once the target's id is in `chat.ids`, await a
+  // single `tick()` to let Svelte mount the bubble, then a single rAF to
+  // let image-decode reflows settle before measuring positions.
   $effect(() => {
     const target = chat.jumpTargetId;
     if (target == null) return;
     if (!chat.ids.includes(target)) return;
     untrack(() => {
       void (async () => {
-        // Brief poll for the DOM element: an extra microtask gives the
-        // `{#each}` block a chance to commit the appended/prepended
-        // bubble, and a few rAF ticks cover any deferred work (image
-        // decoding, fly-in transition, etc.) that might keep the
-        // initial mount partial.
-        let el: HTMLElement | null = null;
-        for (let i = 0; i < 30; i++) {
-          await tick();
-          if (scroller) {
-            const found = document.getElementById(`msg-${target}`);
-            if (found) {
-              el = found;
-              break;
-            }
-          }
-          await new Promise((r) => setTimeout(r, 30));
+        await tick();
+        if (!scroller) {
+          chat.jumpTargetId = null;
+          return;
         }
-        if (!el || !scroller) {
+        const el = document.getElementById(`msg-${target}`);
+        if (!el) {
+          chat.jumpTargetId = null;
+          return;
+        }
+        await new Promise<void>((r) => requestAnimationFrame(() => r()));
+        if (!scroller) {
           chat.jumpTargetId = null;
           return;
         }
@@ -175,21 +169,18 @@
     window.removeEventListener('focus', onWindowFocus);
   });
 
-  // `tick` flushes Svelte's reconciliation, but layout/paint can still
-  // grow afterwards as images and avatars load. We re-pin to the bottom
-  // across a handful of animation frames so the initial scroll doesn't
-  // strand the user mid-feed. Idempotent — subsequent calls just keep
-  // pinning until the layout stops growing.
+  // `tick` flushes Svelte's reconciliation; one extra rAF covers the most
+  // common case of image / avatar decode growing scrollHeight after the
+  // commit. Idempotent — sibling effects that mutate `chat.ids` re-trigger
+  // the caller, which calls us again.
   async function scrollToBottom(): Promise<void> {
     if (!scroller) return;
     await tick();
     if (!scroller) return;
     scroller.scrollTop = scroller.scrollHeight;
-    for (let i = 0; i < 6; i++) {
-      await new Promise<void>((r) => requestAnimationFrame(() => r()));
-      if (!scroller) return;
-      scroller.scrollTop = scroller.scrollHeight;
-    }
+    await new Promise<void>((r) => requestAnimationFrame(() => r()));
+    if (!scroller) return;
+    scroller.scrollTop = scroller.scrollHeight;
     atBottom = true;
     newSinceScroll = 0;
   }
@@ -234,33 +225,17 @@
   }
 
   function dayMarker(prev: Message | undefined, curr: Message): string | null {
+    if (!prev) return formatDayLabel(curr.sortTimestamp, t);
     const cd = new Date(curr.sortTimestamp * 1000);
-    if (!prev) return labelForDate(cd);
     const pd = new Date(prev.sortTimestamp * 1000);
     if (
       cd.getFullYear() !== pd.getFullYear() ||
       cd.getMonth() !== pd.getMonth() ||
       cd.getDate() !== pd.getDate()
     ) {
-      return labelForDate(cd);
+      return formatDayLabel(curr.sortTimestamp, t);
     }
     return null;
-  }
-  function labelForDate(d: Date): string {
-    const today = new Date();
-    const sameDay =
-      d.getFullYear() === today.getFullYear() &&
-      d.getMonth() === today.getMonth() &&
-      d.getDate() === today.getDate();
-    if (sameDay) return 'Today';
-    const yest = new Date(today);
-    yest.setDate(today.getDate() - 1);
-    const isYesterday =
-      d.getFullYear() === yest.getFullYear() &&
-      d.getMonth() === yest.getMonth() &&
-      d.getDate() === yest.getDate();
-    if (isYesterday) return 'Yesterday';
-    return new Intl.DateTimeFormat(undefined, { dateStyle: 'medium' }).format(d);
   }
 
   // Context menu / emoji picker / forward picker -----------------------------
@@ -289,9 +264,7 @@
     if (selectedIds.size === 0) return false;
     for (const id of selectedIds) {
       const m = chat.messages.get(id);
-      if (!m) return false;
-      if (m.fromId !== CONTACT_ID_SELF) return false;
-      if (m.state !== MSG_STATE.OutDelivered && m.state !== MSG_STATE.OutMdnRcvd) return false;
+      if (!m || !canRecallMessage(m)) return false;
     }
     return true;
   });
@@ -448,12 +421,9 @@
       action: 'delete',
       onSelect: () => {
         // Core only accepts a recall for own messages that already left the
-        // outbox. Anything else (incoming, draft, pending, failed) can only
-        // be removed locally — match iOS by hiding the for-everyone option.
-        const canDeleteForAll =
-          m.fromId === CONTACT_ID_SELF &&
-          (m.state === MSG_STATE.OutDelivered || m.state === MSG_STATE.OutMdnRcvd);
-        deleteTarget = { ids: [m.id], canDeleteForAll };
+        // outbox; anything else (incoming, draft, pending, failed) gets the
+        // local-only delete branch.
+        deleteTarget = { ids: [m.id], canDeleteForAll: canRecallMessage(m) };
       },
     });
     actions.push({

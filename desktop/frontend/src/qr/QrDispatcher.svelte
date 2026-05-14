@@ -9,6 +9,7 @@
   import { accounts } from '../lib/state/accounts.svelte';
   import { backToChat } from '../lib/state/mainRoute.svelte';
   import Scanner from './Scanner.svelte';
+  import Button from '../lib/Button.svelte';
   import { t } from '../lib/i18n/i18n.svelte';
 
   type Props = {
@@ -300,11 +301,11 @@
           <p class="error">{errorMsg}</p>
         {/if}
         <div class="actions">
-          <button onclick={reset} disabled={busy} data-testid="qr-dispatcher__reset">{t('Scan again')}</button>
+          <Button variant="secondary" onclick={reset} disabled={busy} data-testid="qr-dispatcher__reset">{t('Scan again')}</Button>
           {#if actionLabel}
-            <button class="primary" onclick={confirmCurrent} disabled={busy} data-testid="qr-dispatcher__confirm">{actionLabel}</button>
+            <Button variant="primary" onclick={confirmCurrent} disabled={busy} data-testid="qr-dispatcher__confirm">{actionLabel}</Button>
           {:else}
-            <button class="primary" onclick={() => backToChat()} disabled={busy} data-testid="qr-dispatcher__ok">{t('OK')}</button>
+            <Button variant="primary" onclick={() => backToChat()} disabled={busy} data-testid="qr-dispatcher__ok">{t('OK')}</Button>
           {/if}
         </div>
       </div>
@@ -378,25 +379,6 @@
     display: flex;
     justify-content: flex-end;
     gap: var(--space-3);
-  }
-  .actions button {
-    height: 36px;
-    padding: 0 var(--space-4);
-    border-radius: var(--radius-md);
-    font-weight: 600;
-    background: var(--color-bg-hover);
-    color: var(--color-fg);
-  }
-  .actions button:disabled {
-    opacity: 0.5;
-    cursor: default;
-  }
-  .actions .primary {
-    background: var(--color-accent);
-    color: var(--color-accent-fg);
-  }
-  .actions .primary:hover:not(:disabled) {
-    filter: brightness(1.05);
   }
   .paste-fallback {
     display: flex;

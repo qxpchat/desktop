@@ -67,87 +67,69 @@ function currentPhaseKind(): OnboardingPhase['kind'] {
   return onboarding.phase.kind;
 }
 
-async function safeRemove(accountId: number): Promise<void> {
+/** Shared skeleton for all four onboarding flows. Owns:
+ *  - phase transition into the initial in-flight kind
+ *  - `add_account` + `select_account` bookkeeping
+ *  - `start_io` after `steps` resolves
+ *  - phase back to idle + refresh fan-out on success
+ *  - pending-account cleanup + failed phase + rethrow on error
+ *
+ *  Each flow function passes the `initial` phase + its flow-specific
+ *  middle (set_config, configure, import_backup, get_backup, …). */
+async function runOnboardingFlow(
+  initial: OnboardingPhase,
+  steps: (accountId: number) => Promise<void>,
+): Promise<void> {
+  onboarding.phase = initial;
+  let accountId = 0;
   try {
-    await rpc.call('remove_account', [accountId]);
-  } catch {
-    /* nothing to do — best-effort cleanup */
+    accountId = await rpc.call<number>('add_account');
+    pendingAccountId = accountId;
+    await rpc.call('select_account', [accountId]);
+    await steps(accountId);
+    await rpc.call('start_io', [accountId]);
+    onboarding.phase = { kind: 'idle' };
+    pendingAccountId = null;
+    await refreshAccounts();
+    // Force the chatlist to refetch — the daemon's DB just gained a full
+    // set of chats/contacts (especially after `get_backup` / `import_backup`),
+    // but the chatlist rune can already be pinned to this account id, which
+    // would make `setActiveAccount` a no-op.
+    reloadChatlist();
+  } catch (err) {
+    pendingAccountId = null;
+    if (accountId !== 0) {
+      try {
+        await rpc.call('remove_account', [accountId]);
+      } catch {
+        /* best-effort cleanup */
+      }
+    }
+    if (currentPhaseKind() !== 'failed') {
+      onboarding.phase = { kind: 'failed', message: errorMessage(err) };
+    }
+    throw err;
   }
 }
 
 export async function createInstantAccount(displayName: string, qr?: string): Promise<void> {
-  onboarding.phase = { kind: 'configuring', progress: 0 };
-  let accountId = 0;
-  try {
-    accountId = await rpc.call<number>('add_account');
-    pendingAccountId = accountId;
-    await rpc.call('select_account', [accountId]);
+  await runOnboardingFlow({ kind: 'configuring', progress: 0 }, async (accountId) => {
     await rpc.call('set_config', [accountId, 'displayname', displayName]);
     await rpc.call('set_config_from_qr', [accountId, qr ?? 'dcaccount:nine.testrun.org']);
     await rpc.call('configure', [accountId]);
-    await rpc.call('start_io', [accountId]);
-    onboarding.phase = { kind: 'idle' };
-    pendingAccountId = null;
-    await refreshAccounts();
-    reloadChatlist();
-  } catch (err) {
-    pendingAccountId = null;
-    if (accountId !== 0) await safeRemove(accountId);
-    if (currentPhaseKind() !== 'failed') {
-      onboarding.phase = { kind: 'failed', message: errorMessage(err) };
-    }
-    throw err;
-  }
+  });
 }
 
 export async function importBackup(filePath: string): Promise<void> {
-  onboarding.phase = { kind: 'importing', progress: 0 };
-  let accountId = 0;
-  try {
-    accountId = await rpc.call<number>('add_account');
-    pendingAccountId = accountId;
-    await rpc.call('select_account', [accountId]);
+  await runOnboardingFlow({ kind: 'importing', progress: 0 }, async (accountId) => {
     await rpc.call('import_backup', [accountId, filePath, null]);
-    await rpc.call('start_io', [accountId]);
-    onboarding.phase = { kind: 'idle' };
-    pendingAccountId = null;
-    await refreshAccounts();
-    reloadChatlist();
-  } catch (err) {
-    pendingAccountId = null;
-    if (accountId !== 0) await safeRemove(accountId);
-    if (currentPhaseKind() !== 'failed') {
-      onboarding.phase = { kind: 'failed', message: errorMessage(err) };
-    }
-    throw err;
-  }
+  });
 }
 
 export async function receiveBackup(qrText: string): Promise<void> {
-  onboarding.phase = { kind: 'receiving', progress: 0 };
-  let accountId = 0;
-  try {
-    accountId = await rpc.call<number>('add_account');
-    pendingAccountId = accountId;
-    await rpc.call('select_account', [accountId]);
+  await runOnboardingFlow({ kind: 'receiving', progress: 0 }, async (accountId) => {
     await rpc.call('get_backup', [accountId, qrText]);
-    await rpc.call('start_io', [accountId]);
-    onboarding.phase = { kind: 'idle' };
-    pendingAccountId = null;
-    await refreshAccounts();
-    // Force the chatlist to refetch — the daemon's DB just gained a full set
-    // of chats/contacts via the iroh-net transfer, but the chatlist rune
-    // can already be pinned to this account id (e.g. when this is the
-    // first/only configured account) which makes `setActiveAccount` a no-op.
-    reloadChatlist();
-  } catch (err) {
-    pendingAccountId = null;
-    if (accountId !== 0) await safeRemove(accountId);
-    if (currentPhaseKind() !== 'failed') {
-      onboarding.phase = { kind: 'failed', message: errorMessage(err) };
-    }
-    throw err;
-  }
+  });
 }
 
 export async function loginManually(
@@ -155,31 +137,14 @@ export async function loginManually(
   mailPw: string,
   advanced: Record<string, string> = {},
 ): Promise<void> {
-  onboarding.phase = { kind: 'configuring', progress: 0 };
-  let accountId = 0;
-  try {
-    accountId = await rpc.call<number>('add_account');
-    pendingAccountId = accountId;
-    await rpc.call('select_account', [accountId]);
+  await runOnboardingFlow({ kind: 'configuring', progress: 0 }, async (accountId) => {
     await rpc.call('set_config', [accountId, 'addr', addr]);
     await rpc.call('set_config', [accountId, 'mail_pw', mailPw]);
     for (const [k, v] of Object.entries(advanced)) {
       if (v) await rpc.call('set_config', [accountId, k, v]);
     }
     await rpc.call('configure', [accountId]);
-    await rpc.call('start_io', [accountId]);
-    onboarding.phase = { kind: 'idle' };
-    pendingAccountId = null;
-    await refreshAccounts();
-    reloadChatlist();
-  } catch (err) {
-    pendingAccountId = null;
-    if (accountId !== 0) await safeRemove(accountId);
-    if (currentPhaseKind() !== 'failed') {
-      onboarding.phase = { kind: 'failed', message: errorMessage(err) };
-    }
-    throw err;
-  }
+  });
 }
 
 export async function cancelOnboarding(): Promise<void> {

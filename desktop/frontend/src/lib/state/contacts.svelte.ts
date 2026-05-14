@@ -30,9 +30,6 @@ export type Contact = {
   isBot: boolean;
 };
 
-/** DC_GCL_ADD_SELF — include the user themselves in the contact list. */
-export const GCL_ADD_SELF = 0x02;
-
 export type ContactsState = {
   accountId: number | null;
   flags: number;

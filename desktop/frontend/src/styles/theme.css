@@ -23,9 +23,13 @@
   --color-accent-fg: #0a0a0a;
 
   --color-danger: #d83838;
+  --color-danger-soft: color-mix(in srgb, var(--color-danger) 12%, var(--color-bg-elevated));
   --color-success: #34c759;
+  --color-warning: #d89e00;
 
   --color-shadow: rgba(0, 0, 0, 0.06);
+  /* Unified backdrop opacity for modal overlays — see lib/Modal.svelte. */
+  --color-backdrop: rgba(0, 0, 0, 0.4);
 
   color-scheme: light;
 }
@@ -50,9 +54,12 @@
   --color-accent-fg: #0a0a0a;
 
   --color-danger: #ef5350;
+  --color-danger-soft: color-mix(in srgb, var(--color-danger) 14%, var(--color-bg-elevated));
   --color-success: #30d158;
+  --color-warning: #ffcc00;
 
   --color-shadow: rgba(0, 0, 0, 0.4);
+  --color-backdrop: rgba(0, 0, 0, 0.55);
 
   color-scheme: dark;
 }
@@ -78,9 +85,12 @@
     --color-accent-fg: #0a0a0a;
 
     --color-danger: #ef5350;
+    --color-danger-soft: color-mix(in srgb, var(--color-danger) 14%, var(--color-bg-elevated));
     --color-success: #30d158;
+    --color-warning: #ffcc00;
 
     --color-shadow: rgba(0, 0, 0, 0.4);
+    --color-backdrop: rgba(0, 0, 0, 0.55);
 
     color-scheme: dark;
   }

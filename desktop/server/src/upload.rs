@@ -15,11 +15,17 @@ use axum::{
     extract::{Query, State},
     http::StatusCode,
 };
-use futures_lite::stream::StreamExt;
+use futures_lite::StreamExt as _;
 use serde::{Deserialize, Serialize};
 use tokio::io::AsyncWriteExt;
 
 use crate::AppState;
+
+/// Hard cap per upload. Generous enough for typical chat attachments
+/// (photos, short videos, voice notes, ~50MB .tar backups) without letting
+/// a fat-fingered drag-and-drop pin the host to disk-IO. Overruns reject
+/// with 413 and the partial temp file is removed.
+const MAX_UPLOAD_BYTES: u64 = 100 * 1024 * 1024;
 
 #[derive(Debug, Deserialize)]
 pub struct UploadParams {
@@ -65,8 +71,21 @@ pub async fn handler(
 
     let mut file = tokio::fs::File::create(&path).await.map_err(io)?;
     let mut stream = body.into_data_stream();
+    let mut written: u64 = 0;
     while let Some(chunk) = stream.next().await {
         let chunk = chunk.map_err(|e| (StatusCode::BAD_REQUEST, e.to_string()))?;
+        written = written.saturating_add(chunk.len() as u64);
+        if written > MAX_UPLOAD_BYTES {
+            // Abort + clean up the partial file. Best-effort remove —
+            // leaving a stray file behind is non-fatal on Linux (uploads
+            // dir is per-account scratch) but worth trying.
+            drop(file);
+            let _ = tokio::fs::remove_file(&path).await;
+            return Err((
+                StatusCode::PAYLOAD_TOO_LARGE,
+                format!("upload exceeds {MAX_UPLOAD_BYTES} bytes"),
+            ));
+        }
         file.write_all(&chunk).await.map_err(io)?;
     }
     file.flush().await.map_err(io)?;

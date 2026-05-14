@@ -87,12 +87,12 @@ export async function requestPermissionOnce(): Promise<'granted' | 'denied' | 'd
 }
 
 let baseTitle = 'qxp';
-let started = false;
+let titleCaptured = false;
 
 export function ensureBaseTitleCaptured(): void {
-  if (!started && typeof document !== 'undefined') {
+  if (!titleCaptured && typeof document !== 'undefined') {
     baseTitle = document.title || 'qxp';
-    started = true;
+    titleCaptured = true;
   }
 }
 
@@ -106,7 +106,6 @@ const PENDING_FOCUS_WINDOW_MS = 8_000;
 
 function pushPending(p: Pending): void {
   pendingJumps.push(p);
-  if (pendingJumps.length > 50) pendingJumps.splice(0, pendingJumps.length - 50);
 }
 
 function drainPendingOnFocus(): void {
@@ -144,8 +143,11 @@ type BasicChat = {
   isDeviceChat: boolean;
 };
 
+let notifStarted = false;
 export function startIncomingNotifications(): void {
   ensureBaseTitleCaptured();
+  if (notifStarted) return;
+  notifStarted = true;
   if (typeof window !== 'undefined') {
     window.addEventListener('focus', drainPendingOnFocus);
   }

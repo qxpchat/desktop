@@ -1,6 +1,7 @@
 <script lang="ts">
   import { onboarding, loginManually } from '../lib/state/onboarding.svelte';
   import ProgressOverlay from './ProgressOverlay.svelte';
+  import Button from '../lib/Button.svelte';
   import { t } from '../lib/i18n/i18n.svelte';
 
   type Props = {
@@ -129,7 +130,9 @@
     </fieldset>
   {/if}
 
-  <button class="primary" disabled={!canLogin} onclick={login} data-testid="onboarding-manual__submit">{t('Log In')}</button>
+  <div class="submit-row">
+    <Button variant="primary" size="lg" block disabled={!canLogin} onclick={login} data-testid="onboarding-manual__submit">{t('Log In')}</Button>
+  </div>
 </main>
 
 <ProgressOverlay />
@@ -207,21 +210,7 @@
     color: var(--color-fg-secondary);
     font-size: var(--text-sm);
   }
-  .primary {
+  .submit-row {
     margin-top: var(--space-3);
-    height: 48px;
-    border-radius: var(--radius-md);
-    background: var(--color-accent);
-    color: var(--color-accent-fg);
-    font-weight: 600;
-    font-size: var(--text-md);
-    justify-content: center;
-  }
-  .primary:disabled {
-    opacity: 0.5;
-    cursor: default;
-  }
-  .primary:not(:disabled):hover {
-    filter: brightness(1.05);
   }
 </style>

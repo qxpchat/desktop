@@ -1,6 +1,7 @@
 <script lang="ts">
   import { prefs, savePrefs, getAccent, setAccent, type Theme } from '../lib/prefs.svelte';
   import { accounts } from '../lib/state/accounts.svelte';
+  import SettingsSection from '../lib/SettingsSection.svelte';
   import { t } from '../lib/i18n/i18n.svelte';
 
   // Accent is a per-profile setting — the picker reads + writes the
@@ -112,8 +113,7 @@
 
 <h2>{t('Appearance')}</h2>
 
-<section class="block">
-  <h3>{t('Theme')}</h3>
+<SettingsSection title={t('Theme')}>
   <div class="seg" role="radiogroup" aria-label={t('Theme')} data-testid="settings-appearance__theme">
     {#each THEMES as theme}
       <button
@@ -128,10 +128,9 @@
       </button>
     {/each}
   </div>
-</section>
+</SettingsSection>
 
-<section class="block">
-  <h3>{t('Accent color')}</h3>
+<SettingsSection title={t('Accent color')}>
   <div class="swatches" role="radiogroup" aria-label={t('Accent color')} data-testid="settings-appearance__accent">
     {#each swatches as s (s.value + s.label)}
       <button
@@ -146,10 +145,12 @@
       ></button>
     {/each}
   </div>
-</section>
+</SettingsSection>
 
-<section class="block">
-  <h3>{t('Text size')}</h3>
+<SettingsSection
+  title={t('Text size')}
+  footer={t('Affects every text element using the size tokens — most of the app.')}
+>
   <div class="seg" role="radiogroup" aria-label={t('Text size')}>
     {#each TEXT_SIZES as size}
       <button
@@ -162,26 +163,13 @@
       </button>
     {/each}
   </div>
-  <p class="hint">{t('Affects every text element using the size tokens — most of the app.')}</p>
-</section>
+</SettingsSection>
 
 <style>
   h2 {
     margin: 0 0 var(--space-5) 0;
     font-size: var(--text-xl);
     font-weight: 600;
-  }
-  h3 {
-    margin: 0 0 var(--space-3) 0;
-    font-size: var(--text-md);
-    font-weight: 600;
-  }
-  .block {
-    padding-bottom: var(--space-5);
-  }
-  .block + .block {
-    border-top: 1px solid var(--color-border);
-    padding-top: var(--space-5);
   }
   /* Segmented theme picker — pill background with a sliding-looking
      accent button. Matches Signal Desktop's segmented theme control. */
@@ -229,10 +217,5 @@
   .swatch.active {
     border-color: var(--color-fg);
     box-shadow: 0 0 0 2px var(--color-bg);
-  }
-  .hint {
-    margin: var(--space-3) 0 0;
-    color: var(--color-fg-tertiary);
-    font-size: var(--text-sm);
   }
 </style>

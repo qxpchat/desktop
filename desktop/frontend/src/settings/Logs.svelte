@@ -294,7 +294,7 @@
     color: var(--color-fg-secondary);
   }
   .entry[data-level='warning'] .level {
-    color: #b58900;
+    color: var(--color-warning);
   }
   .entry[data-level='error'] .level {
     color: var(--color-danger);

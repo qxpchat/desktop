@@ -26,7 +26,6 @@
   import Icon from '../lib/Icon.svelte';
   import { t } from '../lib/i18n/i18n.svelte';
   import { onShortcut } from '../lib/shortcuts';
-  import { onMount, onDestroy } from 'svelte';
   import ComposePane from '../compose/ComposePane.svelte';
   import ChooseMembers from '../compose/ChooseMembers.svelte';
   import GroupMetadata from '../compose/GroupMetadata.svelte';
@@ -78,17 +77,12 @@
   let searchInput: HTMLInputElement | undefined = $state();
 
   // Cmd/Ctrl+K focuses the chat-list search input — handler matches
-  // the global shortcut dispatched from `lib/shortcuts.ts`.
-  let unsubFocusSearch: (() => void) | null = null;
-  onMount(() => {
-    unsubFocusSearch = onShortcut('focus-search', () => {
-      searchInput?.focus();
-      searchInput?.select();
-    });
-  });
-  onDestroy(() => {
-    unsubFocusSearch?.();
-  });
+  // the global shortcut dispatched from `lib/shortcuts.ts`. Effect's
+  // cleanup return handles unsubscribe.
+  $effect(() => onShortcut('focus-search', () => {
+    searchInput?.focus();
+    searchInput?.select();
+  }));
   $effect(() => {
     setSearchQuery(search);
     setMessageSearchQuery(search);

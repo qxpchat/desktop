@@ -37,11 +37,6 @@
   );
 
   let showChatTopBar = $derived(mainRoute.route.kind === 'chat' && chat != null);
-
-  function backToChatRoute() {
-    mainRoute.route = { kind: 'chat' };
-  }
-  void backToChatRoute;
 </script>
 
 <section class="main">

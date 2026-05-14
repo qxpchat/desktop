@@ -33,6 +33,10 @@ let gen = 0;
 export function setSearchAccount(id: number | null): void {
   messageSearch.accountId = id;
   messageSearch.hits = [];
+  messageSearch.query = '';
+  // Invalidate any in-flight `run()` bound to the previous account, so
+  // its results don't land in `hits` after the swap.
+  gen++;
 }
 
 export function setMessageSearchQuery(q: string): void {

@@ -6,7 +6,7 @@ User instructions **always** override this file.
 ## Repository layout
 
 - `ios/` — iOS app (SwiftUI), share extension, tests, Xcode project, iOS-only build scripts. Currently on hold. **For iOS work, also read `ios/AGENTS.md`** — it has iOS-specific project state, layout, and active plans.
-- `desktop/` — Tauri 2 desktop app: Rust daemon (`server/`, `qxp-web` crate bridging `deltachat-jsonrpc` over a loopback WebSocket), Svelte 5 + Vite SPA (`frontend/`), Tauri shell (`src-tauri/`). Builds to a single native binary per OS (Linux / macOS / Windows); also runnable headless via `make server` + `make ui`. See `desktop/README.md` for run / build / account-data layout.
+- `desktop/` — Tauri 2 desktop app: Rust daemon (`server/`, `qxp-web` crate bridging `deltachat-jsonrpc` over a loopback WebSocket), Svelte 5 + Vite SPA (`frontend/`), Tauri shell (`src-tauri/`). Builds to a single native binary per OS (Linux / macOS / Windows); also runnable headless via `make server` + `make ui`. See `desktop/README.md` for run / build / account-data layout. **For desktop work, also read `desktop/AGENTS.md`** — reusable `lib/` primitives and desktop-specific anti-patterns.
 - `libs/` — Rust core (`deltachat-core-rust` submodule), patches, and the `notifiers` submodule.
 - `notifier/`, `relay/` — server-side: notifier deploy scaffold and chatmail relay.
 - `references/` — third-party reference implementations (read-only inspiration).
@@ -35,3 +35,8 @@ User instructions **always** override this file.
 ## Code
 
 - For every bug, first implement a new e2e test if possible, then write a fix.
+- **Priority order:** (1) **DRY** — same logic / predicate / mapping / CSS shape in ≥2 places must be factored into a single source of truth; soft duplication counts (same shape, different names; parallel switches; near-identical CSS blocks). (2) **Acyclic deps** — modules importing each other is fine if boundaries are clear (exports = intent, not implementation) and the graph is acyclic; flag cycles and boundary smears (UI reaching into a state-module's private internals). (3) **Delete-by-default** — among survivors of (1)+(2), the shortest correct program wins; for every line ask "what observable behaviour changes if I remove this?" If "nothing", remove it.
+- **Steel-man the inverse before applying any change.** Construct the strongest case *against* doing it; if the steel-man wins, skip. Don't ship findings that are speculation, stylistic preference, or imagined future reuse — those are observations, not findings.
+- **Bar for a new abstraction: ≥2 real existing call sites.** Imagined future reuse doesn't count. Three similar lines beat a premature helper.
+- **Validate at system boundaries (user input, RPC wire). Trust internal code.** Impossible-state defensive checks are noise.
+- **No backwards-compat shims.** qxp is pre-1.0; `_unused` renames, re-exports for old paths, deprecation aliases — delete them.

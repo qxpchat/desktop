@@ -87,7 +87,7 @@
     background: var(--color-bg-elevated);
     border: 1px solid var(--color-border);
     color: var(--color-fg);
-    font-size: 11px;
+    font-size: var(--text-xs);
     box-shadow: 0 1px 2px var(--color-shadow);
   }
   .chip:not(:disabled) {
