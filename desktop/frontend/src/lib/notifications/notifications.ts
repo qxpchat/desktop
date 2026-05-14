@@ -9,6 +9,12 @@
 // dock-clicks shortly after a notification arrives, which is the standard
 // Electron-app pattern.
 
+import { invoke } from '@tauri-apps/api/core';
+import {
+  isPermissionGranted,
+  requestPermission,
+  sendNotification,
+} from '@tauri-apps/plugin-notification';
 import { rpc } from '../rpc';
 import { onEvent } from '../events';
 import { selectChat, selection } from '../state/selection.svelte';
@@ -21,23 +27,26 @@ const PERM_ASKED_KEY = 'qxp.web.notifPermAsked';
 // the SPA in a regular browser — `__TAURI_INTERNALS__` is absent and we
 // fall back to the web Notification API + favicon badge. Inside the
 // Tauri-spawned webview the plugin is available.
+//
+// The Tauri JS APIs are statically imported above — `@tauri-apps/api/core`
+// and `@tauri-apps/plugin-{notification,opener}` are bundled either way
+// (other modules import them statically too), so the previous
+// `await import(...)` dance bought no code-splitting benefit and made
+// Vite emit a "dynamic import will not move module into another chunk"
+// warning. The runtime plugin shims are no-ops outside the Tauri webview.
 function inTauri(): boolean {
   return typeof window !== 'undefined' && '__TAURI_INTERNALS__' in window;
 }
 
-// Lazily-loaded Tauri APIs — kept behind `await import(...)` so the
-// browser-only build doesn't try to resolve them and so we only pay the
-// import cost when actually inside Tauri.
 async function tauriNotify(title: string, body: string, id: number): Promise<void> {
-  const mod = await import('@tauri-apps/plugin-notification');
-  const granted = await mod.isPermissionGranted();
+  const granted = await isPermissionGranted();
   if (!granted) {
-    const result = await mod.requestPermission();
+    const result = await requestPermission();
     if (result !== 'granted') return;
   }
   // `id` collapses repeated notifications for the same chat (newer
   // notifications replace older ones in the OS notification list).
-  await mod.sendNotification({ title, body, id });
+  await sendNotification({ title, body, id });
 }
 
 /// Stable 31-bit positive id from a string — used as the numeric
@@ -46,11 +55,6 @@ function tagToId(s: string): number {
   let h = 5381;
   for (let i = 0; i < s.length; i++) h = ((h << 5) + h + s.charCodeAt(i)) | 0;
   return Math.abs(h);
-}
-
-async function tauriInvoke(cmd: string, args: Record<string, unknown>): Promise<void> {
-  const mod = await import('@tauri-apps/api/core');
-  await mod.invoke(cmd, args);
 }
 
 export function hasAskedPermission(): boolean {
@@ -70,9 +74,8 @@ export async function requestPermissionOnce(): Promise<'granted' | 'denied' | 'd
   }
   if (inTauri()) {
     try {
-      const mod = await import('@tauri-apps/plugin-notification');
-      if (await mod.isPermissionGranted()) return 'granted';
-      return (await mod.requestPermission()) as 'granted' | 'denied' | 'default';
+      if (await isPermissionGranted()) return 'granted';
+      return (await requestPermission()) as 'granted' | 'denied' | 'default';
     } catch {
       return 'denied';
     }
@@ -207,7 +210,7 @@ export function updateUnreadIndicators(unread: number): void {
   document.title = unread > 0 ? `(${unread > 99 ? '99+' : unread}) ${baseTitle}` : baseTitle;
   updateFavicon(unread);
   if (inTauri()) {
-    void tauriInvoke('set_badge', {
+    void invoke('set_badge', {
       label: unread > 0 ? (unread > 99 ? '99+' : String(unread)) : null,
     }).catch(() => undefined);
   }
