@@ -1,4 +1,4 @@
-.PHONY: help icons test-accounts test-e2e test-e2e-phase test-e2e-watch test-e2e-clean
+.PHONY: help icons submodules test-accounts test-e2e test-e2e-phase test-e2e-watch test-e2e-clean
 
 help:
 	@echo "qxp — top-level make targets"
@@ -6,6 +6,12 @@ help:
 	@echo "  make icons              Regenerate visual assets from assets/logo.svg."
 	@echo "                          Always writes the 4 gitignored text derivatives (pure Python)."
 	@echo "                          Also rasterises the 2 committed PNGs if imagemagick is reachable."
+	@echo
+	@echo "  make submodules         Hard-reset all submodules to the pinned commits."
+	@echo "                          Syncs URLs, force-checks out the recorded SHA, then"
+	@echo "                          'git reset --hard' + 'git clean -fd' inside each."
+	@echo "                          DESTRUCTIVE: discards local edits/untracked files in submodules."
+	@echo "                          (Gitignored build caches like target/ are preserved.)"
 	@echo
 	@echo "  make test-accounts      Idempotent pool maintenance. Reads desktop/tests/.env;"
 	@echo "                          re-registers any slot whose creds no longer authenticate."
@@ -20,6 +26,12 @@ help:
 
 icons:
 	@assets/scripts/generate-logo.py
+
+submodules:
+	git submodule sync --recursive
+	git submodule update --init --recursive --force
+	git submodule foreach --recursive git reset --hard
+	git submodule foreach --recursive git clean -fd
 
 # --- E2E test targets ---
 
