@@ -230,7 +230,7 @@
 </script>
 
 <section class="info" data-testid="chat-info">
-  <header class="topbar">
+  <header class="topbar" data-tauri-drag-region>
     <button class="back" onclick={backToChat} aria-label={t('Back')} data-testid="chat-info__back">‹ {t('Back')}</button>
     <h1>{t('Info')}</h1>
   </header>

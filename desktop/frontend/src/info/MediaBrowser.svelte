@@ -90,7 +90,7 @@
 </script>
 
 <section class="media" data-testid="media-browser" data-tab={tab}>
-  <header class="topbar">
+  <header class="topbar" data-tauri-drag-region>
     <button class="back" onclick={backToChat} aria-label={t('Back')} data-testid="media-browser__back">‹ {t('Back')}</button>
     <h1>{t('Media')}</h1>
   </header>

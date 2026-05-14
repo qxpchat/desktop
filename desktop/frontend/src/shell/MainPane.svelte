@@ -41,7 +41,7 @@
 
 <section class="main">
   {#if showChatTopBar && chat}
-    <header class="topbar" data-testid="chat-topbar" data-chat-id={chat.id}>
+    <header class="topbar" data-tauri-drag-region data-testid="chat-topbar" data-chat-id={chat.id}>
       <button class="title-btn" onclick={() => setMainRoute({ kind: 'chatInfo', chatId: chat.id })} data-testid="chat-topbar__info">
         <Avatar
           name={chat.name || '?'}
@@ -95,7 +95,7 @@
         <ChatView accountId={accounts.selectedId} chatId={selectedChatId} />
       {/key}
     {:else}
-      <div class="empty-chat">
+      <div class="empty-chat" data-tauri-drag-region>
         <div class="hint">{t('Select a conversation')}</div>
         <div class="muted">{t('Or start a new one — click the ✏︎ icon in the chat list.')}</div>
       </div>
