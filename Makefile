@@ -1,4 +1,4 @@
-.PHONY: help server ui tauri-dev tauri-build build check clean submodules \
+.PHONY: help server ui tauri-dev tauri-build build check assets clean submodules \
         test-accounts test-e2e test-e2e-phase test-e2e-watch test-e2e-clean
 
 help:
@@ -11,6 +11,7 @@ help:
 	@echo "  make ui                 Run only the Vite dev server              [0.0.0.0:4040]"
 	@echo "  make build              Production build of the frontend (dist/)"
 	@echo "  make check              Run svelte-check on the frontend"
+	@echo "  make assets             Regenerate logo + icon set from assets/logo.svg"
 	@echo "  make clean              Remove target/, node_modules/, dist/"
 	@echo
 	@echo "  make submodules         Hard-reset all submodules to the pinned commits."
@@ -49,6 +50,20 @@ build:
 
 check: frontend/node_modules
 	cd frontend && npm run check
+
+# Regenerate every icon from assets/logo.svg, in two stages:
+#   1. generate-logo.py rasterises the logomark into src-tauri/icons/icon.png
+#      (1024 RGBA) and refreshes the frontend favicon + TS path constants.
+#   2. `tauri icon` expands that PNG into the platform bundle set referenced
+#      by tauri.conf.json (.icns, .ico, sized PNGs, Windows Square logos).
+# `tauri icon` rewrites icon.png to 512px and emits android/ios dirs this
+# desktop-only app never bundles — drop them and restore the 1024 source.
+# Uses npx so it runs without a global tauri-cli install.
+assets:
+	python3 assets/scripts/generate-logo.py
+	cd src-tauri && npx --yes @tauri-apps/cli@2 icon icons/icon.png
+	rm -rf src-tauri/icons/android src-tauri/icons/ios
+	cp assets/generated/desktop-icon.png src-tauri/icons/icon.png
 
 clean:
 	rm -rf server/target src-tauri/target frontend/node_modules frontend/dist
