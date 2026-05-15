@@ -7,6 +7,7 @@
   import { onMount } from 'svelte';
   import { rpc } from '../lib/rpc';
   import Icon from '../lib/Icon.svelte';
+  import IconButton from '../lib/IconButton.svelte';
   import Modal from '../lib/Modal.svelte';
   import Button from '../lib/Button.svelte';
   import { t } from '../lib/i18n/i18n.svelte';
@@ -45,7 +46,7 @@
   <div class="dialog-body">
     <header class="head">
       <h3>{t('Share Proxy')}</h3>
-      <button class="close" onclick={onClose} aria-label={t('Done')}><Icon name="x" size={16} /></button>
+      <IconButton variant="subtle" size={28} icon="x" label={t('Done')} onclick={onClose} />
     </header>
 
     <div class="body">
@@ -83,16 +84,6 @@
     margin: 0;
     font-size: var(--text-lg);
     font-weight: 600;
-  }
-  .close {
-    background: transparent;
-    color: var(--color-fg-tertiary);
-    padding: 4px;
-    border-radius: var(--radius-sm);
-  }
-  .close:hover {
-    background: var(--color-bg-hover);
-    color: var(--color-fg);
   }
   .body {
     display: flex;

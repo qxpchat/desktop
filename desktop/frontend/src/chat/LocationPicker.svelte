@@ -11,6 +11,7 @@
   import Icon from '../lib/Icon.svelte';
   import Modal from '../lib/Modal.svelte';
   import Button from '../lib/Button.svelte';
+  import IconButton from '../lib/IconButton.svelte';
   import { osmEmbedUrl } from '../lib/format/openstreetmap';
   import { t } from '../lib/i18n/i18n.svelte';
 
@@ -84,7 +85,7 @@
   <div class="content">
     <header>
       <h2>{t('Send Location')}</h2>
-      <button class="close" onclick={onClose} aria-label={t('Close')}>✕</button>
+      <IconButton variant="subtle" size={28} icon="x" label={t('Close')} onclick={onClose} />
     </header>
 
     <div class="body">
@@ -134,15 +135,6 @@
     margin: 0;
     font-size: var(--text-lg);
     font-weight: 600;
-  }
-  .close {
-    width: 28px;
-    height: 28px;
-    border-radius: var(--radius-sm);
-    color: var(--color-fg-secondary);
-  }
-  .close:hover {
-    background: var(--color-bg-hover);
   }
   .body {
     padding: var(--space-4);

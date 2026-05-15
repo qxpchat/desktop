@@ -6,6 +6,7 @@
   import { chatlist } from '../lib/state/chatlist.svelte';
   import Avatar from '../lib/Avatar.svelte';
   import Modal from '../lib/Modal.svelte';
+  import IconButton from '../lib/IconButton.svelte';
   import { t } from '../lib/i18n/i18n.svelte';
 
   type Props = {
@@ -31,7 +32,14 @@
   <div class="content">
     <header>
       <h2>{t('Forward to…')}</h2>
-      <button class="close" onclick={onClose} aria-label={t('Close')} data-testid="chat-picker__close">✕</button>
+      <IconButton
+        variant="subtle"
+        size={28}
+        icon="x"
+        label={t('Close')}
+        onclick={onClose}
+        data-testid="chat-picker__close"
+      />
     </header>
     <input
       type="search"
@@ -73,15 +81,6 @@
     margin: 0;
     font-size: var(--text-md);
     font-weight: 600;
-  }
-  .close {
-    width: 28px;
-    height: 28px;
-    border-radius: var(--radius-sm);
-    color: var(--color-fg-secondary);
-  }
-  .close:hover {
-    background: var(--color-bg-hover);
   }
   .search {
     margin: var(--space-3) var(--space-4) 0;

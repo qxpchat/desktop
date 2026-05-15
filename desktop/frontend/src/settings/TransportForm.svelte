@@ -26,6 +26,7 @@
   // one). Advanced IMAP/SMTP/cert fields are hidden behind a disclosure;
   // leave them blank to let the core auto-discover.
   import Icon from '../lib/Icon.svelte';
+  import IconButton from '../lib/IconButton.svelte';
   import Modal from '../lib/Modal.svelte';
   import Button from '../lib/Button.svelte';
   import { t } from '../lib/i18n/i18n.svelte';
@@ -108,7 +109,7 @@
   <div class="dialog">
     <header class="head">
       <h3>{isEdit ? t('Edit Relay') : t('Manual Setup')}</h3>
-      <button class="close" onclick={onCancel} aria-label={t('Cancel')}><Icon name="x" size={16} /></button>
+      <IconButton variant="subtle" size={28} icon="x" label={t('Cancel')} onclick={onCancel} />
     </header>
 
     <div class="form">
@@ -239,16 +240,6 @@
     margin: 0;
     font-size: var(--text-lg);
     font-weight: 600;
-  }
-  .close {
-    background: transparent;
-    color: var(--color-fg-tertiary);
-    padding: 4px;
-    border-radius: var(--radius-sm);
-  }
-  .close:hover {
-    background: var(--color-bg-hover);
-    color: var(--color-fg);
   }
   .form {
     display: flex;

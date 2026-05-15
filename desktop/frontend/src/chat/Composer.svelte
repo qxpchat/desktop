@@ -23,6 +23,7 @@
   import LocationPicker from './LocationPicker.svelte';
   import QuoteBar from './QuoteBar.svelte';
   import Icon from '../lib/Icon.svelte';
+  import IconButton from '../lib/IconButton.svelte';
   import { t } from '../lib/i18n/i18n.svelte';
 
   let text = $state('');
@@ -423,17 +424,17 @@
       <Icon name="send" size={18} />
     </button>
   {:else}
-  <button
-    class="attach"
-    onclick={() => (attachOpen = !attachOpen)}
-    aria-label={t('Attach')}
-    aria-expanded={attachOpen}
+  <IconButton
+    variant="subtle"
+    icon="paperclip"
+    iconSize={18}
+    label={t('Attach')}
     title={t('Attach')}
+    aria-expanded={attachOpen}
+    onclick={() => (attachOpen = !attachOpen)}
     disabled={chat.active == null}
     data-testid="composer__attach"
-  >
-    <Icon name="paperclip" size={18} />
-  </button>
+  />
 
   <AttachMenu
     open={attachOpen}
@@ -458,18 +459,18 @@
   ></textarea>
 
   <div class="emoji-wrap">
-    <button
-      class="emoji-btn"
-      class:active={emojiOpen}
-      onclick={() => (emojiOpen = !emojiOpen)}
-      aria-label={t('Insert emoji')}
-      aria-expanded={emojiOpen}
+    <IconButton
+      variant="subtle"
+      icon="smile"
+      iconSize={20}
+      label={t('Insert emoji')}
       title={t('Emoji')}
+      aria-expanded={emojiOpen}
+      active={emojiOpen}
+      onclick={() => (emojiOpen = !emojiOpen)}
       disabled={chat.active == null}
       data-testid="composer__emoji"
-    >
-      <Icon name="smile" size={20} />
-    </button>
+    />
     <EmojiPicker
       open={emojiOpen}
       onPick={insertEmoji}
@@ -479,15 +480,15 @@
 
   {#if text.trim().length === 0 && pendingAttachment == null}
     {#if voiceSupported}
-      <button
-        class="mic"
-        onclick={startRecording}
-        aria-label={t('Record voice message')}
+      <IconButton
+        variant="subtle"
+        icon="mic"
+        iconSize={18}
+        label={t('Record voice message')}
         title={t('Voice message')}
+        onclick={startRecording}
         disabled={chat.active == null}
-      >
-        <Icon name="mic" size={18} />
-      </button>
+      />
     {/if}
     <!-- No send button when there's nothing to send and voice is unavailable;
          hiding it avoids a permanently-disabled placeholder. -->
@@ -531,22 +532,6 @@
     align-items: flex-end;
     gap: var(--space-2);
     padding: var(--space-3);
-  }
-  .attach {
-    flex: 0 0 auto;
-    width: 36px;
-    height: 36px;
-    border-radius: 50%;
-    color: var(--color-fg-secondary);
-    font-size: 18px;
-    justify-content: center;
-  }
-  .attach:hover:not(:disabled) {
-    background: var(--color-bg-hover);
-    color: var(--color-fg);
-  }
-  .attach:disabled {
-    opacity: 0.4;
   }
   textarea {
     flex: 1;
@@ -600,21 +585,6 @@
     position: relative;
     flex: 0 0 auto;
   }
-  .emoji-btn {
-    width: 36px;
-    height: 36px;
-    border-radius: 50%;
-    color: var(--color-fg-secondary);
-    font-size: 18px;
-  }
-  .emoji-btn:hover:not(:disabled),
-  .emoji-btn.active {
-    background: var(--color-bg-hover);
-    color: var(--color-fg);
-  }
-  .emoji-btn:disabled {
-    opacity: 0.4;
-  }
   /* The picker is rendered inside `.emoji-wrap` (which is itself
    * `position: relative`); pin it above the button so it floats over the
    * chat list instead of pushing the composer up. */
@@ -622,26 +592,14 @@
     bottom: calc(100% + var(--space-2));
     right: 0;
   }
-  .mic {
-    flex: 0 0 auto;
-    width: 36px;
-    height: 36px;
-    border-radius: 50%;
-    color: var(--color-fg-secondary);
-    font-size: 16px;
-    justify-content: center;
-  }
-  .mic:hover:not(:disabled) {
-    background: var(--color-bg-hover);
-    color: var(--color-fg);
-  }
   .cancel-rec {
     flex: 0 0 auto;
     width: 36px;
     height: 36px;
     border-radius: 50%;
     color: var(--color-danger, #b00);
-    font-size: 16px;
+    display: flex;
+    align-items: center;
     justify-content: center;
   }
   .cancel-rec:hover {

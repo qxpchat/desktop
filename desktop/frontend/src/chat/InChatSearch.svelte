@@ -6,6 +6,7 @@
   import { tick } from 'svelte';
   import { rpc } from '../lib/rpc';
   import { flashMessage } from '../lib/state/chat.svelte';
+  import IconButton from '../lib/IconButton.svelte';
   import { t } from '../lib/i18n/i18n.svelte';
 
   type Props = {
@@ -129,7 +130,15 @@
     </span>
     <button onclick={prev} disabled={hits.length === 0} aria-label={t('Previous match')} title={t('Previous (Shift+Enter)')} data-testid="in-chat-search__prev">↑</button>
     <button onclick={next} disabled={hits.length === 0} aria-label={t('Next match')} title={t('Next (Enter)')} data-testid="in-chat-search__next">↓</button>
-    <button onclick={onClose} aria-label={t('Close find')} title={t('Close (Esc)')} data-testid="in-chat-search__close">✕</button>
+    <IconButton
+      variant="subtle"
+      size={28}
+      icon="x"
+      label={t('Close find')}
+      title={t('Close (Esc)')}
+      onclick={onClose}
+      data-testid="in-chat-search__close"
+    />
   </div>
 {/if}
 

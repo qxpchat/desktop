@@ -1,6 +1,7 @@
 <script lang="ts">
   import type { PendingAttachment } from '../lib/state/chat.svelte';
   import Icon, { type IconName } from '../lib/Icon.svelte';
+  import IconButton from '../lib/IconButton.svelte';
   import { t } from '../lib/i18n/i18n.svelte';
 
   type Props = {
@@ -68,14 +69,14 @@
     <span class="label">{label}</span>
     <span class="filename">{attachment.filename}</span>
   </div>
-  <button
-    class="close"
+  <IconButton
+    variant="subtle"
+    size={28}
+    icon="x"
+    label={t('Cancel')}
     onclick={onClose}
-    aria-label={t('Cancel')}
     data-testid="composer__attachment-bar-close"
-  >
-    <Icon name="x" size={16} />
-  </button>
+  />
 </div>
 
 <style>
@@ -122,19 +123,5 @@
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-  }
-  .close {
-    width: 28px;
-    height: 28px;
-    border-radius: var(--radius-sm);
-    color: var(--color-fg-secondary);
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    flex: 0 0 auto;
-  }
-  .close:hover {
-    background: var(--color-bg-hover);
-    color: var(--color-fg);
   }
 </style>

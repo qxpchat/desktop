@@ -1,6 +1,7 @@
 <script lang="ts">
   import type { Message } from '../lib/state/chat.svelte';
   import { t } from '../lib/i18n/i18n.svelte';
+  import IconButton from '../lib/IconButton.svelte';
 
   type Props = {
     /** Message being quoted/edited (or null = no bar). */
@@ -47,7 +48,14 @@
       <span class="label">{label}</span>
       <span class="preview">{preview}</span>
     </div>
-    <button class="close" onclick={onClose} aria-label={t('Cancel')} data-testid="composer__quote-bar-close">✕</button>
+    <IconButton
+      variant="subtle"
+      size={28}
+      icon="x"
+      label={t('Cancel')}
+      onclick={onClose}
+      data-testid="composer__quote-bar-close"
+    />
   </div>
 {/if}
 
@@ -87,15 +95,5 @@
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-  }
-  .close {
-    width: 28px;
-    height: 28px;
-    border-radius: var(--radius-sm);
-    color: var(--color-fg-secondary);
-  }
-  .close:hover {
-    background: var(--color-bg-hover);
-    color: var(--color-fg);
   }
 </style>
