@@ -32,8 +32,3 @@ tests/fixtures/account-templates/
 # (tiny base64-inlined files). Regenerable.
 tests/fixtures/media/
 tests/test-results
-
-# Logo derivatives — copies of canonical bytes, populated by the asset pipeline.
-frontend/src/lib/qxpLogoPath.ts
-frontend/public/icon.svg
-src-tauri/icons/icon.png
