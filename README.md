@@ -8,13 +8,12 @@ per OS (no Electron).
 ## Layout
 
 ```
-desktop/
-├── server/        # Rust crate `qxp-web` — axum + yerpc + deltachat-jsonrpc.
-│                  # Compiles to a library (used by the Tauri shell) AND
-│                  # a standalone binary (`cargo run` for headless dev).
-├── frontend/      # Svelte 5 + Vite + TypeScript SPA.
-└── src-tauri/     # Tauri 2 shell crate (`qxp-desktop`).
-                   # Spawns the daemon in-process; opens a native window.
+server/        # Rust crate `qxp-web` — axum + yerpc + deltachat-jsonrpc.
+               # Compiles to a library (used by the Tauri shell) AND
+               # a standalone binary (`cargo run` for headless dev).
+frontend/      # Svelte 5 + Vite + TypeScript SPA.
+src-tauri/     # Tauri 2 shell crate (`qxp-desktop`).
+               # Spawns the daemon in-process; opens a native window.
 ```
 
 ## Prerequisites
@@ -22,7 +21,6 @@ desktop/
 NixOS shell already wires the GTK / WebKit deps Tauri needs on Linux:
 
 ```sh
-cd desktop
 nix-shell
 ```
 

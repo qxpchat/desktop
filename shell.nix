@@ -1,39 +1,56 @@
-# Top-level dev shell. Provides the tools needed to run repo-root `make`
-# targets — currently just `make icons`. Each platform keeps its own shell:
+# Development shell for qxp's desktop app (Tauri shell wrapping the daemon
+# and Svelte frontend).
 #
-#   nix-shell                 # this file: make + asset-pipeline deps
-#   nix-shell desktop/        # full desktop Tauri shell (rustc, webkit, …)
-#
-# Usage:
+# Usage (from the repo root):
 #   nix-shell
-#   make icons                # rerender all assets from assets/logo.svg
+#   make server               # standalone daemon (no Tauri)
+#   make ui                   # standalone Vite dev server
+#   cargo tauri dev           # full Tauri shell + auto-launches Vite + daemon
+#
+# Targets recent nixpkgs stable. If you need a pinned Rust version, swap the
+# rustc/cargo lines for fenix or rust-overlay.
 
 { pkgs ? import <nixpkgs> { } }:
 
 pkgs.mkShell {
-  name = "qxp";
+  name = "qxp-desktop";
 
   packages = with pkgs; [
+    # Rust toolchain. deltachat-core (transitive dep) needs recent stable.
+    rustc
+    cargo
+    rustfmt
+    clippy
+
+    # Native build tooling for deltachat-core's vendored OpenSSL + SQLite,
+    # plus Tauri's gtk/webkit toolchain.
+    gcc
+    pkg-config
+    perl
+    cmake
+
+    # Tauri / WebKitGTK runtime + buildtime deps. Without these the
+    # `cargo tauri dev` build fails on missing webkit2gtk-4.1.pc / soup-3.0.
+    webkitgtk_4_1
+    libsoup_3
+    glib
+    gobject-introspection
+    gtk3
+    librsvg
+    libayatana-appindicator
+    openssl
+
+    # Frontend
+    nodejs_22
+
+    # Local dev convenience
     gnumake
-
-    # Asset pipeline (assets/scripts/*). The scripts also self-provision
-    # via their own nix-shell shebangs, but providing them here means the
-    # user can also run the scripts directly inside this shell.
-    python3
-    imagemagick
-    file
-
     git
   ];
 
   shellHook = ''
-    # The asset scripts' own nix-shell shebangs auto-pick up this file
-    # (nix-shell searches upward for shell.nix), so the hook fires once
-    # for the user-facing shell and again per nested invocation. Guard
-    # the banner so it only prints on the outermost entry.
-    if [ -z "$IN_QXP_SHELL" ]; then
-      export IN_QXP_SHELL=1
-      echo "qxp shell — try \`make icons\` to regenerate visual assets."
-    fi
+    echo "qxp desktop shell — rustc $(rustc --version | cut -d' ' -f2), node $(node --version)"
+    # Help pkg-config find webkit/soup .pc files for the Tauri build.
+    export PKG_CONFIG_PATH=${pkgs.webkitgtk_4_1.dev}/lib/pkgconfig:${pkgs.libsoup_3.dev}/lib/pkgconfig:$PKG_CONFIG_PATH
   '';
 }

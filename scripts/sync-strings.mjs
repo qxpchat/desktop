@@ -2,12 +2,16 @@
 // Convert the iOS app's `Localizable.xcstrings` (Apple's modern JSON format
 // for SwiftUI / iOS 26 string catalogs) into a flat `{ "<source>": "<en>" }`
 // map for the desktop frontend's tiny i18n helper (see
-// `desktop/frontend/src/lib/i18n/i18n.svelte.ts`).
+// `frontend/src/lib/i18n/i18n.svelte.ts`).
 //
 // Usage (from the repo root):
-//   node desktop/scripts/sync-strings.mjs
+//   node scripts/sync-strings.mjs
 //
-// Output: desktop/frontend/public/locales/en.json (overwritten).
+// Output: frontend/public/locales/en.json (overwritten).
+//
+// NOTE: `xcstringsPath` below points at the iOS app's string catalog,
+// which lives in the separate qxp-ios repo. Set XCSTRINGS_PATH to a local
+// checkout of that file to run this script.
 //
 // The iOS catalog uses the source English string as the key, so the output
 // is essentially the identity map — its purpose is to lock in the set of
@@ -20,9 +24,10 @@ import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const repoRoot = resolve(__dirname, '..', '..');
-const xcstringsPath = resolve(repoRoot, 'ios/qxp/Localizable.xcstrings');
-const outPath = resolve(repoRoot, 'desktop/frontend/public/locales/en.json');
+const repoRoot = resolve(__dirname, '..');
+const xcstringsPath = process.env.XCSTRINGS_PATH
+  ?? resolve(repoRoot, '../qxp-ios/qxp/Localizable.xcstrings');
+const outPath = resolve(repoRoot, 'frontend/public/locales/en.json');
 
 const raw = readFileSync(xcstringsPath, 'utf8');
 const catalog = JSON.parse(raw);

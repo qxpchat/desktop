@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // Idempotent pool maintenance for the E2E test suite.
 //
-// Reads `desktop/tests/.env`; for each slot 1..POOL_SIZE either:
+// Reads `tests/.env`; for each slot 1..POOL_SIZE either:
 //   - probes existing creds by running `configure` against the relay
 //     (succeeds = healthy; fails = re-register), or
 //   - registers a new chatmail account via `set_config_from_qr` +
@@ -27,13 +27,12 @@ import { WebSocket } from 'ws';
 
 const __filename = fileURLToPath(import.meta.url);
 const TESTS_DIR = path.resolve(path.dirname(__filename), '..');
-const REPO_ROOT = path.resolve(TESTS_DIR, '..', '..');
+const REPO_ROOT = path.resolve(TESTS_DIR, '..');
 const ENV_PATH = path.join(TESTS_DIR, '.env');
 const ENV_EXAMPLE = path.join(TESTS_DIR, '.env.example');
 
 const DAEMON_BINARY = path.join(
   REPO_ROOT,
-  'desktop',
   'server',
   'target',
   'debug',
@@ -129,7 +128,7 @@ async function spawnDaemon(accountsDir) {
   await access(DAEMON_BINARY).catch(() => {
     fatal(
       `daemon binary not found at ${DAEMON_BINARY}\n` +
-        '  run `make -C desktop/server build` (or `cd desktop/server && cargo build`) first.',
+        '  run `make -C server build` (or `cd server && cargo build`) first.',
     );
   });
 

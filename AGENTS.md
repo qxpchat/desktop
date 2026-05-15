@@ -1,22 +1,27 @@
-# qxp
+# qxp — desktop
 
-qxp is a cross-platform client for the delta chat protocol.
+qxp is a desktop client for the delta chat protocol — a Tauri 2 app: a Rust
+daemon (`server/`, the `qxp-web` crate bridging `deltachat-jsonrpc` over a
+loopback WebSocket), a Svelte 5 + Vite SPA (`frontend/`), and a Tauri 2 shell
+(`src-tauri/`). Builds to a single native binary per OS (Linux / macOS /
+Windows); also runnable headless via `make server` + `make ui`.
+
 User instructions **always** override this file.
 
 ## Active platform
 
-- The user is currently only running and testing on **macOS** (desktop, WKWebView). Linux/Windows desktop paths and iOS are not being exercised right now — prioritize macOS-correct fixes and call out cross-platform implications instead of silently assuming parity.
+- The user is currently only running and testing on **macOS** (WKWebView). Linux/Windows desktop paths are not being exercised right now — prioritize macOS-correct fixes and call out cross-platform implications instead of silently assuming parity.
 
 ## Versioning
 
 Bump the version on every change that ships behavior. **Always use the script — never hand-edit the version files.**
 
 ```
-desktop/scripts/sync-versions.sh             # print current, exit 1 on drift
-desktop/scripts/sync-versions.sh bump patch  # bug fix
-desktop/scripts/sync-versions.sh bump minor  # feature
-desktop/scripts/sync-versions.sh bump major  # breaking change
-desktop/scripts/sync-versions.sh set 1.2.3   # explicit
+scripts/sync-versions.sh             # print current, exit 1 on drift
+scripts/sync-versions.sh bump patch  # bug fix
+scripts/sync-versions.sh bump minor  # feature
+scripts/sync-versions.sh bump major  # breaking change
+scripts/sync-versions.sh set 1.2.3   # explicit
 ```
 
 What each bump means:
@@ -25,18 +30,41 @@ What each bump means:
 - **Feature → minor** (middle), patch resets to 0: `0.1.3` → `0.2.0`.
 - **Breaking change → major** (leftmost), the rest reset: `0.2.5` → `1.0.0`.
 
-The script keeps the four version sites in lock-step (`desktop/frontend/package.json`, `desktop/src-tauri/Cargo.toml`, `desktop/src-tauri/tauri.conf.json`, `desktop/server/Cargo.toml`). The plain run (no args) verifies they agree — use it before sending a PR.
+The script keeps the four version sites in lock-step (`frontend/package.json`, `src-tauri/Cargo.toml`, `src-tauri/tauri.conf.json`, `server/Cargo.toml`). The plain run (no args) verifies they agree — use it before sending a PR.
 
 Pure refactors, doc-only edits, and internal cleanup that ships no user-visible behavior do not bump.
 
 ## Repository layout
 
-- `ios/` — iOS app (SwiftUI), share extension, tests, Xcode project, iOS-only build scripts. Currently on hold. **For iOS work, also read `ios/AGENTS.md`** — it has iOS-specific project state, layout, and active plans.
-- `desktop/` — Tauri 2 desktop app: Rust daemon (`server/`, `qxp-web` crate bridging `deltachat-jsonrpc` over a loopback WebSocket), Svelte 5 + Vite SPA (`frontend/`), Tauri shell (`src-tauri/`). Builds to a single native binary per OS (Linux / macOS / Windows); also runnable headless via `make server` + `make ui`. See `desktop/README.md` for run / build / account-data layout. **For desktop work, also read `desktop/AGENTS.md`** — reusable `lib/` primitives and desktop-specific anti-patterns.
-- `libs/` — Rust core (`deltachat-core-rust` submodule), patches, and the `notifiers` submodule.
-- `notifier/`, `relay/` — server-side: notifier deploy scaffold and chatmail relay.
-- `references/` — third-party reference implementations (read-only inspiration).
-- `plans/`, `PLAN.md` — plan history and active plan. Only read on explicit requests.
+- `server/` — Rust crate `qxp-web` (axum + yerpc + `deltachat-jsonrpc`). Compiles to a library (used by the Tauri shell) AND a standalone binary (`cargo run` for headless dev).
+- `frontend/` — Svelte 5 + Vite SPA. State in `frontend/src/lib/state/*.svelte.ts`.
+- `src-tauri/` — Tauri 2 shell. Spawns the daemon in-process; opens a native window.
+- `tests/` — Playwright E2E suite. See `tests/README.md`.
+- `scripts/` — version sync, string sync, and other dev scripts.
+- `libs/` — Rust core (`deltachat-core-rust` submodule) and patches.
+- `plans/` — plan history and active plan. Only read on explicit requests.
+
+See `README.md` for run / build / account-data layout.
+
+## Reuse — don't re-implement
+
+- `lib/Modal.svelte` — overlay + card + Escape + backdrop. `size`, `role`.
+- `lib/Button.svelte` — `variant` × `size` + `block`.
+- `lib/Popover.svelte` — anchored menu + viewport clamp + Escape.
+- `lib/SettingsRow.svelte` + `lib/SettingsSection.svelte` — Signal-style settings rows.
+- `lib/Avatar.svelte` — image + initials fallback.
+- `lib/format/timestamp.ts` — `formatRelativeTimestamp`, `formatShortTime`, `formatDayLabel`.
+- `lib/format/openstreetmap.ts` — `osmEmbedUrl`, `osmShareUrl`.
+- `lib/format/linkify.ts`, `lib/format/youtube.ts` — text helpers.
+- `lib/state/*.svelte.ts` — only surface for daemon mutations. Components doing `rpc.call(...)` directly is a boundary leak. PascalCase wire-tag unions unwrap at the state-module boundary, never in components.
+
+## Refuse
+
+- **Mixed timing fences** — `tick()` / `setTimeout` / `requestAnimationFrame` / event waits interleaved in one flow. Pick one.
+- **Per-chat / per-account client-side flags duplicating the daemon's mirror** — mute, pin, archive, freshness, proxy-enabled.
+- **`{#key}` for teardown** — discards scroll/animation state; usually means reactivity wasn't wired up.
+- **Inline RPC wire-shape checks in components** — `r.kind === 'message'`, `item.kind === 'ChatListItem'`. Unwrap at the state-module boundary.
+- **macOS-only code without alternatives** — `objc2` / AppKit / Mach-O linker tricks need either a working Linux/Windows equivalent or an explicit `#[cfg]`-gated no-op + comment justifying why "do nothing" is correct.
 
 ## Approach
 

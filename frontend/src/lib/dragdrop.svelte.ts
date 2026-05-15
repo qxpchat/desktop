@@ -1,5 +1,5 @@
 // Tauri 2 routes OS-level file drops through a per-webview event stream when
-// `dragDropEnabled: true` (see `desktop/src-tauri/tauri.conf.json`). HTML
+// `dragDropEnabled: true` (see `src-tauri/tauri.conf.json`). HTML
 // `ondrop` is unreliable on macOS WKWebView even with the flag off — drag
 // over fires but the actual drop never reaches JS. Going through Tauri's
 // event also hands us OS paths directly, so we can pass them straight to

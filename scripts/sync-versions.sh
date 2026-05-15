@@ -11,7 +11,7 @@
 #   sync-versions.sh set 1.2.3   explicit
 set -eu
 
-repo_root=$(CDPATH= cd -- "$(dirname -- "$0")/../.." && pwd)
+repo_root=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
 
 # ERE fragment matching an X.Y.Z version.
 semver='[0-9][0-9]*\.[0-9][0-9]*\.[0-9][0-9]*'
@@ -19,10 +19,10 @@ semver='[0-9][0-9]*\.[0-9][0-9]*\.[0-9][0-9]*'
 # "<path>|<line-matcher>". JSON files carry a `"version":` key; the TOML
 # package version is the only `version =` anchored at column 0 (dependency
 # tables use inline `{ version = ".." }`, never column 0).
-files='desktop/frontend/package.json|^[[:space:]]*"version"[[:space:]]*:
-desktop/src-tauri/tauri.conf.json|^[[:space:]]*"version"[[:space:]]*:
-desktop/src-tauri/Cargo.toml|^version[[:space:]]*=
-desktop/server/Cargo.toml|^version[[:space:]]*='
+files='frontend/package.json|^[[:space:]]*"version"[[:space:]]*:
+src-tauri/tauri.conf.json|^[[:space:]]*"version"[[:space:]]*:
+src-tauri/Cargo.toml|^version[[:space:]]*=
+server/Cargo.toml|^version[[:space:]]*='
 
 die() { echo "error: $*" >&2; exit 1; }
 

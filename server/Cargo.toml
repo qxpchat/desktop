@@ -9,7 +9,7 @@ license = "MPL-2.0"
 # Path into the pinned `libs/deltachat-core-rust` submodule. The crate is not
 # published to crates.io, and cargo resolves its `workspace = true` inheritance
 # via the inner deltachat-core-rust workspace.
-deltachat-jsonrpc = { path = "../../libs/deltachat-core-rust/deltachat-jsonrpc" }
+deltachat-jsonrpc = { path = "../libs/deltachat-core-rust/deltachat-jsonrpc" }
 
 axum = { version = "0.8", features = ["ws"] }
 tokio = { version = "1", features = ["macros", "rt-multi-thread", "signal", "sync", "fs"] }

@@ -5,9 +5,9 @@ Playwright + Chromium against the Vite dev server, real `qxp-web` daemon spawned
 ## One-time setup
 
 ```sh
-cd desktop/server && cargo build         # daemon used by ensure-pool + tests
-cd desktop/tests && npm install          # Playwright + helpers
-cd desktop/tests && npx playwright install chromium  # browser binary
+cd server && cargo build         # daemon used by ensure-pool + tests
+cd tests && npm install          # Playwright + helpers
+cd tests && npx playwright install chromium  # browser binary
 ```
 
 ## Run the suite
@@ -34,7 +34,7 @@ make test-e2e-clean       # nuke /tmp/qxp-* leftover account dirs and the pool l
 
 ## Pool lifecycle
 
-`desktop/tests/.env` holds 10 chatmail accounts registered against `nine.testrun.org`. The file is **gitignored** — never commit it.
+`tests/.env` holds 10 chatmail accounts registered against `nine.testrun.org`. The file is **gitignored** — never commit it.
 
 - Cold start (no `.env`): `make test-accounts` registers 10 fresh accounts, ~30-60 s of network.
 - Warm start (pool healthy): probes each slot via `configure`, ~3 s total.
@@ -54,7 +54,7 @@ If you need Tauri-shell-level tests later, the path is a separate Linux-only `ta
 ## Layout
 
 ```
-desktop/tests/
+tests/
   .env.example         Pool config template (committed).
   .env                 Real creds (gitignored).
   package.json         Playwright + ws + dotenv.
