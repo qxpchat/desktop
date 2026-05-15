@@ -7,7 +7,6 @@
 
 import { rpc } from '../rpc';
 import { onEvent } from '../events';
-import { chatlist } from './chatlist.svelte';
 
 export type Profile = {
   id: number;
@@ -22,18 +21,22 @@ export type Profile = {
 export const profiles = $state<{ list: Profile[] }>({ list: [] });
 
 // freshCount mirrors the sum of per-row badges the user sees inside that
-// profile's chatlist (i.e. `freshMessageCounter` summed across entries).
+// profile's inbox chatlist (`freshMessageCounter` summed across entries).
 // `get_fresh_msgs` is the wrong source: it deliberately excludes contact
 // requests and muted chats, so a fresh DM from another profile landing as
 // an unaccepted request leaves the count at 0.
+//
+// Always queried against the inbox listing (no archived-only flag, no
+// search filter) so the count never depends on what the chatlist pane is
+// currently showing — earlier this summed the live `chatlist` mirror for
+// the active account, which made `freshCount` reflect the archive-only or
+// search-filtered view and drift out of sync with the inbox.
+//
+// Only `ChatListItem` entries count. The `ArchiveLink` sentinel carries
+// its own `freshMessageCounter` (the archived-chat total), but archived
+// chats sit behind the archive link with no per-row badge — folding it in
+// lit the macOS dock badge with nothing in-app to match it.
 async function computeFreshCount(accountId: number): Promise<number> {
-  // Active account: chatlist already keeps a live mirror of the same
-  // per-row counts. Sum from there instead of issuing the same RPC pair.
-  if (accountId === chatlist.accountId) {
-    let count = 0;
-    for (const item of chatlist.items.values()) count += item.freshMessageCounter;
-    return count;
-  }
   const ids = await rpc.call<number[]>('get_chatlist_entries', [accountId, null, null, null]);
   if (ids.length === 0) return 0;
   const entries = await rpc.call<
@@ -42,7 +45,7 @@ async function computeFreshCount(accountId: number): Promise<number> {
   let count = 0;
   for (const id of ids) {
     const e = entries[id];
-    if (e) count += e.freshMessageCounter ?? 0;
+    if (e && e.kind === 'ChatListItem') count += e.freshMessageCounter ?? 0;
   }
   return count;
 }
