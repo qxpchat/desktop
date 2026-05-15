@@ -15,8 +15,10 @@ use std::sync::Arc;
 
 use anyhow::{Context, Result};
 use axum::Router;
+use axum::http::{HeaderValue, Method, header::CONTENT_TYPE};
 use axum::routing::{get, post};
 use tokio::sync::RwLock;
+use tower_http::cors::CorsLayer;
 
 #[derive(Clone)]
 pub struct AppState {
@@ -55,10 +57,26 @@ pub async fn run(config: DaemonConfig) -> Result<()> {
 
     let accounts_dir = Arc::new(config.accounts_dir.clone());
 
+    // The packaged Tauri app loads the SPA from a custom-scheme origin
+    // (`tauri://localhost`, or `http://tauri.localhost` on Windows) while the
+    // daemon listens on loopback `127.0.0.1:4041`. Every `fetch` to `/upload`
+    // is therefore cross-origin and triggers a CORS preflight. Dev builds
+    // dodge this — Vite proxies `/upload` same-origin — but the bundled app
+    // talks to the daemon directly, so without these headers the preflight
+    // fails and attachment / vCard uploads silently break.
+    let cors = CorsLayer::new()
+        .allow_origin([
+            HeaderValue::from_static("tauri://localhost"),
+            HeaderValue::from_static("http://tauri.localhost"),
+        ])
+        .allow_methods([Method::GET, Method::POST])
+        .allow_headers([CONTENT_TYPE]);
+
     let app = Router::new()
         .route("/ws", get(ws::handler))
         .route("/upload", post(upload::handler))
         .route("/file", get(file::handler))
+        .layer(cors)
         .with_state(AppState {
             api,
             uploads_dir,
