@@ -1,8 +1,8 @@
 // Phase 7 — show own QR.
 //
 // Click the QR footer button in nav-tabs. QrShow opens, renders an
-// SVG, and the URL line carries a valid Delta-Chat invite scheme
-// (openpgp4fpr:… or its https mirror).
+// SVG, and the URL line carries the qxp-hosted invite link
+// (https://qxp.chat/invite.html#…), rewritten from the daemon QR.
 
 import { test, expect } from '../../fixtures/app-paired.js';
 import { TID } from '../../helpers/selectors.js';
@@ -23,5 +23,5 @@ test('Show QR: own setup-contact QR renders SVG + invite URL', async ({ page }) 
 
   const url = await page.locator(TID.qrShowUrl).textContent();
   expect(url).toBeTruthy();
-  expect(url!.toLowerCase()).toMatch(/^(openpgp4fpr:|https:\/\/i\.delta\.chat\/)/);
+  expect(url).toMatch(/^https:\/\/qxp\.chat\/invite\.html#./);
 });

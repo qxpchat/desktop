@@ -2,9 +2,10 @@
 //
 // Main creates a group and opens its Invite QR. We assert:
 //   1. QrShow scopes to the chat (`data-scope="chat"`) and renders.
-//   2. The URL line carries a valid openpgp4fpr / i.delta.chat scheme.
-//   3. The URL is parseable as a group-invite by `check_qr` from a
-//      separate account context (peer's daemon).
+//   2. The URL line carries the qxp-hosted invite link.
+//   3. Converted back to openpgp4fpr (as QrShow.paste does), the code
+//      is parseable as a group-invite by `check_qr` from a separate
+//      account context (peer's daemon).
 //
 // Why we don't go all the way to "peer joins, peer appears as member":
 // the compose-flow's ChooseMembers requires at least one member to
@@ -42,7 +43,13 @@ test('group invite QR renders and is parseable as a group-join code', async ({ q
 
   const groupQr = await page.locator(TID.qrShowUrl).textContent();
   expect(groupQr).toBeTruthy();
-  expect(groupQr!.toLowerCase()).toMatch(/^(openpgp4fpr:|https:\/\/i\.delta\.chat\/)/);
+  expect(groupQr).toMatch(/^https:\/\/qxp\.chat\/invite\.html#./);
+
+  // The displayed link is the qxp landing page; check_qr only groks the
+  // openpgp4fpr scheme. Convert back the same way QrShow.paste does.
+  const openpgp4fpr = `OPENPGP4FPR:${groupQr!
+    .replace(/^https:\/\/qxp\.chat\/invite\.html\/?#/i, '')
+    .replace('&', '#')}`;
 
   // Cross-check from peer's daemon — `check_qr` returns a group-shaped
   // kind for a group invite. Peer is already a member (chooseMembers
@@ -50,7 +57,7 @@ test('group invite QR renders and is parseable as a group-join code', async ({ q
   // could be revived) rather than `askVerifyGroup`.
   const parsed = await peer.rpc.call<{ kind: string }>('check_qr', [
     peer.accountId,
-    groupQr,
+    openpgp4fpr,
   ]);
   expect(['askVerifyGroup', 'reviveVerifyGroup']).toContain(parsed.kind);
 });

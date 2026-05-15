@@ -234,26 +234,33 @@
   .field {
     display: block;
     margin-bottom: var(--space-4);
-    max-width: 480px;
   }
   .field-label {
     display: block;
-    font-size: var(--text-sm);
+    font-size: var(--text-xs);
     color: var(--color-fg-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
     margin-bottom: 6px;
   }
   .field input,
   .field textarea {
     width: 100%;
     box-sizing: border-box;
-    padding: 10px 12px;
+    padding: 0 var(--space-3);
     border-radius: var(--radius-md);
     border: 1px solid var(--color-border);
     background: var(--color-bg);
     color: var(--color-fg);
     font-family: inherit;
-    font-size: var(--text-md);
+    font-size: var(--text-sm);
     resize: vertical;
+  }
+  .field input {
+    height: 36px;
+  }
+  .field textarea {
+    padding: var(--space-2) var(--space-3);
   }
   .field input:focus,
   .field textarea:focus {
@@ -261,21 +268,25 @@
   }
   .actions {
     margin-top: var(--space-4);
-    max-width: 480px;
     display: flex;
     justify-content: flex-end;
   }
   .fingerprint-row {
     display: flex;
     align-items: flex-start;
-    gap: var(--space-2);
+    gap: var(--space-3);
   }
   .fingerprint {
+    flex: 1;
+    min-width: 0;
     font-family: var(--font-mono, monospace);
     font-size: var(--text-sm);
     color: var(--color-fg-secondary);
     word-break: break-all;
     user-select: all;
     padding: 8px 0 0 0;
+  }
+  .fingerprint-row :global(button) {
+    flex-shrink: 0;
   }
 </style>

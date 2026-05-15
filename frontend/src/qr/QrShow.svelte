@@ -12,10 +12,53 @@
 
   let { chatId = null }: Props = $props();
 
+  /** qxp-hosted invite landing page (see relay www/src/invite.md). */
+  const INVITE_BASE = 'https://qxp.chat/invite.html';
+
   let svg = $state<string | null>(null);
+  /** Raw QR string from the daemon — kept verbatim for set_config_from_qr. */
   let url = $state<string | null>(null);
   let error = $state<string | null>(null);
   let copied = $state(false);
+
+  /**
+   * Rewrite the daemon QR string into a qxp-hosted invite link. The daemon
+   * returns either `OPENPGP4FPR:<fpr>#<params>` or the Delta-Chat-operated
+   * `https://i.delta.chat/#<fpr>&<params>` mirror; both carry the same
+   * payload. invite.html parses `#<fpr>&<params>`, so:
+   *  - i.delta.chat mirror → swap origin, hash is already compatible.
+   *  - openpgp4fpr scheme  → drop the scheme, turn the `#` separator into `&`.
+   * Anything unrecognised is passed through untouched.
+   */
+  function toInviteLink(raw: string): string {
+    const mirror = /^https:\/\/i\.delta\.chat\/#?/i;
+    if (mirror.test(raw)) {
+      return raw.replace(mirror, `${INVITE_BASE}#`);
+    }
+    const fpr = /^openpgp4fpr:/i;
+    if (fpr.test(raw)) {
+      return `${INVITE_BASE}#${raw.replace(fpr, '').replace('#', '&')}`;
+    }
+    return raw;
+  }
+
+  /** What the user sees, copies and shares — always the qxp invite link. */
+  let shareUrl = $derived(url ? toInviteLink(url) : null);
+
+  /**
+   * Inverse of toInviteLink: turn a qxp invite link back into the
+   * `OPENPGP4FPR:` scheme that the daemon's check_qr understands. Used on
+   * paste so a link copied from another qxp install round-trips. Non-qxp
+   * input (raw openpgp4fpr, i.delta.chat, dclogin, …) passes straight to
+   * the daemon, which already recognises those.
+   */
+  function fromInviteLink(text: string): string {
+    const base = /^https:\/\/qxp\.chat\/invite\.html\/?#/i;
+    if (base.test(text)) {
+      return `OPENPGP4FPR:${text.replace(base, '').replace('&', '#')}`;
+    }
+    return text;
+  }
 
   async function load() {
     if (accounts.selectedId == null) return;
@@ -40,9 +83,9 @@
   });
 
   async function copy() {
-    if (!url) return;
+    if (!shareUrl) return;
     try {
-      await navigator.clipboard.writeText(url);
+      await navigator.clipboard.writeText(shareUrl);
       copied = true;
       setTimeout(() => (copied = false), 1500);
     } catch {
@@ -54,7 +97,8 @@
     try {
       const text = await navigator.clipboard.readText();
       if (text && accounts.selectedId != null) {
-        const obj = await rpc.call<{ kind: string }>('check_qr', [accounts.selectedId, text]);
+        const qr = fromInviteLink(text.trim());
+        const obj = await rpc.call<{ kind: string }>('check_qr', [accounts.selectedId, qr]);
         alert(`${t('Scanned')}: ${obj.kind}`);
       }
     } catch (err) {
@@ -89,8 +133,8 @@
       <div class="card" data-testid="qr-show__card">
         <!-- daemon-trusted SVG; safe to render -->
         <div class="svg-wrap" data-testid="qr-show__svg">{@html svg}</div>
-        {#if url}
-          <p class="url" title={url} data-testid="qr-show__url">{url}</p>
+        {#if shareUrl}
+          <p class="url" title={shareUrl} data-testid="qr-show__url">{shareUrl}</p>
         {/if}
         <div class="actions">
           <button onclick={copy} data-testid="qr-show__copy">{copied ? t('Copied!') : t('Copy link')}</button>
