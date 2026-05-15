@@ -6,12 +6,14 @@
     sendContact,
     sendLocation,
     stageAttachment,
+    stageAttachmentFromPath,
     setPendingAttachment,
     chat,
     setReplyTo,
     setEditing,
     CONTACT_ID_SELF,
   } from '../lib/state/chat.svelte';
+  import { invoke, isTauri } from '@tauri-apps/api/core';
   import { uploadBlob } from '../lib/files';
   import { VoiceRecorder, pickMimeType, extensionForMime } from '../lib/audio/recorder';
   import AttachMenu from './AttachMenu.svelte';
@@ -209,12 +211,66 @@
 
   // ---------- attachments ----------
 
-  async function pushFile(file: File): Promise<void> {
+  // Shared "stage a file, surface failures" wrapper for the file picker and
+  // both paste paths.
+  async function stageOrWarn(run: () => Promise<void>): Promise<void> {
     try {
-      await stageAttachment(file);
+      await run();
     } catch (err) {
       alert(`Could not attach file: ${err instanceof Error ? err.message : String(err)}`);
     }
+  }
+
+  // Ctrl/Cmd+V handling, two cases:
+  //  - Inline image *data* (screenshot, "copy image") arrives as a file item
+  //    on the paste event — stage it straight away.
+  //  - A file copied in Finder puts only a *reference* on the clipboard;
+  //    WebKit's paste event surfaces just the filename text. The path isn't
+  //    available synchronously, so we let the text land, read the native
+  //    pasteboard, and — if it held a file — revert the text and stage it.
+  function onPaste(e: ClipboardEvent) {
+    const items = e.clipboardData?.items;
+    if (items) {
+      for (let i = 0; i < items.length; i++) {
+        const it = items[i];
+        if (it.kind !== 'file' || !it.type.startsWith('image/')) continue;
+        const file = it.getAsFile();
+        if (!file) continue;
+        e.preventDefault();
+        void stageOrWarn(() => stageAttachment(namedPasteImage(file)));
+        return;
+      }
+    }
+    if (isTauri()) void reconcilePastedFile(text);
+  }
+
+  // `before` = the textarea contents captured before the default paste runs.
+  async function reconcilePastedFile(before: string): Promise<void> {
+    let paths: string[];
+    try {
+      paths = await invoke<string[]>('clipboard_file_paths');
+    } catch {
+      return; // command unavailable — leave the default text paste alone
+    }
+    if (paths.length === 0) return; // a genuine text paste
+    if (paths.length > 1) alert(t('Only one file at a time can be attached.'));
+    text = before; // drop the filename the default paste inserted
+    await stageOrWarn(() => stageAttachmentFromPath(paths[0]));
+  }
+
+  // Pasted images usually arrive nameless — give them a real filename so the
+  // attachment and its upload temp file get a sensible extension.
+  function namedPasteImage(file: File): File {
+    if (/\.[a-z0-9]+$/i.test(file.name)) return file;
+    const ext =
+      file.type === 'image/jpeg'
+        ? 'jpg'
+        : file.type === 'image/gif'
+          ? 'gif'
+          : file.type === 'image/webp'
+            ? 'webp'
+            : 'png';
+    return new File([file], `pasted-image.${ext}`, { type: file.type });
   }
 
   function openLocationPicker() {
@@ -337,7 +393,7 @@
   function onFilePicked(e: Event) {
     const input = e.currentTarget as HTMLInputElement;
     const file = input.files?.[0];
-    if (file) void pushFile(file);
+    if (file) void stageOrWarn(() => stageAttachment(file));
     input.value = '';
   }
 </script>
@@ -393,6 +449,7 @@
     bind:this={textarea}
     bind:value={text}
     onkeydown={onKeyDown}
+    onpaste={onPaste}
     placeholder={t('Type a message…')}
     rows="1"
     aria-label={t('Message text')}

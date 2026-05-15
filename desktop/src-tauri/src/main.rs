@@ -24,7 +24,7 @@ fn main() {
     tauri::Builder::default()
         .plugin(tauri_plugin_notification::init())
         .plugin(tauri_plugin_opener::init())
-        .invoke_handler(tauri::generate_handler![set_badge])
+        .invoke_handler(tauri::generate_handler![set_badge, clipboard_file_paths])
         .setup(|app| {
             // Per-OS app data dir — `~/.local/share/chat.qxp.desktop` on Linux,
             // `~/Library/Application Support/chat.qxp.desktop` on macOS,
@@ -73,6 +73,49 @@ fn set_badge(label: Option<String>) {
     #[cfg(not(target_os = "macos"))]
     {
         tracing::debug!("set_badge no-op on this platform: label={:?}", label);
+    }
+}
+
+/// Absolute filesystem paths of any files currently on the clipboard — e.g.
+/// files Cmd+C'd in Finder. WebKit's `paste` event only surfaces such a file
+/// as a bare filename string, so the composer reads the native pasteboard
+/// here to turn a pasted file into a real attachment.
+///
+/// macOS-only — that's the platform where the WebKit paste gap bites; other
+/// platforms return an empty list and fall back to the paste event.
+#[tauri::command]
+fn clipboard_file_paths() -> Vec<String> {
+    #[cfg(target_os = "macos")]
+    {
+        use objc2_app_kit::{NSPasteboard, NSPasteboardTypeFileURL};
+        use objc2_foundation::NSURL;
+
+        let mut paths: Vec<String> = Vec::new();
+        // SAFETY: a plain read of the general pasteboard — every Objective-C
+        // object handed back is autoreleased and only read from.
+        unsafe {
+            let pasteboard = NSPasteboard::generalPasteboard();
+            let Some(items) = pasteboard.pasteboardItems() else {
+                return paths;
+            };
+            for i in 0..items.count() {
+                let item = items.objectAtIndex(i);
+                let Some(url_str) = item.stringForType(NSPasteboardTypeFileURL) else {
+                    continue;
+                };
+                let Some(url) = NSURL::URLWithString(&url_str) else {
+                    continue;
+                };
+                if let Some(path) = url.path() {
+                    paths.push(path.to_string());
+                }
+            }
+        }
+        paths
+    }
+    #[cfg(not(target_os = "macos"))]
+    {
+        Vec::new()
     }
 }
 

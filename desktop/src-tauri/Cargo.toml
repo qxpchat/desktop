@@ -1,6 +1,6 @@
 [package]
 name = "qxp-desktop"
-version = "0.2.2"
+version = "0.3.1"
 edition = "2021"
 description = "qxp Tauri desktop shell — wraps the qxp-web daemon + Svelte SPA in a native window."
 license = "MPL-2.0"
@@ -21,13 +21,13 @@ anyhow = "1"
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 
-# macOS dock-tile badge. objc2 + objc2-foundation + objc2-app-kit are already
-# pulled in transitively by tauri/wry; declaring them as direct deps here
-# only affects compile-time, not link size.
+# macOS native bits — dock-tile badge + clipboard file-URL reads. objc2 and
+# its framework crates are already pulled in transitively by tauri/wry;
+# declaring them as direct deps here only affects compile-time, not link size.
 [target.'cfg(target_os = "macos")'.dependencies]
 objc2 = "0.6"
-objc2-foundation = "0.3"
-objc2-app-kit = "0.3"
+objc2-foundation = { version = "0.3", features = ["NSString", "NSArray", "NSURL"] }
+objc2-app-kit = { version = "0.3", features = ["NSPasteboard", "NSPasteboardItem"] }
 
 # Same dev-profile dance as the daemon — deltachat-core's transitive async
 # functions need opt-level >= 1 to fit on tokio's default 2 MB worker stacks.
