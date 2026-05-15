@@ -167,8 +167,9 @@
 
 <style>
   h2 {
-    margin: 0 0 var(--space-3) 0;
+    margin: 0 0 var(--space-5) 0;
     font-size: var(--text-xl);
+    font-weight: 600;
   }
   .toolbar {
     display: flex;

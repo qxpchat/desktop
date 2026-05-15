@@ -7,6 +7,7 @@
   import Avatar from '../lib/Avatar.svelte';
   import Button from '../lib/Button.svelte';
   import Icon from '../lib/Icon.svelte';
+  import SettingsSection from '../lib/SettingsSection.svelte';
   import { t } from '../lib/i18n/i18n.svelte';
 
   let displayName = $state('');
@@ -113,60 +114,61 @@
 {#if !loaded}
   <p class="muted">{t('Loading…')}</p>
 {:else}
-  <div class="avatar-row">
-    <button
-      class="avatar-btn"
-      onclick={() => fileInput?.click()}
-      disabled={avatarBusy}
-      aria-label={avatarPath ? t('Change profile picture') : t('Upload profile picture')}
-      title={avatarPath ? t('Change profile picture') : t('Upload profile picture')}
-    >
-      <Avatar
-        name={displayName}
-        color={profiles.list.find((p) => p.id === accounts.selectedId)?.color ?? 'var(--color-accent)'}
-        imagePath={avatarPath}
-        size={96}
-        alt={t('Profile avatar')}
-      />
-    </button>
-    <div class="avatar-actions">
-      <button class="link" onclick={() => fileInput?.click()} disabled={avatarBusy}>
-        {avatarPath ? t('Change photo') : t('Upload photo')}
+  <SettingsSection title={t('Public profile')}>
+    <div class="avatar-row">
+      <button
+        class="avatar-btn"
+        onclick={() => fileInput?.click()}
+        disabled={avatarBusy}
+        aria-label={avatarPath ? t('Change profile picture') : t('Upload profile picture')}
+        title={avatarPath ? t('Change profile picture') : t('Upload profile picture')}
+      >
+        <Avatar
+          name={displayName}
+          color={profiles.list.find((p) => p.id === accounts.selectedId)?.color ?? 'var(--color-accent)'}
+          imagePath={avatarPath}
+          size={96}
+          alt={t('Profile avatar')}
+        />
       </button>
-      {#if avatarPath}
-        <button class="link danger" onclick={removeAvatar} disabled={avatarBusy}>
-          {t('Remove photo')}
+      <div class="avatar-actions">
+        <button class="link" onclick={() => fileInput?.click()} disabled={avatarBusy}>
+          {avatarPath ? t('Change photo') : t('Upload photo')}
         </button>
-      {/if}
+        {#if avatarPath}
+          <button class="link danger" onclick={removeAvatar} disabled={avatarBusy}>
+            {t('Remove photo')}
+          </button>
+        {/if}
+      </div>
+      <input
+        bind:this={fileInput}
+        type="file"
+        accept="image/*"
+        hidden
+        onchange={onAvatarPicked}
+      />
     </div>
-    <input
-      bind:this={fileInput}
-      type="file"
-      accept="image/*"
-      hidden
-      onchange={onAvatarPicked}
-    />
-  </div>
 
-  <label class="field">
-    <span class="field-label">{t('Display name')}</span>
-    <input bind:value={displayName} placeholder={t('Your name')} data-testid="settings-profile__name" />
-  </label>
+    <label class="field">
+      <span class="field-label">{t('Display name')}</span>
+      <input bind:value={displayName} placeholder={t('Your name')} data-testid="settings-profile__name" />
+    </label>
 
-  <label class="field">
-    <span class="field-label">{t('Signature')}</span>
-    <textarea bind:value={signature} rows="3" placeholder={t('Shown in your contact info')} data-testid="settings-profile__signature"></textarea>
-  </label>
+    <label class="field">
+      <span class="field-label">{t('Signature')}</span>
+      <textarea bind:value={signature} rows="3" placeholder={t('Shown in your contact info')} data-testid="settings-profile__signature"></textarea>
+    </label>
 
-  <div class="actions">
-    <Button variant="primary" onclick={save} disabled={saving} data-testid="settings-profile__save">
-      {saving ? t('Saving…') : recentlySaved ? t('Saved') : t('Save')}
-    </Button>
-  </div>
+    <div class="actions">
+      <Button variant="primary" onclick={save} disabled={saving} data-testid="settings-profile__save">
+        {saving ? t('Saving…') : recentlySaved ? t('Saved') : t('Save')}
+      </Button>
+    </div>
+  </SettingsSection>
 
   {#if fingerprint}
-    <label class="field">
-      <span class="field-label">{t('Fingerprint')}</span>
+    <SettingsSection title={t('Fingerprint')}>
       <div class="fingerprint-row">
         <code class="fingerprint" data-testid="settings-profile__fingerprint">{formatFingerprint(fingerprint)}</code>
         <Button variant="secondary" size="sm" onclick={copyFingerprint} aria-label={t('Copy')} data-testid="settings-profile__fingerprint-copy">
@@ -174,7 +176,7 @@
           {fingerprintCopied ? t('copied_to_clipboard') : t('Copy')}
         </Button>
       </div>
-    </label>
+    </SettingsSection>
   {/if}
 {/if}
 

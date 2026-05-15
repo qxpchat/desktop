@@ -78,7 +78,7 @@
 
 <style>
   h2 {
-    margin: 0 0 var(--space-3) 0;
+    margin: 0 0 var(--space-5) 0;
     font-size: var(--text-xl);
     font-weight: 600;
   }
@@ -88,7 +88,7 @@
     color: var(--color-fg-secondary);
   }
   .muted {
-    color: var(--color-fg-secondary);
+    color: var(--color-fg-tertiary);
   }
   .value {
     font-family: var(--font-mono);
