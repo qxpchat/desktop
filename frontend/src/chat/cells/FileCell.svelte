@@ -5,15 +5,29 @@
 
   type Props = {
     message: Message;
+    /** Tile colour triple — see MessageBubble. `bg` is the bubble fill
+     *  behind the tile (also the puck-icon colour), `accent` fills the puck. */
+    bg: string;
+    fg: string;
+    accent: string;
   };
 
-  let { message }: Props = $props();
+  let { message, bg, fg, accent }: Props = $props();
 
   let url = $derived(fileUrl(message.file ?? undefined));
   let displayName = $derived(message.fileName ?? 'file');
 </script>
 
-<a class="file" href={url ?? '#'} download={displayName} target="_blank" rel="noopener">
+<a
+  class="file"
+  href={url ?? '#'}
+  download={displayName}
+  target="_blank"
+  rel="noopener"
+  style:--cell-bg={bg}
+  style:--cell-fg={fg}
+  style:--cell-accent={accent}
+>
   <span class="action" aria-hidden="true">
     <Icon name="download" size={16} stroke={2} />
   </span>
@@ -31,24 +45,22 @@
     display: flex;
     align-items: center;
     gap: 8px;
-    padding: 8px;
-    background: var(--color-bg-hover);
-    border-radius: 12px;
     text-decoration: none;
-    color: inherit;
+    color: var(--cell-fg);
     max-width: 320px;
   }
-  .file:hover {
-    background: var(--color-border);
+  .file:hover .name {
+    text-decoration: underline;
   }
   /* Mirrors `.play` in VoiceCell — circular accent puck so the affordance
-   * for "tap to start" reads the same whether it's playback or download. */
+   * for "tap to start" reads the same whether it's playback or download.
+   * The icon takes the bubble fill (`--cell-bg`) so it reads as a cutout. */
   .action {
     width: 32px;
     height: 32px;
     border-radius: 50%;
-    background: var(--color-accent);
-    color: var(--color-accent-fg);
+    background: var(--cell-accent);
+    color: var(--cell-bg);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -69,7 +81,7 @@
   }
   .size {
     font-size: var(--text-xs);
-    color: var(--color-fg-tertiary);
+    color: color-mix(in srgb, var(--cell-fg) 58%, transparent);
   }
   .caption {
     margin-top: 6px;

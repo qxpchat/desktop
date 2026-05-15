@@ -7,9 +7,14 @@
 
   type Props = {
     message: Message;
+    /** Tile colour triple — see MessageBubble. `bg` is the bubble fill
+     *  behind the tile (also the puck-icon colour), `accent` fills the puck. */
+    bg: string;
+    fg: string;
+    accent: string;
   };
 
-  let { message }: Props = $props();
+  let { message, bg, fg, accent }: Props = $props();
 
   type VcardContact = {
     addr: string;
@@ -45,7 +50,7 @@
   let initial = $derived(label[0]?.toUpperCase() ?? '?');
 </script>
 
-<div class="vcard">
+<div class="vcard" style:--cell-bg={bg} style:--cell-fg={fg} style:--cell-accent={accent}>
   <span class="avatar" aria-hidden="true">{initial}</span>
   <span class="meta">
     <span class="name">{label}</span>
@@ -66,17 +71,15 @@
     display: flex;
     align-items: center;
     gap: 10px;
-    padding: 8px;
-    background: var(--color-bg-hover);
-    border-radius: 12px;
+    color: var(--cell-fg);
     max-width: 320px;
   }
   .avatar {
     width: 36px;
     height: 36px;
     border-radius: 50%;
-    background: var(--color-accent);
-    color: var(--color-accent-fg);
+    background: var(--cell-accent);
+    color: var(--cell-bg);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -98,7 +101,7 @@
   }
   .addr {
     font-size: var(--text-xs);
-    color: var(--color-fg-tertiary);
+    color: color-mix(in srgb, var(--cell-fg) 58%, transparent);
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -106,8 +109,8 @@
   .open {
     padding: 4px 10px;
     border-radius: 6px;
-    background: var(--color-accent);
-    color: var(--color-accent-fg);
+    background: var(--cell-accent);
+    color: var(--cell-bg);
     font-size: var(--text-xs);
     font-weight: 600;
     flex: 0 0 auto;

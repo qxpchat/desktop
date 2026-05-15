@@ -6,9 +6,14 @@
 
   type Props = {
     message: Message;
+    /** Tile colour triple — see MessageBubble. `bg` is the bubble fill
+     *  behind the tile (also the puck-icon colour), `accent` fills the puck. */
+    bg: string;
+    fg: string;
+    accent: string;
   };
 
-  let { message }: Props = $props();
+  let { message, bg, fg, accent }: Props = $props();
 
   let url = $derived(fileUrl(message.file ?? undefined));
   let audio: HTMLAudioElement | undefined = $state();
@@ -159,7 +164,7 @@
   }
 </script>
 
-<div class="voice">
+<div class="voice" style:--cell-bg={bg} style:--cell-fg={fg} style:--cell-accent={accent}>
   <button class="play" onclick={toggle} aria-label={playing ? t('Pause') : t('Play')}>
     {playing ? '❚❚' : '▶'}
   </button>
@@ -219,17 +224,15 @@
     display: flex;
     align-items: center;
     gap: 8px;
-    padding: 8px;
-    background: var(--color-bg-hover);
-    border-radius: 12px;
     min-width: 240px;
+    color: var(--cell-fg);
   }
   .play {
     width: 32px;
     height: 32px;
     border-radius: 50%;
-    background: var(--color-accent);
-    color: var(--color-accent-fg);
+    background: var(--cell-accent);
+    color: var(--cell-bg);
     font-size: 12px;
     flex: 0 0 auto;
     justify-content: center;
@@ -247,7 +250,7 @@
     outline: none;
   }
   .wave:focus-visible {
-    outline: 2px solid var(--color-accent);
+    outline: 2px solid var(--cell-accent);
     outline-offset: 2px;
     border-radius: 3px;
   }
@@ -255,18 +258,18 @@
     flex: 1;
     min-width: 2px;
     max-width: 4px;
-    background: color-mix(in srgb, var(--color-fg) 30%, transparent);
+    background: color-mix(in srgb, var(--cell-fg) 30%, transparent);
     border-radius: 2px;
     transition: background 0.05s linear;
   }
   .wave-bar.played {
-    background: var(--color-accent);
+    background: var(--cell-accent);
   }
   /* When decoding hasn't finished yet (or failed), the wave host degrades
    * to the original thin progress bar. */
   .wave.fallback {
     height: 6px;
-    background: rgba(0, 0, 0, 0.15);
+    background: color-mix(in srgb, var(--cell-fg) 16%, transparent);
     border-radius: 3px;
     overflow: hidden;
     display: block;
@@ -274,27 +277,27 @@
   }
   .fill {
     height: 100%;
-    background: var(--color-accent);
+    background: var(--cell-accent);
     transition: width 0.1s linear;
   }
   .time {
     font-size: var(--text-xs);
     font-variant-numeric: tabular-nums;
-    color: var(--color-fg-secondary);
+    color: color-mix(in srgb, var(--cell-fg) 65%, transparent);
     flex: 0 0 auto;
   }
   .speed {
     width: 32px;
     height: 24px;
     border-radius: 12px;
-    background: var(--color-bg-elevated);
-    color: var(--color-fg);
+    background: color-mix(in srgb, var(--cell-fg) 14%, transparent);
+    color: var(--cell-fg);
     font-size: var(--text-xs);
     font-weight: 600;
     flex: 0 0 auto;
   }
   .speed:hover {
-    background: var(--color-border);
+    background: color-mix(in srgb, var(--cell-fg) 24%, transparent);
   }
   .caption {
     margin-top: 6px;

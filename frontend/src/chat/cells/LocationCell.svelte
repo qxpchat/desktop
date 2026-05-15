@@ -12,9 +12,15 @@
 
   type Props = {
     message: Message;
+    /** Tile colour triple — see MessageBubble. `bg` is the bubble fill
+     *  behind the tile, `fg` the text colour. `accent` is accepted for a
+     *  uniform call site but unused — the map cell has no accent puck. */
+    bg: string;
+    fg: string;
+    accent: string;
   };
 
-  let { message }: Props = $props();
+  let { message, bg, fg }: Props = $props();
 
   type Loc = {
     locationId: number;
@@ -65,7 +71,7 @@
 
 {#if message.hasLocation}
   {#if coord && mapEmbed && osmLink}
-    <div class="map-card">
+    <div class="map-card" style:--cell-bg={bg} style:--cell-fg={fg}>
       <iframe
         class="map"
         src={mapEmbed}
@@ -79,7 +85,7 @@
       </a>
     </div>
   {:else}
-    <div class="card">
+    <div class="card" style:--cell-bg={bg} style:--cell-fg={fg}>
       <div class="thumb" aria-hidden="true">📍</div>
       <div class="meta">
         <div class="title">{t('Location')}</div>
@@ -96,10 +102,9 @@
   .map-card {
     display: flex;
     flex-direction: column;
-    color: inherit;
+    color: var(--cell-fg);
     border-radius: 12px;
     overflow: hidden;
-    background: var(--color-bg-hover);
     max-width: 320px;
   }
   .map {
@@ -107,7 +112,7 @@
     width: 100%;
     height: 160px;
     border: 0;
-    background: var(--color-bg-hover);
+    background: var(--cell-bg);
   }
   .coord {
     display: flex;
@@ -115,13 +120,13 @@
     gap: 6px;
     padding: 6px 10px;
     font-size: var(--text-sm);
-    color: var(--color-fg-secondary);
+    color: color-mix(in srgb, var(--cell-fg) 65%, transparent);
     font-variant-numeric: tabular-nums;
     text-decoration: none;
   }
   .coord:hover {
-    background: var(--color-bg-hover);
-    color: var(--color-fg);
+    background: color-mix(in srgb, var(--cell-fg) 8%, transparent);
+    color: var(--cell-fg);
   }
   .pin {
     font-size: 14px;
@@ -131,9 +136,7 @@
     display: flex;
     align-items: center;
     gap: 12px;
-    padding: 8px;
-    background: var(--color-bg-hover);
-    border-radius: 12px;
+    color: var(--cell-fg);
     max-width: 320px;
   }
   .thumb {
@@ -154,7 +157,7 @@
     font-weight: 600;
   }
   .hint {
-    color: var(--color-fg-tertiary);
+    color: color-mix(in srgb, var(--cell-fg) 55%, transparent);
     font-size: var(--text-xs);
   }
   .caption {

@@ -45,6 +45,18 @@
   }: Props = $props();
 
   let outgoing = $derived(message.fromId === CONTACT_ID_SELF);
+
+  // Tile cells (file/voice/vcard/location) are parameterized with a
+  // bg/fg/accent triple so they render correctly on either bubble fill.
+  // The tile itself is transparent — these tokens only colour the inner
+  // puck and text. `bg` is the bubble fill behind the tile and doubles as
+  // the puck-icon colour (cutout look). On outgoing bubbles the app accent
+  // IS the bubble fill, so the puck flips to the accent-fg colour to stay
+  // visible instead of vanishing into the background.
+  let cellBg = $derived(outgoing ? 'var(--color-accent)' : 'var(--color-bg-elevated)');
+  let cellFg = $derived(outgoing ? 'var(--color-accent-fg)' : 'var(--color-fg)');
+  let cellAccent = $derived(outgoing ? 'var(--color-accent-fg)' : 'var(--color-accent)');
+
   let highlighted = $derived(chat.highlightId === message.id);
   let stateGlyph = $derived(outgoing ? messageStateGlyph(message.state) : null);
   let timeLabel = $derived(formatShortTime(message.timestamp));
@@ -218,15 +230,15 @@
       {:else if message.viewType === 'Video'}
         <VideoCell {message} />
       {:else if message.viewType === 'Voice'}
-        <VoiceCell {message} />
+        <VoiceCell {message} bg={cellBg} fg={cellFg} accent={cellAccent} />
       {:else if message.viewType === 'Audio'}
         <AudioCell {message} />
       {:else if message.viewType === 'Vcard'}
-        <VcardCell {message} />
+        <VcardCell {message} bg={cellBg} fg={cellFg} accent={cellAccent} />
       {:else if message.viewType === 'File'}
-        <FileCell {message} />
+        <FileCell {message} bg={cellBg} fg={cellFg} accent={cellAccent} />
       {:else if message.hasLocation}
-        <LocationCell {message} />
+        <LocationCell {message} bg={cellBg} fg={cellFg} accent={cellAccent} />
       {/if}
 
       {#if youtubeId}
