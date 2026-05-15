@@ -4,7 +4,6 @@
     sendText,
     sendMessage,
     sendContact,
-    sendLocation,
     stageAttachment,
     stageAttachmentFromPath,
     setPendingAttachment,
@@ -20,7 +19,6 @@
   import AttachmentBar from './AttachmentBar.svelte';
   import ContactPickerModal from './ContactPickerModal.svelte';
   import EmojiPicker from './EmojiPicker.svelte';
-  import LocationPicker from './LocationPicker.svelte';
   import QuoteBar from './QuoteBar.svelte';
   import Icon from '../lib/Icon.svelte';
   import IconButton from '../lib/IconButton.svelte';
@@ -32,7 +30,6 @@
   let attachOpen = $state(false);
   let emojiOpen = $state(false);
   let contactPickerOpen = $state(false);
-  let locationPickerOpen = $state(false);
 
   function insertEmoji(c: string) {
     const ta = textarea;
@@ -274,24 +271,6 @@
     return new File([file], `pasted-image.${ext}`, { type: file.type });
   }
 
-  function openLocationPicker() {
-    locationPickerOpen = true;
-  }
-
-  async function sendPickedLocation(lat: number, lon: number) {
-    const draft = text;
-    text = '';
-    sending = true;
-    try {
-      await sendLocation(lat, lon, draft);
-    } catch (err) {
-      text = draft;
-      alert(`${t('Could not send location')}: ${err instanceof Error ? err.message : String(err)}`);
-    } finally {
-      sending = false;
-    }
-  }
-
   async function shareContact(contactId: number) {
     const draft = text;
     text = '';
@@ -440,7 +419,6 @@
     open={attachOpen}
     onClose={() => (attachOpen = false)}
     onPickFile={() => fileInput?.click()}
-    onShareLocation={openLocationPicker}
     onShareContact={() => (contactPickerOpen = true)}
   />
 
@@ -512,12 +490,6 @@
   open={contactPickerOpen}
   onPick={(id) => void shareContact(id)}
   onClose={() => (contactPickerOpen = false)}
-/>
-
-<LocationPicker
-  open={locationPickerOpen}
-  onSend={(lat, lon) => void sendPickedLocation(lat, lon)}
-  onClose={() => (locationPickerOpen = false)}
 />
 
 <style>

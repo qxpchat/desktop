@@ -507,14 +507,13 @@ export async function sendText(text: string): Promise<void> {
   }
 }
 
-/** Generic send via `sendMsg` — used for attachments, locations, vcards. */
+/** Generic send via `sendMsg` — used for attachments, vcards. */
 export type MessageData = {
   text?: string;
   html?: string;
   viewtype?: MessageViewtype;
   file?: string;
   filename?: string;
-  location?: [number, number];
   overrideSenderName?: string;
   quotedMessageId?: number;
   quotedText?: string;
@@ -647,17 +646,6 @@ function basename(p: string): string {
   const trimmed = p.replace(/[\\/]+$/, '');
   const idx = Math.max(trimmed.lastIndexOf('/'), trimmed.lastIndexOf('\\'));
   return idx >= 0 ? trimmed.slice(idx + 1) : trimmed;
-}
-
-/** Send a geographic location as a message in the active chat. */
-export async function sendLocation(lat: number, lon: number, text?: string): Promise<void> {
-  const active = chat.active;
-  if (active == null) return;
-  await sendMessage({
-    viewtype: 'Text',
-    text: text || undefined,
-    location: [lat, lon],
-  });
 }
 
 /** Build a vcard for `contactId` via `make_vcard`, upload as a blob, and

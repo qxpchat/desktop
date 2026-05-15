@@ -1,5 +1,5 @@
 // Shared URL builders for the OSM iframe embed + the "open in OSM" share
-// link. Used by LocationPicker, LocationCell, and ChatInfo's live-location
+// link. Used by LocationCell and ChatInfo's live-location
 // card. The `0.005` half-degree bbox produces a roughly-zoom-15 view that
 // matches what static-map endpoints (which we're not using; CORS/rate-limit
 // hell) would render.

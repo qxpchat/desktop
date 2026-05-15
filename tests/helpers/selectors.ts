@@ -249,13 +249,8 @@ export const TID = {
 
   // -- Attach menu --
   attachMenu: '[data-testid="attach-menu"]',
-  attachMenuItem: (action: 'file' | 'location' | 'contact') =>
+  attachMenuItem: (action: 'file' | 'contact') =>
     `[data-testid="attach-menu-item"][data-action="${action}"]`,
-
-  // -- Location picker --
-  locationPicker: '[data-testid="location-picker"]',
-  locationPickerSend: '[data-testid="location-picker__send"]',
-  locationPickerCancel: '[data-testid="location-picker__cancel"]',
 
   // -- Contact picker --
   contactPicker: '[data-testid="contact-picker"]',

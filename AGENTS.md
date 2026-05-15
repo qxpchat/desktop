@@ -39,6 +39,7 @@ Pure refactors, doc-only edits, internal cleanup shipping no user-visible behavi
 - `scripts/` — version sync, string sync, other dev scripts.
 - `libs/` — Rust core (`deltachat-core-rust` submodule) + patches.
 - `plans/` — plan history + active plan. Read only on explicit request.
+- `references/` — read-only checkout of the official Delta Chat desktop app (`deltachat-desktop`). Consult for protocol / feature behavior. Not built, not shipped.
 
 See `README.md` for run / build / account-data layout.
 

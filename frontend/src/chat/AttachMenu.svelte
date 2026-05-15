@@ -6,7 +6,6 @@
     open: boolean;
     onClose: () => void;
     onPickFile: () => void;
-    onShareLocation: () => void;
     onShareContact: () => void;
   };
 
@@ -14,7 +13,6 @@
     open,
     onClose,
     onPickFile,
-    onShareLocation,
     onShareContact,
   }: Props = $props();
 
@@ -25,7 +23,6 @@
 
   const items: { icon: IconName; label: string; action: () => void; tid: string }[] = $derived([
     { icon: 'file', label: t('File'), action: onPickFile, tid: 'file' },
-    { icon: 'map-pin', label: t('Location'), action: onShareLocation, tid: 'location' },
     { icon: 'user', label: t('Contact'), action: onShareContact, tid: 'contact' },
   ]);
 </script>
