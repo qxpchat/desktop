@@ -10,6 +10,12 @@ import { onEvent } from '../events';
 import { refreshAccounts } from './accounts.svelte';
 import { reloadChatlist } from './chatlist.svelte';
 
+/** Chatmail relay new instant accounts register on, unless a scanned
+ *  `dcaccount:` QR overrides it. Mirrors iOS `DcConfigKey.defaultChatmailDomain`.
+ *  The E2E suite sets `VITE_DEFAULT_RELAY` so onboarding tests mint accounts
+ *  on a shared test relay rather than the production qxp.chat relay. */
+export const DEFAULT_RELAY = import.meta.env.VITE_DEFAULT_RELAY || 'qxp.chat';
+
 export type OnboardingPhase =
   | { kind: 'idle' }
   | { kind: 'configuring'; progress: number }
@@ -115,7 +121,7 @@ async function runOnboardingFlow(
 export async function createInstantAccount(displayName: string, qr?: string): Promise<void> {
   await runOnboardingFlow({ kind: 'configuring', progress: 0 }, async (accountId) => {
     await rpc.call('set_config', [accountId, 'displayname', displayName]);
-    await rpc.call('set_config_from_qr', [accountId, qr ?? 'dcaccount:nine.testrun.org']);
+    await rpc.call('set_config_from_qr', [accountId, qr ?? `dcaccount:${DEFAULT_RELAY}`]);
     await rpc.call('configure', [accountId]);
   });
 }

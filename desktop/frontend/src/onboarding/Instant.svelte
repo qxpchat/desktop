@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { onboarding, createInstantAccount } from '../lib/state/onboarding.svelte';
+  import { onboarding, createInstantAccount, DEFAULT_RELAY } from '../lib/state/onboarding.svelte';
   import ProgressOverlay from './ProgressOverlay.svelte';
   import Button from '../lib/Button.svelte';
   import { t } from '../lib/i18n/i18n.svelte';
@@ -14,9 +14,9 @@
   let displayName = $state('');
   let altMenuOpen = $state(false);
 
-  // Step 2 ships the default chatmail provider only. Custom-provider QR scan
+  // Step 2 ships the default chatmail relay only. Custom-provider QR scan
   // is wired up in step 4 alongside the backup-pair scanner.
-  const provider = 'nine.testrun.org';
+  const provider = DEFAULT_RELAY;
 
   let trimmedName = $derived(displayName.trim());
   let canCreate = $derived(trimmedName.length > 0 && onboarding.phase.kind === 'idle');

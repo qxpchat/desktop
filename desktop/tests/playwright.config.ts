@@ -58,6 +58,10 @@ export default defineConfig({
       // Vite reads this to route `/ws` proxy to the test daemon
       // rather than the prod-default 4041.
       QXP_DAEMON_PORT: TEST_DAEMON_PORT,
+      // Mint instant-onboarding accounts on Delta Chat's shared test relay
+      // instead of the production qxp.chat relay. Vite exposes VITE_-prefixed
+      // env vars as `import.meta.env` (see `DEFAULT_RELAY`).
+      VITE_DEFAULT_RELAY: 'nine.testrun.org',
     },
   },
 
