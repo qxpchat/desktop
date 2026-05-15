@@ -26,7 +26,37 @@
 
 <h2>{t('About')}</h2>
 
-<p class="lede">{t('qxp — desktop client for the Delta Chat protocol.')}</p>
+<SettingsSection title={t('qxp')}>
+  <p class="prose">
+    {t(
+      'qxp is an instant messaging app built on the standard email protocol. It is a chatmail client — one of many compatible clients. Messages are end-to-end encrypted and kept only on your devices after delivery.',
+    )}
+  </p>
+</SettingsSection>
+
+<SettingsSection title={t('Chatmail')}>
+  <p class="prose">
+    {t(
+      "Chatmail is a network of email servers that powers real-time messaging in clients like qxp. The servers act only as relays: messages are removed once delivered, and eventually even if they aren't. You can add multiple relays — qxp checks all of them, so you stay reachable even if one goes offline.",
+    )}
+  </p>
+</SettingsSection>
+
+<SettingsSection title={t('Decentralization')}>
+  <p class="prose">
+    {t(
+      'Any chatmail client works with any chatmail relay. You can switch to a different client or relay at any time, without depending on a single company, server, or developer team.',
+    )}
+  </p>
+</SettingsSection>
+
+<SettingsSection title={t('Acknowledgements')}>
+  <p class="prose">
+    {t(
+      'We sincerely thank everyone who develops, maintains, funds and supports the chatmail protocol. Your work and dedication bring freedom of communication to everyone.',
+    )}
+  </p>
+</SettingsSection>
 
 <SettingsSection title={t('System')}>
   <SettingsRow label={t('Delta Chat core')} right={coreRight} />
@@ -52,8 +82,9 @@
     font-size: var(--text-xl);
     font-weight: 600;
   }
-  .lede {
-    margin: 0 0 var(--space-5);
+  .prose {
+    margin: 0;
+    line-height: 1.5;
     color: var(--color-fg-secondary);
   }
   .muted {
