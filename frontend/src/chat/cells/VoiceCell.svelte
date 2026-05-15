@@ -3,6 +3,7 @@
   import type { Message } from '../../lib/state/chat.svelte';
   import { fileUrl } from '../../lib/files';
   import { t } from '../../lib/i18n/i18n.svelte';
+  import Button from '../../lib/Button.svelte';
 
   type Props = {
     message: Message;
@@ -199,7 +200,13 @@
     {/if}
   </div>
   <span class="time">{fmt(Math.max(0, duration - currentTime))}</span>
-  <button class="speed" onclick={cycleSpeed} aria-label={t('Playback speed')}>{speed}×</button>
+  <Button
+    variant="ghost"
+    size="sm"
+    class="speed"
+    onclick={cycleSpeed}
+    aria-label={t('Playback speed')}
+  >{speed}×</Button>
   {#if url}
     <audio
       bind:this={audio}
@@ -286,17 +293,21 @@
     color: color-mix(in srgb, var(--cell-fg) 65%, transparent);
     flex: 0 0 auto;
   }
-  .speed {
-    width: 32px;
+  /* Speed toggle reuses the Button primitive for layout/centering.
+   * `data-variant='ghost'` in the override selector outweighs Button's own
+   * `.btn[data-variant='ghost']` rule (extra class), so colours land on the
+   * cell-parameterized tokens without `!important`. */
+  :global(.btn[data-variant='ghost'].speed) {
     height: 24px;
+    min-width: 36px;
+    padding: 0 6px;
     border-radius: 12px;
+    font-size: var(--text-xs);
+    flex: 0 0 auto;
     background: color-mix(in srgb, var(--cell-fg) 14%, transparent);
     color: var(--cell-fg);
-    font-size: var(--text-xs);
-    font-weight: 600;
-    flex: 0 0 auto;
   }
-  .speed:hover {
+  :global(.btn[data-variant='ghost'].speed:hover:not(:disabled)) {
     background: color-mix(in srgb, var(--cell-fg) 24%, transparent);
   }
   .caption {
