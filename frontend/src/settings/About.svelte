@@ -16,12 +16,13 @@
     }
   });
 
-  // Promoted to dedicated rows so the most useful values are easy to copy
-  // without scrolling through the full JSON dump below. Each is referenced
-  // from within a snippet (reactive closure) so no `void` suppressors needed.
+  // Promoted to dedicated rows so the most useful values are easy to copy.
+  // `appVersion` is a build-time constant (see vite.config.ts); core and
+  // SQLite come from the daemon, so they're referenced from within a snippet
+  // (reactive closure) so no `void` suppressors needed.
+  const appVersion = __APP_VERSION__;
   let coreVersion = $derived(String(info?.deltachat_core_version ?? '—'));
   let sqliteVersion = $derived(String(info?.sqlite_version ?? '—'));
-  let arch = $derived(String(info?.arch ?? '—'));
 </script>
 
 <h2>{t('About')}</h2>
@@ -58,23 +59,15 @@
   </p>
 </SettingsSection>
 
-<SettingsSection title={t('System')}>
+<SettingsSection title={t('App')}>
+  <SettingsRow label={t('Version')} right={versionRight} />
   <SettingsRow label={t('Delta Chat core')} right={coreRight} />
   <SettingsRow label={t('SQLite')} right={sqliteRight} />
-  <SettingsRow label={t('Architecture')} right={archRight} />
 </SettingsSection>
 
+{#snippet versionRight()}<span class="value" data-testid="settings-about__app-version">{appVersion}</span>{/snippet}
 {#snippet coreRight()}<span class="value" data-testid="settings-about__core-version">{coreVersion}</span>{/snippet}
 {#snippet sqliteRight()}<span class="value" data-testid="settings-about__sqlite-version">{sqliteVersion}</span>{/snippet}
-{#snippet archRight()}<span class="value" data-testid="settings-about__arch">{arch}</span>{/snippet}
-
-<SettingsSection title={t('Diagnostics')}>
-  {#if info}
-    <pre class="dump">{JSON.stringify(info, null, 2)}</pre>
-  {:else}
-    <p class="muted">{t('Loading system info…')}</p>
-  {/if}
-</SettingsSection>
 
 <style>
   h2 {
@@ -87,23 +80,9 @@
     line-height: 1.5;
     color: var(--color-fg-secondary);
   }
-  .muted {
-    color: var(--color-fg-tertiary);
-  }
   .value {
     font-family: var(--font-mono);
     font-size: var(--text-sm);
     color: var(--color-fg-secondary);
-  }
-  .dump {
-    margin: 0;
-    padding: var(--space-3);
-    background: var(--color-bg-hover);
-    border-radius: var(--radius-md);
-    overflow-x: auto;
-    font-family: var(--font-mono);
-    font-size: var(--text-xs);
-    color: var(--color-fg-secondary);
-    user-select: text;
   }
 </style>
