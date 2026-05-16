@@ -19,6 +19,8 @@
         return 'music';
       case 'Voice':
         return 'mic';
+      case 'Vcard':
+        return 'user';
       default:
         return 'file';
     }
@@ -36,6 +38,8 @@
         return t('Audio');
       case 'Voice':
         return t('Voice');
+      case 'Vcard':
+        return t('Contact');
       default:
         return t('Attachment');
     }

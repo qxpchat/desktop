@@ -3,7 +3,7 @@
   import {
     sendText,
     sendMessage,
-    sendContact,
+    stageContact,
     stageAttachment,
     stageAttachmentFromPath,
     setPendingAttachment,
@@ -273,17 +273,14 @@
     return new File([file], `pasted-image.${ext}`, { type: file.type });
   }
 
+  // Stage the picked contact as a pending attachment — the user adds an
+  // optional caption and sends with the normal send button. Mirrors the
+  // file-attach flow rather than firing the message immediately.
   async function shareContact(contactId: number) {
-    const draft = text;
-    text = '';
-    sending = true;
     try {
-      await sendContact(contactId, draft);
+      await stageContact(contactId);
     } catch (err) {
-      text = draft;
       notice = `${t('Could not share contact')}: ${err instanceof Error ? err.message : String(err)}`;
-    } finally {
-      sending = false;
     }
   }
 

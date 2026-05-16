@@ -27,11 +27,14 @@ test('vCard share round-trips with full state glyph progression', async ({ qxpPa
   ).first();
   await expect(incomingBubble).toBeVisible({ timeout: ARRIVAL_TIMEOUT_MS });
 
-  // main → peer: share peer's own contact card via the picker.
+  // main → peer: share peer's own contact card via the picker. Picking a
+  // contact stages it in the composer (caption-able) — send it explicitly.
   await page.locator(TID.composerAttach).click();
   await page.locator(TID.attachMenuItem('contact')).click();
   await expect(page.locator(TID.contactPicker)).toBeVisible();
   await page.locator(TID.contactRowByName(peer.displayName)).first().click();
+  await expect(page.locator(TID.composerAttachmentBar)).toBeVisible();
+  await page.locator(TID.composerSend).click();
 
   const outgoingBubble = page.locator(
     `[data-testid="message-bubble"][data-direction="outgoing"][data-view-type="Vcard"]`,

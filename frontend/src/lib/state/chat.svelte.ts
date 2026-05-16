@@ -648,19 +648,34 @@ function basename(p: string): string {
   return idx >= 0 ? trimmed.slice(idx + 1) : trimmed;
 }
 
-/** Build a vcard for `contactId` via `make_vcard`, upload as a blob, and
- *  send it as a Vcard attachment in the active chat. */
-export async function sendContact(contactId: number, text?: string): Promise<void> {
+/** Build a vcard for `contactId` via `make_vcard`, upload it, and stage it
+ *  as the chat's pending attachment — so the user can add a caption and
+ *  send deliberately, matching the file/image attach flow (and Delta
+ *  Chat's `addContactAsVcard` → draft behaviour). */
+export async function stageContact(contactId: number): Promise<void> {
   const active = chat.active;
   if (active == null) return;
   const vcard = await rpc.call<string>('make_vcard', [active.accountId, [contactId]]);
   const blob = new Blob([vcard], { type: 'text/vcard' });
   const path = await uploadBlob(blob, 'vcf');
-  await sendMessage({
+  // Name the staged file after the contact so the composer preview is
+  // legible; fall back to a generic name if the lookup fails.
+  let filename = 'contact.vcf';
+  try {
+    const c = await rpc.call<{ displayName?: string; address?: string }>('get_contact', [
+      active.accountId,
+      contactId,
+    ]);
+    const base = (c.displayName || c.address || 'contact').replace(/[^\w.-]+/g, '_');
+    filename = `${base}.vcf`;
+  } catch {
+    /* keep the generic name */
+  }
+  setPendingAttachment({
     viewtype: 'Vcard',
     file: path,
-    filename: 'contact.vcf',
-    text: text || undefined,
+    filename,
+    previewUrl: null,
   });
 }
 
