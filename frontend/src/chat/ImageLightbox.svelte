@@ -1,29 +1,81 @@
 <script lang="ts">
   import Overlay from '../lib/Overlay.svelte';
-  import { lightbox, closeLightbox } from '../lib/state/lightbox.svelte';
+  import { lightbox, closeLightbox, lightboxStep } from '../lib/state/lightbox.svelte';
   import { t } from '../lib/i18n/i18n.svelte';
   import IconButton from '../lib/IconButton.svelte';
+
+  let item = $derived(lightbox.items[lightbox.index] ?? null);
+  let hasGallery = $derived(lightbox.items.length > 1);
+
+  // ← / → step the chat gallery. Escape is owned by Overlay. Listener is
+  // bound to the open window via effect cleanup.
+  $effect(() => {
+    if (item == null) return;
+    function onKey(e: KeyboardEvent) {
+      if (e.key === 'ArrowLeft') {
+        e.preventDefault();
+        lightboxStep(-1);
+      } else if (e.key === 'ArrowRight') {
+        e.preventDefault();
+        lightboxStep(1);
+      }
+    }
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  });
 </script>
 
 <Overlay
-  open={lightbox.item != null}
+  open={item != null}
   onClose={closeLightbox}
   ariaLabel={t('Image viewer')}
   backdrop="rgba(0, 0, 0, 0.92)"
   class="lightbox-overlay"
+  data-testid="image-lightbox"
 >
-  {#if lightbox.item}
+  {#if item}
     <div class="content">
-      {#if lightbox.item.kind === 'image'}
-        <img src={lightbox.item.url} alt={lightbox.item.caption ?? ''} />
+      {#if item.kind === 'image'}
+        <img
+          src={item.url}
+          alt={item.caption ?? ''}
+          data-testid="image-lightbox__media"
+          data-msg-id={item.msgId}
+        />
       {:else}
         <!-- svelte-ignore a11y_media_has_caption -->
-        <video src={lightbox.item.url} controls autoplay></video>
+        <video
+          src={item.url}
+          controls
+          autoplay
+          data-testid="image-lightbox__media"
+          data-msg-id={item.msgId}
+        ></video>
       {/if}
-      {#if lightbox.item.caption}
-        <div class="caption">{lightbox.item.caption}</div>
+      {#if item.caption}
+        <div class="caption">{item.caption}</div>
       {/if}
     </div>
+
+    {#if hasGallery}
+      <IconButton
+        class="lightbox-nav lightbox-prev"
+        icon="chevron-left"
+        label={t('Previous')}
+        size={44}
+        onclick={() => lightboxStep(-1)}
+        data-testid="image-lightbox__prev"
+      />
+      <IconButton
+        class="lightbox-nav lightbox-next"
+        icon="chevron-right"
+        label={t('Next')}
+        size={44}
+        onclick={() => lightboxStep(1)}
+        data-testid="image-lightbox__next"
+      />
+    {/if}
+
     <IconButton
       class="lightbox-close"
       icon="x"
@@ -69,6 +121,17 @@
   :global(.lightbox-close) {
     position: absolute;
     top: 16px;
+    right: 16px;
+  }
+  :global(.lightbox-nav) {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+  }
+  :global(.lightbox-prev) {
+    left: 16px;
+  }
+  :global(.lightbox-next) {
     right: 16px;
   }
 </style>

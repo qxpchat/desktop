@@ -19,15 +19,16 @@
   });
 
   function open() {
-    openLightbox({
+    void openLightbox({
       url: url ?? '',
       kind: 'image',
       caption: message.text,
+      msgId: message.id,
     });
   }
 </script>
 
-<button class="image" onclick={open} title={t('Open image')} aria-label={t('Open image')}>
+<button class="image" onclick={open} title={t('Open image')} aria-label={t('Open image')} data-testid="image-cell">
   {#if url}
     <img src={url} alt={message.fileName ?? t('image')} style:aspect-ratio={aspect} />
   {/if}

@@ -130,6 +130,13 @@ export const TID = {
   mediaBrowserBack: '[data-testid="media-browser__back"]',
   mediaBrowserLoading: '[data-testid="media-browser__loading"]',
 
+  // -- Image lightbox --
+  imageCell: '[data-testid="image-cell"]',
+  imageLightbox: '[data-testid="image-lightbox"]',
+  imageLightboxMedia: '[data-testid="image-lightbox__media"]',
+  imageLightboxPrev: '[data-testid="image-lightbox__prev"]',
+  imageLightboxNext: '[data-testid="image-lightbox__next"]',
+
   // -- Chat list header (toggles the NavTabs profile rail) --
   chatListBurger: '[data-testid="chat-list__burger"]',
 
