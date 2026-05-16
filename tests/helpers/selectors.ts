@@ -184,6 +184,15 @@ export const TID = {
   settingsBackupExport: '[data-testid="settings-backup__export"]',
   settingsBackupDownload: '[data-testid="settings-backup__download"]',
 
+  // -- Settings: Add Second Device --
+  settingsAddDevice: '[data-testid="settings-add-device"]',
+  settingsAddDeviceStart: '[data-testid="settings-add-device__start"]',
+  settingsAddDeviceQr: '[data-testid="settings-add-device__qr"]',
+  settingsAddDeviceCode: '[data-testid="settings-add-device__code"]',
+  settingsAddDeviceCopy: '[data-testid="settings-add-device__copy"]',
+  settingsAddDeviceCancel: '[data-testid="settings-add-device__cancel"]',
+  settingsAddDeviceError: '[data-testid="settings-add-device__error"]',
+
   // -- Settings: Connectivity --
   settingsConnectivityRelay: '[data-testid="settings-connectivity__relay"]',
   settingsConnectivityRelayByAddr: (addr: string) =>

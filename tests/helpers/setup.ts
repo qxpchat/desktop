@@ -260,6 +260,7 @@ export async function openSettings(
     | 'connectivity'
     | 'blocked'
     | 'backup'
+    | 'add-device'
     | 'logs'
     | 'about',
 ): Promise<void> {

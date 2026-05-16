@@ -8,6 +8,7 @@
   import ChatsAndMedia from './ChatsAndMedia.svelte';
   import BlockedContacts from './BlockedContacts.svelte';
   import Backup from './Backup.svelte';
+  import AddSecondDevice from './AddSecondDevice.svelte';
   import About from './About.svelte';
   import Connectivity from './Connectivity.svelte';
   import Logs from './Logs.svelte';
@@ -23,6 +24,7 @@
     | 'chats'
     | 'blocked'
     | 'backup'
+    | 'add-device'
     | 'connectivity'
     | 'logs'
     | 'about';
@@ -45,6 +47,7 @@
     { id: 'connectivity', label: t('Connectivity'), icon: 'globe' },
     { id: 'blocked', label: t('Blocked'), icon: 'ban' },
     { id: 'backup', label: t('Backup'), icon: 'hard-drive' },
+    { id: 'add-device', label: t('Add Second Device'), icon: 'qr-code' },
     { id: 'logs', label: t('Logs'), icon: 'file-text' },
     { id: 'about', label: t('About'), icon: 'info' },
   ]);
@@ -111,6 +114,8 @@
           <BlockedContacts />
         {:else if active === 'backup'}
           <Backup />
+        {:else if active === 'add-device'}
+          <AddSecondDevice />
         {:else if active === 'connectivity'}
           <Connectivity initialView={connectivitySubView} />
         {:else if active === 'logs'}

@@ -3,7 +3,6 @@
   import { accounts } from '../lib/state/accounts.svelte';
   import { onEvent } from '../lib/events';
   import { fileUrl } from '../lib/files';
-  import { setMainRoute } from '../lib/state/mainRoute.svelte';
   import SettingsSection from '../lib/SettingsSection.svelte';
   import SettingsRow from '../lib/SettingsRow.svelte';
   import Button from '../lib/Button.svelte';
@@ -51,10 +50,6 @@
       message = err instanceof Error ? err.message : String(err);
     }
   }
-
-  function pairAsSecondDevice() {
-    setMainRoute({ kind: 'qrShow' });
-  }
 </script>
 
 <h2>{t('Backup')}</h2>
@@ -86,13 +81,6 @@
       </div>
     {/if}
   </div>
-</SettingsSection>
-
-<SettingsSection
-  title={t('Pair another device')}
-  footer={t('Show a QR on this device that another Delta Chat client can scan to receive a copy of your account.')}
->
-  <SettingsRow label={t('Show pair QR')} icon="qr-code" onClick={pairAsSecondDevice} />
 </SettingsSection>
 
 <style>
