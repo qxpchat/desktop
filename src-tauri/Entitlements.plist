@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<!-- The embedded WKWebView routes microphone/camera capture through a
+	     separate WebKit capture process. That process refuses to open the
+	     device unless the host app is code-signed with these entitlements,
+	     so without them `getUserMedia` stalls before macOS ever shows its
+	     TCC permission prompt — voice messages and the QR scanner break in
+	     the bundled app. These entitlements are not provisioning-restricted
+	     and work with ad-hoc signing. -->
+	<key>com.apple.security.device.audio-input</key>
+	<true/>
+	<key>com.apple.security.device.camera</key>
+	<true/>
+</dict>
+</plist>
