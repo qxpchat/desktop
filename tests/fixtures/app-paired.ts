@@ -34,9 +34,11 @@ import {
 import { RpcClient } from './daemon.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const REPO_ROOT = path.resolve(__dirname, '..', '..', '..');
+// __dirname is <repo>/tests/fixtures — two up reaches the repo root.
+// (Desktop app flattened from `desktop/` to repo root in commit fcbfbdc.)
+const REPO_ROOT = path.resolve(__dirname, '..', '..');
 const DAEMON_BIN = path.join(
-  REPO_ROOT, 'desktop', 'server', 'target', 'debug', 'qxp-web',
+  REPO_ROOT, 'server', 'target', 'debug', 'qxp-web',
 );
 // Test daemon ports — separated from prod's 4041/4042 so the suite
 // doesn't piggy-back on a running prod app.

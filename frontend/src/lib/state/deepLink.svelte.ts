@@ -13,7 +13,6 @@
 // set and processes whatever was waiting.
 
 import { isTauri } from '@tauri-apps/api/core';
-import { getCurrent, onOpenUrl } from '@tauri-apps/plugin-deep-link';
 import { setMainRoute } from './mainRoute.svelte';
 import { accounts } from './accounts.svelte';
 import { openChatByEmail } from '../chatActions';
@@ -57,6 +56,13 @@ export function drainDeepLinks(): void {
 export async function initDeepLinks(): Promise<void> {
   if (!isTauri()) return;
   try {
+    // Imported lazily: `@tauri-apps/plugin-deep-link` is a Tauri-only
+    // plugin. A static import forces the web/test build (plain Vite, no
+    // Tauri) to resolve it, which fails. This branch only runs inside
+    // the Tauri shell, where the plugin is present.
+    const { getCurrent, onOpenUrl } = await import(
+      '@tauri-apps/plugin-deep-link'
+    );
     const launch = await getCurrent();
     if (launch && launch.length > 0) queue.urls = [...queue.urls, ...launch];
     await onOpenUrl((urls) => {

@@ -22,7 +22,9 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const DESKTOP_DIR = path.resolve(__dirname, '..');
+// __dirname is <repo>/tests — one up is the repo root, which holds
+// `frontend/` (desktop app flattened to repo root in commit fcbfbdc).
+const REPO_ROOT = path.resolve(__dirname, '..');
 const TEST_DAEMON_PORT = process.env.QXP_TEST_DAEMON_PORT ?? '9041';
 
 export default defineConfig({
@@ -46,7 +48,7 @@ export default defineConfig({
 
   webServer: {
     command: 'npm --prefix frontend run dev -- --host 127.0.0.1',
-    cwd: DESKTOP_DIR,
+    cwd: REPO_ROOT,
     url: 'http://127.0.0.1:4040',
     // Don't reuse — a stale Vite from a previous (prod-pointed) run
     // would proxy `/ws` to 4041 instead of the test daemon's port.

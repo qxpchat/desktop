@@ -144,8 +144,6 @@ export const TID = {
   settingsProfileName: '[data-testid="settings-profile__name"]',
   settingsProfileSignature: '[data-testid="settings-profile__signature"]',
   settingsProfileSave: '[data-testid="settings-profile__save"]',
-  settingsProfileFingerprint: '[data-testid="settings-profile__fingerprint"]',
-  settingsProfileFingerprintCopy: '[data-testid="settings-profile__fingerprint-copy"]',
 
   // -- Settings: Appearance --
   settingsAppearanceTheme: '[data-testid="settings-appearance__theme"]',

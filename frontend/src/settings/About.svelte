@@ -23,6 +23,7 @@
   const appVersion = __APP_VERSION__;
   let coreVersion = $derived(String(info?.deltachat_core_version ?? '—'));
   let sqliteVersion = $derived(String(info?.sqlite_version ?? '—'));
+  let arch = $derived(String(info?.arch ?? '—'));
 </script>
 
 <h2>{t('About')}</h2>
@@ -63,11 +64,13 @@
   <SettingsRow label={t('Version')} right={versionRight} />
   <SettingsRow label={t('Delta Chat core')} right={coreRight} />
   <SettingsRow label={t('SQLite')} right={sqliteRight} />
+  <SettingsRow label={t('Architecture')} right={archRight} />
 </SettingsSection>
 
 {#snippet versionRight()}<span class="value" data-testid="settings-about__app-version">{appVersion}</span>{/snippet}
 {#snippet coreRight()}<span class="value" data-testid="settings-about__core-version">{coreVersion}</span>{/snippet}
 {#snippet sqliteRight()}<span class="value" data-testid="settings-about__sqlite-version">{sqliteVersion}</span>{/snippet}
+{#snippet archRight()}<span class="value" data-testid="settings-about__arch">{arch}</span>{/snippet}
 
 <style>
   h2 {
