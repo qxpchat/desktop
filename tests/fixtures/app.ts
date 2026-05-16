@@ -19,10 +19,12 @@ import { fileURLToPath } from 'node:url';
 import { WebSocket } from 'ws';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const REPO_ROOT = path.resolve(__dirname, '..', '..', '..');
+// __dirname is <repo>/tests/fixtures — two up reaches the repo root.
+// (The desktop app was flattened from `desktop/` to the repo root in
+// commit fcbfbdc; the daemon now lives at `server/`, not `desktop/server/`.)
+const REPO_ROOT = path.resolve(__dirname, '..', '..');
 const DAEMON_BIN = path.join(
   REPO_ROOT,
-  'desktop',
   'server',
   'target',
   'debug',
