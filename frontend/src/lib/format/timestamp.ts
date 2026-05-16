@@ -11,6 +11,7 @@ const time = new Intl.DateTimeFormat(undefined, { hour: '2-digit', minute: '2-di
 const weekday = new Intl.DateTimeFormat(undefined, { weekday: 'short' });
 const date = new Intl.DateTimeFormat(undefined, { dateStyle: 'short' });
 const dateMedium = new Intl.DateTimeFormat(undefined, { dateStyle: 'medium' });
+const dateTime = new Intl.DateTimeFormat(undefined, { dateStyle: 'medium', timeStyle: 'short' });
 
 export function formatRelativeTimestamp(unixMs: number | null | undefined): string {
   if (unixMs == null || unixMs <= 0) return '';
@@ -27,6 +28,14 @@ export function formatRelativeTimestamp(unixMs: number | null | undefined): stri
 export function formatShortTime(unixSec: number | null | undefined): string {
   if (unixSec == null || unixSec <= 0) return '';
   return time.format(new Date(unixSec * 1000));
+}
+
+/** Full date + short time for a single message, e.g. the image lightbox
+ *  where photos span many days and `formatShortTime`'s bare HH:MM would be
+ *  ambiguous. Input is unix **seconds**. */
+export function formatDateTime(unixSec: number | null | undefined): string {
+  if (unixSec == null || unixSec <= 0) return '';
+  return dateTime.format(new Date(unixSec * 1000));
 }
 
 /** Day-marker label between consecutive message bubbles:

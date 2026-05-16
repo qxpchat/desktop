@@ -1,6 +1,7 @@
 <script lang="ts">
   import Overlay from '../lib/Overlay.svelte';
   import { lightbox, closeLightbox, lightboxStep } from '../lib/state/lightbox.svelte';
+  import { formatDateTime } from '../lib/format/timestamp';
   import { t } from '../lib/i18n/i18n.svelte';
   import IconButton from '../lib/IconButton.svelte';
 
@@ -52,8 +53,17 @@
           data-msg-id={item.msgId}
         ></video>
       {/if}
-      {#if item.caption}
-        <div class="caption">{item.caption}</div>
+      {#if item.caption || item.timestamp}
+        <div class="meta">
+          {#if item.caption}
+            <div class="caption" data-testid="image-lightbox__caption">{item.caption}</div>
+          {/if}
+          {#if item.timestamp}
+            <div class="timestamp" data-testid="image-lightbox__timestamp">
+              {formatDateTime(item.timestamp)}
+            </div>
+          {/if}
+        </div>
       {/if}
     </div>
 
@@ -110,13 +120,24 @@
     pointer-events: auto;
     cursor: default;
   }
+  .meta {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    max-width: 80%;
+    pointer-events: auto;
+    cursor: default;
+  }
   .caption {
     color: rgba(255, 255, 255, 0.9);
     font-size: var(--text-sm);
-    max-width: 80%;
     text-align: center;
-    pointer-events: auto;
-    cursor: default;
+  }
+  .timestamp {
+    color: rgba(255, 255, 255, 0.55);
+    font-size: var(--text-xs);
+    text-align: center;
   }
   :global(.lightbox-close) {
     position: absolute;

@@ -24,6 +24,7 @@
       kind: 'image',
       caption: message.text,
       msgId: message.id,
+      timestamp: message.timestamp,
     });
   }
 </script>

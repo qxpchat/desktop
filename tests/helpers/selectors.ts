@@ -136,6 +136,8 @@ export const TID = {
   imageLightboxMedia: '[data-testid="image-lightbox__media"]',
   imageLightboxPrev: '[data-testid="image-lightbox__prev"]',
   imageLightboxNext: '[data-testid="image-lightbox__next"]',
+  imageLightboxCaption: '[data-testid="image-lightbox__caption"]',
+  imageLightboxTimestamp: '[data-testid="image-lightbox__timestamp"]',
 
   // -- Chat list header (toggles the NavTabs profile rail) --
   chatListBurger: '[data-testid="chat-list__burger"]',

@@ -16,6 +16,8 @@ export type LightboxItem = {
   caption?: string;
   /** Source message id — anchors the item within the chat gallery. */
   msgId?: number;
+  /** Send time, unix **seconds** — shown under the media. */
+  timestamp?: number;
 };
 
 export const lightbox = $state<{ items: LightboxItem[]; index: number }>({
@@ -64,6 +66,7 @@ export async function openLightbox(item: LightboxItem): Promise<void> {
         kind: m.viewType === 'Video' ? 'video' : 'image',
         caption: m.text || undefined,
         msgId: m.id,
+        timestamp: m.timestamp,
       }));
 
     const idx = gallery.findIndex((g) => g.msgId === item.msgId);

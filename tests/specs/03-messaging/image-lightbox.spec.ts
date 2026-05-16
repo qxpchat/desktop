@@ -57,3 +57,37 @@ test('image lightbox: arrows step through the chat gallery', async ({ qxpPaired,
   await page.keyboard.press('Escape');
   await expect(page.locator(TID.imageLightbox)).toHaveCount(0);
 });
+
+test('image lightbox: shows the send time and the message caption', async ({
+  qxpPaired,
+  page,
+}) => {
+  const { peer } = qxpPaired;
+  const img = mediaPath('test.png');
+
+  await openChatByName(page, peer.displayName);
+
+  // Image carrying caption text.
+  await peer.sendAttachment({
+    viewtype: 'Image',
+    file: img,
+    filename: 'captioned.png',
+    text: 'sunset over the bay',
+  });
+
+  const bubble = page
+    .locator('[data-testid="message-bubble"][data-direction="incoming"][data-view-type="Image"]')
+    .first();
+  await expect(bubble).toBeVisible({ timeout: ARRIVAL_TIMEOUT_MS });
+
+  await page.locator(TID.imageCell).first().click();
+  await expect(page.locator(TID.imageLightboxMedia)).toBeVisible();
+
+  // Caption = the message text; timestamp is always shown.
+  await expect(page.locator(TID.imageLightboxCaption)).toHaveText('sunset over the bay');
+  const ts = page.locator(TID.imageLightboxTimestamp);
+  await expect(ts).toBeVisible();
+  await expect(ts).not.toBeEmpty();
+
+  await page.keyboard.press('Escape');
+});
