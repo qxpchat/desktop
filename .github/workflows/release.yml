@@ -1,11 +1,11 @@
 name: Release
 
 # Build qxp for macOS + Windows and attach the bundles to a GitHub release
-# whenever a version tag (e.g. v0.7.0) is pushed.
+# whenever a version tag (e.g. 0.7.0) is pushed.
 on:
   push:
     tags:
-      - 'v*'
+      - '[0-9]+.[0-9]+.[0-9]+'
 
 permissions:
   contents: write
@@ -55,6 +55,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
+          projectPath: src-tauri
           tagName: ${{ github.ref_name }}
           releaseName: qxp ${{ github.ref_name }}
           releaseDraft: true

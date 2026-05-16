@@ -22,6 +22,10 @@ pkgs.mkShell {
     rustfmt
     clippy
 
+    # Tauri CLI — provides `cargo tauri dev` / `cargo tauri build`.
+    # Pinned via Nix so no separate `cargo install tauri-cli` step is needed.
+    cargo-tauri
+
     # Native build tooling for deltachat-core's vendored OpenSSL + SQLite,
     # plus Tauri's gtk/webkit toolchain.
     gcc
@@ -52,5 +56,10 @@ pkgs.mkShell {
     echo "qxp desktop shell — rustc $(rustc --version | cut -d' ' -f2), node $(node --version)"
     # Help pkg-config find webkit/soup .pc files for the Tauri build.
     export PKG_CONFIG_PATH=${pkgs.webkitgtk_4_1.dev}/lib/pkgconfig:${pkgs.libsoup_3.dev}/lib/pkgconfig:$PKG_CONFIG_PATH
+
+    # WebKitGTK's DMABUF renderer shows a blank window under the Nix-store
+    # libGL on NixOS. Forcing it off makes both `cargo tauri dev` and the
+    # built binary render correctly. Harmless on other distros.
+    export WEBKIT_DISABLE_DMABUF_RENDERER=1
   '';
 }

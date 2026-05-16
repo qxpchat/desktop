@@ -1,4 +1,4 @@
-.PHONY: help server ui tauri-dev tauri-build build check assets clean submodules \
+.PHONY: help server ui tauri-dev tauri-build tauri-build-linux build check assets clean submodules \
         test-accounts test-e2e test-e2e-phase test-e2e-watch test-e2e-clean
 
 help:
@@ -6,6 +6,8 @@ help:
 	@echo
 	@echo "  make tauri-dev          Run the full Tauri app (daemon + Vite + native window)"
 	@echo "  make tauri-build        Bundle a release build (single-binary desktop app)"
+	@echo "  make tauri-build-linux  Build the release binary only, no OS bundle"
+	@echo "                          (NixOS: run from inside nix-shell)"
 	@echo
 	@echo "  make server             Run only the Rust daemon (server/)        [127.0.0.1:4041]"
 	@echo "  make ui                 Run only the Vite dev server              [0.0.0.0:4040]"
@@ -37,6 +39,16 @@ tauri-dev: frontend/node_modules
 
 tauri-build: frontend/node_modules
 	cd src-tauri && cargo tauri build
+
+# Release binary without the AppImage/deb/rpm bundlers. Those bundlers
+# download linuxdeploy and assume FHS paths, so they break on NixOS — and
+# an AppImage cannot run there anyway. Use this on NixOS; build inside
+# `nix-shell` so the binary links the store's webkit/gtk libs and the
+# shellHook's WEBKIT_DISABLE_DMABUF_RENDERER carries over at run time.
+# Output: src-tauri/target/release/qxp-desktop
+tauri-build-linux: frontend/node_modules
+	cd src-tauri && cargo tauri build --no-bundle
+	@echo "built: src-tauri/target/release/qxp-desktop"
 
 # Treat node_modules as an order-dependent target so the npm install only
 # runs on a fresh clone (or after a manual `rm -rf node_modules`). Avoids
