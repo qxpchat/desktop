@@ -71,7 +71,11 @@
 
   <div class="body">
     {#if mainRoute.route.kind === 'qrScan'}
-      <QrDispatcher purpose={mainRoute.route.purpose} {onSelectChat} />
+      <QrDispatcher
+        purpose={mainRoute.route.purpose}
+        code={mainRoute.route.code}
+        {onSelectChat}
+      />
     {:else if mainRoute.route.kind === 'qrShow'}
       <QrShow chatId={mainRoute.route.chatId} />
     {:else if mainRoute.route.kind === 'chatInfo'}

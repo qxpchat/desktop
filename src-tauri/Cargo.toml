@@ -12,6 +12,10 @@ tauri-build = { version = "2", features = [] }
 tauri = { version = "2", features = ["protocol-asset"] }
 tauri-plugin-notification = "2"
 tauri-plugin-opener = "2"
+# OS URL-scheme handler. Registers qxp for openpgp4fpr:/dcaccount:/dclogin:/
+# mailto: (see `plugins.deep-link` in tauri.conf.json) and delivers clicked
+# links to the webview via the JS plugin's `onOpenUrl` / `getCurrent`.
+tauri-plugin-deep-link = "2"
 
 # Daemon is a sibling crate; we spawn it in-process on its own tokio runtime.
 qxp-web = { path = "../server" }

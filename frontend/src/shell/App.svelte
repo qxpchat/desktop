@@ -10,6 +10,7 @@
   import { selection, selectChat } from '../lib/state/selection.svelte';
   import { refreshProfiles, recomputeAllFreshCounts, profiles } from '../lib/state/profiles.svelte';
   import { setMainRoute, mainRoute } from '../lib/state/mainRoute.svelte';
+  import { drainDeepLinks } from '../lib/state/deepLink.svelte';
   import {
     startIncomingNotifications,
     updateUnreadIndicators,
@@ -83,6 +84,14 @@
   $effect(() => {
     const total = profiles.list.reduce((sum, p) => sum + p.freshCount, 0);
     updateUnreadIndicators(total);
+  });
+
+  // Process OS deep links once an account is ready. `drainDeepLinks` reads
+  // `accounts.selectedId` and its own queue reactively, so this re-fires
+  // both when the account becomes available (cold start) and when a new
+  // link arrives while qxp is already running.
+  $effect(() => {
+    drainDeepLinks();
   });
 
   let didInitialPurge = false;

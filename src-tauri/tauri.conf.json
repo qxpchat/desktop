@@ -34,6 +34,13 @@
       }
     }
   },
+  "plugins": {
+    "deep-link": {
+      "desktop": {
+        "schemes": ["openpgp4fpr", "dcaccount", "dclogin", "mailto"]
+      }
+    }
+  },
   "bundle": {
     "active": true,
     "targets": ["deb", "rpm", "appimage", "dmg", "app", "msi", "nsis"],

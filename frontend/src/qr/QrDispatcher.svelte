@@ -14,10 +14,12 @@
 
   type Props = {
     purpose: 'newContact' | 'general';
+    /** Pre-supplied QR string (deep link) — processed without the camera. */
+    code?: string;
     onSelectChat: (chatId: number) => void;
   };
 
-  let { purpose, onSelectChat }: Props = $props();
+  let { purpose, code, onSelectChat }: Props = $props();
 
   type QrObject =
     | { kind: 'askVerifyContact'; contactId: number; fingerprint: string; invitenumber: string; authcode: string; isV3: boolean }
@@ -70,6 +72,18 @@
     errorMsg = null;
     scannerKey += 1;
   }
+
+  // A `code` prop means the dispatcher was opened by a deep link — run it
+  // through the same `check_qr` pipeline as a camera scan. Tracked against
+  // `lastCode` so re-renders don't reprocess, while a fresh deep link
+  // arriving on the already-open dispatcher still fires.
+  let lastCode: string | undefined;
+  $effect(() => {
+    if (code && code !== lastCode) {
+      lastCode = code;
+      void onScanned(code);
+    }
+  });
 
   async function confirmCurrent() {
     if (!qr || accounts.selectedId == null) return;

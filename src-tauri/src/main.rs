@@ -24,6 +24,10 @@ fn main() {
     tauri::Builder::default()
         .plugin(tauri_plugin_notification::init())
         .plugin(tauri_plugin_opener::init())
+        // URL-scheme handler — see `plugins.deep-link` in tauri.conf.json.
+        // macOS routes registered schemes here from the bundle's
+        // CFBundleURLTypes; the frontend drains them via the JS plugin.
+        .plugin(tauri_plugin_deep_link::init())
         .invoke_handler(tauri::generate_handler![set_badge, clipboard_file_paths])
         .setup(|app| {
             // Per-OS app data dir — `~/.local/share/chat.qxp.desktop` on Linux,

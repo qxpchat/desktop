@@ -10,5 +10,34 @@
 	<string>qxp uses the camera to scan QR codes when adding a second device or verifying contacts.</string>
 	<key>NSMicrophoneUsageDescription</key>
 	<string>qxp uses the microphone to record voice messages.</string>
+	<!-- OS URL-scheme registration. macOS routes these schemes to qxp from
+	     the bundle; the deep-link plugin (see plugins.deep-link in
+	     tauri.conf.json) delivers the clicked link to the webview. Matches
+	     the schemes the official Delta Chat desktop client registers. -->
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>CFBundleURLName</key>
+			<string>chat.qxp.qr</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>openpgp4fpr</string>
+				<string>dcaccount</string>
+				<string>dclogin</string>
+			</array>
+		</dict>
+		<dict>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>CFBundleURLName</key>
+			<string>chat.qxp.mailto</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>mailto</string>
+			</array>
+		</dict>
+	</array>
 </dict>
 </plist>

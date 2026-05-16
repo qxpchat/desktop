@@ -5,7 +5,9 @@
 
 export type MainRoute =
   | { kind: 'chat' }
-  | { kind: 'qrScan'; purpose: 'newContact' | 'general' }
+  // `code` pre-feeds a QR string into the dispatcher (skips the camera) —
+  // set by the deep-link handler for openpgp4fpr:/dcaccount:/dclogin: URLs.
+  | { kind: 'qrScan'; purpose: 'newContact' | 'general'; code?: string }
   | { kind: 'qrShow'; chatId?: number }
   | { kind: 'settings'; section?: string; subView?: string }
   | { kind: 'chatInfo'; chatId: number }

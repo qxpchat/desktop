@@ -1,6 +1,7 @@
 import { mount } from 'svelte';
 import { openUrl } from '@tauri-apps/plugin-opener';
 import App from './shell/App.svelte';
+import { initDeepLinks } from './lib/state/deepLink.svelte';
 import './styles/reset.css';
 import './styles/tokens.css';
 import './styles/theme.css';
@@ -24,6 +25,10 @@ const target = document.getElementById('app');
 if (!target) throw new Error('#app not found');
 
 mount(App, { target });
+
+// Subscribe to OS deep links (openpgp4fpr:/dcaccount:/dclogin:/mailto:).
+// Queued internally; App.svelte drains them once an account is ready.
+void initDeepLinks();
 
 // Tauri 2's WebView doesn't honor `<a target="_blank">` clicks or
 // `window.open` — confirmed by the official docs (`tauri-plugin-opener`
