@@ -43,12 +43,12 @@ test('group invite QR renders and is parseable as a group-join code', async ({ q
 
   const groupQr = await page.locator(TID.qrShowUrl).textContent();
   expect(groupQr).toBeTruthy();
-  expect(groupQr).toMatch(/^https:\/\/qxp\.chat\/invite\.html#./);
+  expect(groupQr).toMatch(/^https:\/\/qxp\.chat\/invite\/#./);
 
   // The displayed link is the qxp landing page; check_qr only groks the
   // openpgp4fpr scheme. Convert back the same way QrShow.paste does.
   const openpgp4fpr = `OPENPGP4FPR:${groupQr!
-    .replace(/^https:\/\/qxp\.chat\/invite\.html\/?#/i, '')
+    .replace(/^https:\/\/qxp\.chat\/invite\/?#/i, '')
     .replace('&', '#')}`;
 
   // Cross-check from peer's daemon — `check_qr` returns a group-shaped

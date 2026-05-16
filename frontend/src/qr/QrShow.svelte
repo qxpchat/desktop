@@ -13,7 +13,7 @@
   let { chatId = null }: Props = $props();
 
   /** qxp-hosted invite landing page (see relay www/src/invite.md). */
-  const INVITE_BASE = 'https://qxp.chat/invite.html';
+  const INVITE_BASE = 'https://qxp.chat/invite/';
 
   let svg = $state<string | null>(null);
   /** Raw QR string from the daemon — kept verbatim for set_config_from_qr. */
@@ -25,7 +25,7 @@
    * Rewrite the daemon QR string into a qxp-hosted invite link. The daemon
    * returns either `OPENPGP4FPR:<fpr>#<params>` or the Delta-Chat-operated
    * `https://i.delta.chat/#<fpr>&<params>` mirror; both carry the same
-   * payload. invite.html parses `#<fpr>&<params>`, so:
+   * payload. The invite page parses `#<fpr>&<params>`, so:
    *  - i.delta.chat mirror → swap origin, hash is already compatible.
    *  - openpgp4fpr scheme  → drop the scheme, turn the `#` separator into `&`.
    * Anything unrecognised is passed through untouched.
@@ -53,7 +53,7 @@
    * the daemon, which already recognises those.
    */
   function fromInviteLink(text: string): string {
-    const base = /^https:\/\/qxp\.chat\/invite\.html\/?#/i;
+    const base = /^https:\/\/qxp\.chat\/invite\/?#/i;
     if (base.test(text)) {
       return `OPENPGP4FPR:${text.replace(base, '').replace('&', '#')}`;
     }
