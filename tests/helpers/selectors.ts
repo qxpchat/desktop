@@ -362,8 +362,6 @@ export const TID = {
   onboardingBackupImport: '[data-testid="onboarding-backup-import"]',
   onboardingBackupImportPicker: '[data-testid="onboarding-backup-import__picker"]',
   onboardingBackupReceive: '[data-testid="onboarding-backup-receive"]',
-  onboardingBackupReceivePasteOpen: '[data-testid="onboarding-backup-receive__paste-open"]',
-  onboardingBackupReceivePasteInput: '[data-testid="onboarding-backup-receive__paste-input"]',
-  onboardingBackupReceivePasteSubmit: '[data-testid="onboarding-backup-receive__paste-submit"]',
+  onboardingBackupReceivePasteClipboard: '[data-testid="onboarding-backup-receive__paste-clipboard"]',
   onboardingBackupReceiveConfirm: '[data-testid="onboarding-backup-receive__confirm"]',
 } as const;

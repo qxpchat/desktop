@@ -8,7 +8,7 @@
 // `provide_backup` is fired without `await` (it blocks until B connects);
 // `get_backup_qr` returns the DCBACKUP… code synchronously once the
 // provider state is up. B then drives:
-//   Welcome → Add as Second Device → Paste Code Manually → Pair → confirm
+//   Welcome → Add as Second Device → Paste from clipboard → confirm
 // and expects the chat shell.
 //
 // The pool slot stays leased so A's mailbox state is coherent throughout.
@@ -84,12 +84,12 @@ test('Add as Second Device pairs and lands in the chat shell', async ({ page }) 
   await expect(page.locator(TID.onboardingBackupReceive)).toBeVisible();
 
   // 2. Camera path is unavailable in headless Chromium AND the qxp
-  // Scanner stubs to no-op under QXP_TEST_MODE — use the manual paste
-  // form. (Also exercises the paste-flow code path which is otherwise
-  // untested.)
-  await page.locator(TID.onboardingBackupReceivePasteOpen).click();
-  await page.locator(TID.onboardingBackupReceivePasteInput).fill(pairQr);
-  await page.locator(TID.onboardingBackupReceivePasteSubmit).click();
+  // Scanner stubs to no-op under QXP_TEST_MODE — use the clipboard
+  // paste path. Seed the clipboard with the pair code, then the button
+  // reads it via navigator.clipboard.readText() and pairs automatically.
+  await page.context().grantPermissions(['clipboard-read', 'clipboard-write']);
+  await page.evaluate((code) => navigator.clipboard.writeText(code), pairQr);
+  await page.locator(TID.onboardingBackupReceivePasteClipboard).click();
 
   // 3. The "Pair this device?" confirmation dialog opens. Confirm → the
   // receiver-side get_backup RPC fires; the chat shell mounts once

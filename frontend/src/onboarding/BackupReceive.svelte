@@ -5,7 +5,6 @@
   import Modal from '../lib/Modal.svelte';
   import Button from '../lib/Button.svelte';
   import BackButton from '../lib/BackButton.svelte';
-  import TextInput from '../lib/TextInput.svelte';
   import { t } from '../lib/i18n/i18n.svelte';
 
   type Props = {
@@ -18,8 +17,6 @@
   let scanError = $state<string | null>(null);
   let confirmOpen = $state(false);
   let scannerKey = $state(0); // re-mount to retry after reject
-  let pasteOpen = $state(false);
-  let pasteValue = $state('');
 
   function onScanned(qr: string) {
     // deltachat-core matches the `DCBACKUP` prefix case-insensitively and
@@ -51,20 +48,15 @@
     scannerKey += 1;
   }
 
-  function openPaste() {
-    pasteValue = '';
-    pasteOpen = true;
-  }
-
-  function cancelPaste() {
-    pasteOpen = false;
-    pasteValue = '';
-  }
-
-  function submitPaste() {
-    const code = pasteValue.trim();
-    pasteOpen = false;
-    pasteValue = '';
+  async function pasteFromClipboard() {
+    let text: string;
+    try {
+      text = await navigator.clipboard.readText();
+    } catch {
+      scanError = 'Could not read the clipboard.';
+      return;
+    }
+    const code = text.trim();
     if (code) onScanned(code);
   }
 </script>
@@ -92,33 +84,10 @@
     <p class="error">{scanError}</p>
   {/if}
 
-  <Button variant="accent-text" onclick={openPaste} data-testid="onboarding-backup-receive__paste-open">
-    {t('Paste Code Manually')}
+  <Button variant="accent-text" onclick={pasteFromClipboard} data-testid="onboarding-backup-receive__paste-clipboard">
+    {t('Paste from clipboard')}
   </Button>
 </main>
-
-<Modal open={pasteOpen} onClose={cancelPaste} size="md">
-  <div class="dialog-body">
-    <h2>{t('Paste backup pair code')}</h2>
-    <p>{t('Paste the DCBACKUP… code shown on the other device.')}</p>
-    <!-- svelte-ignore a11y_autofocus -->
-    <TextInput
-      class="paste-field"
-      multiline
-      rows={3}
-      bind:value={pasteValue}
-      placeholder="DCBACKUP4:…"
-      autofocus
-      spellcheck="false"
-      autocapitalize="off"
-      data-testid="onboarding-backup-receive__paste-input"
-    />
-    <div class="actions">
-      <Button variant="secondary" onclick={cancelPaste}>{t('Cancel')}</Button>
-      <Button variant="primary" onclick={submitPaste} disabled={!pasteValue.trim()} data-testid="onboarding-backup-receive__paste-submit">{t('Pair')}</Button>
-    </div>
-  </div>
-</Modal>
 
 <Modal open={confirmOpen} onClose={cancelConfirm} size="md">
   <div class="dialog-body">
@@ -177,9 +146,6 @@
   .dialog-body p {
     margin: 0 0 var(--space-4) 0;
     color: var(--color-fg-secondary);
-  }
-  .dialog-body :global(.paste-field) {
-    margin: 0 0 var(--space-4) 0;
   }
   .actions {
     display: flex;
