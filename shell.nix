@@ -54,8 +54,8 @@ pkgs.mkShell {
 
   shellHook = ''
     echo "qxp desktop shell — rustc $(rustc --version | cut -d' ' -f2), node $(node --version)"
-    # Help pkg-config find webkit/soup .pc files for the Tauri build.
-    export PKG_CONFIG_PATH=${pkgs.webkitgtk_4_1.dev}/lib/pkgconfig:${pkgs.libsoup_3.dev}/lib/pkgconfig:$PKG_CONFIG_PATH
+    # Help pkg-config find webkit/soup/glib/gtk .pc files for the Tauri build.
+    export PKG_CONFIG_PATH=${pkgs.webkitgtk_4_1.dev}/lib/pkgconfig:${pkgs.libsoup_3.dev}/lib/pkgconfig:${pkgs.glib.dev}/lib/pkgconfig:${pkgs.gtk3.dev}/lib/pkgconfig:$PKG_CONFIG_PATH
 
     # WebKitGTK's DMABUF renderer shows a blank window under the Nix-store
     # libGL on NixOS. Forcing it off makes both `cargo tauri dev` and the
