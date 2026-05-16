@@ -33,11 +33,17 @@
   async function openChat() {
     if (!vc || accounts.selectedId == null) return;
     try {
-      const contactId = await rpc.call<number>('create_contact', [
+      if (!message.file) throw new Error('vCard message has no file');
+      // import_vcard parses the full vCard — including the Autocrypt public
+      // key — so the contact is created key-ready. create_contact only stores
+      // addr+name, leaving the chat unencrypted; chatmail servers then reject
+      // outgoing mail with "Encryption needed: Invalid Unencrypted Mail".
+      const contactIds = await rpc.call<number[]>('import_vcard', [
         accounts.selectedId,
-        vc.addr,
-        vc.authname || vc.displayName || '',
+        message.file,
       ]);
+      const contactId = contactIds[0];
+      if (contactId == null) throw new Error('vCard contains no contact');
       const chatId = await rpc.call<number>('create_chat_by_contact_id', [
         accounts.selectedId,
         contactId,
@@ -61,7 +67,7 @@
     {/if}
   </span>
   {#if vc?.addr}
-    <button class="open" onclick={openChat}>{t('Open chat')}</button>
+    <button class="open" data-testid="vcard__open" onclick={openChat}>{t('Open chat')}</button>
   {/if}
 </div>
 {#if message.text}
