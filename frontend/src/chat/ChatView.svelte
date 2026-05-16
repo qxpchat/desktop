@@ -66,6 +66,20 @@
     return item ? item.chatType !== 'Single' : false;
   });
 
+  // Read-only chats hide the composer entirely (matches deltachat-desktop,
+  // where the composer renders nothing when the chat can't be sent to).
+  // Mirrors the chatlist-reachable subset of core's `Chat::can_send`:
+  // incoming broadcast channels are read-only for recipients, device chat
+  // is read-only, and a group you've left can't be posted to.
+  let canSend = $derived.by(() => {
+    const item = chatlist.items.get(chatId);
+    if (!item) return true; // metadata not loaded yet — don't flicker the bar
+    if (item.isDeviceTalk) return false;
+    if (item.chatType === 'InBroadcast') return false;
+    if (item.chatType === 'Group' && !item.isSelfInGroup) return false;
+    return true;
+  });
+
   $effect(() => {
     setActiveChat({ accountId, chatId });
   });
@@ -647,7 +661,7 @@
         </button>
       </div>
     </div>
-  {:else}
+  {:else if canSend}
     <Composer />
   {/if}
 </div>

@@ -14,14 +14,13 @@ test.setTimeout(60_000);
 test.beforeAll(() => ensureFixtures());
 
 test('change-image: upload an image becomes the channel profile image', async ({ qxpPaired, page }) => {
-  const { peer, mainRpc } = qxpPaired;
+  const { mainRpc } = qxpPaired;
   const channelName = `Cover ${Date.now()}`;
 
-  // Create a channel with peer as subscriber.
+  // Create a channel — New Channel goes straight to the name step (no
+  // member picker; recipients join a broadcast via QR).
   await page.locator(TID.composeButton).click();
   await page.locator(TID.composePaneNewChannel).click();
-  await page.locator(TID.contactRowByName(peer.displayName)).first().click();
-  await page.locator(TID.chooseMembersNext).click();
   await page.locator(TID.groupMetadataName).fill(channelName);
   await page.locator(TID.groupMetadataCreate).click();
   await expect(page.locator(TID.chatTopbarTitle)).toHaveText(channelName);

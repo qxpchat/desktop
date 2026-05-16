@@ -77,6 +77,9 @@
   let isSingle = $derived(chat?.chatType === 'Single');
   let isGroup = $derived(chat?.chatType === 'Group');
   let isBroadcast = $derived(chat?.chatType === 'OutBroadcast' || chat?.chatType === 'InBroadcast');
+  // Channel we own vs. one we only subscribe to. Only the owner can mint an
+  // invite QR / securejoin code; for an InBroadcast the daemon errors out.
+  let isOutBroadcast = $derived(chat?.chatType === 'OutBroadcast');
   let other = $derived(isSingle ? members.find((m) => m.id !== 1) ?? null : null);
 
   async function rename() {
@@ -324,7 +327,7 @@
         <span class="label">{t('Media, Audio & Files')}</span>
         <Icon name="chevron-right" size={14} />
       </button>
-      {#if (isGroup || isBroadcast) && chat.isEncrypted}
+      {#if (isGroup || isOutBroadcast) && chat.isEncrypted}
         <button class="row link" onclick={showQr} data-testid="chat-info__qr-invite">
           <span class="label">{t('Invite QR')}</span>
           <Icon name="chevron-right" size={14} />
