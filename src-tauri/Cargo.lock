@@ -5907,7 +5907,7 @@ checksum = "478e0585659a122aa407eb7e3c0e1fa51b1d8a870038bd29f0cf4a8551eea972"
 
 [[package]]
 name = "qxp-desktop"
-version = "0.3.6"
+version = "0.4.1"
 dependencies = [
  "anyhow",
  "objc2",
@@ -5925,7 +5925,7 @@ dependencies = [
 
 [[package]]
 name = "qxp-web"
-version = "0.3.6"
+version = "0.4.1"
 dependencies = [
  "anyhow",
  "axum",
@@ -5937,6 +5937,7 @@ dependencies = [
  "socket2 0.5.10",
  "tokio",
  "tokio-util",
+ "tower-http",
  "tracing",
  "tracing-subscriber",
 ]
