@@ -6,15 +6,12 @@
   import { uploadBlob } from '../lib/files';
   import Avatar from '../lib/Avatar.svelte';
   import Button from '../lib/Button.svelte';
-  import Icon from '../lib/Icon.svelte';
   import SettingsSection from '../lib/SettingsSection.svelte';
   import { t } from '../lib/i18n/i18n.svelte';
 
   let displayName = $state('');
   let signature = $state('');
   let avatarPath = $state<string | null>(null);
-  let fingerprint = $state('');
-  let fingerprintCopied = $state(false);
   let saving = $state(false);
   let savedAt = $state(0);
   let loaded = $state(false);
@@ -27,16 +24,14 @@
     if (accounts.selectedId == null) return;
     try {
       const id = accounts.selectedId;
-      const [name, sig, avatar, info] = await Promise.all([
+      const [name, sig, avatar] = await Promise.all([
         rpc.call<string | null>('get_config', [id, 'displayname']),
         rpc.call<string | null>('get_config', [id, 'selfstatus']),
         rpc.call<string | null>('get_config', [id, 'selfavatar']),
-        rpc.call<Record<string, string>>('get_info', [id]),
       ]);
       displayName = name ?? '';
       signature = sig ?? '';
       avatarPath = avatar ?? null;
-      fingerprint = info?.fingerprint ?? '';
     } finally {
       loaded = true;
     }
@@ -93,20 +88,6 @@
   }
 
   let recentlySaved = $derived(savedAt > 0 && Date.now() - savedAt < 2000);
-
-  function formatFingerprint(fp: string): string {
-    return fp.replace(/(.{4})/g, '$1 ').trim();
-  }
-
-  async function copyFingerprint() {
-    try {
-      await navigator.clipboard.writeText(fingerprint);
-      fingerprintCopied = true;
-      setTimeout(() => (fingerprintCopied = false), 2000);
-    } catch {
-      /* clipboard denied */
-    }
-  }
 </script>
 
 <h2>{t('Profile')}</h2>
@@ -166,18 +147,6 @@
       </Button>
     </div>
   </SettingsSection>
-
-  {#if fingerprint}
-    <SettingsSection title={t('Fingerprint')}>
-      <div class="fingerprint-row">
-        <code class="fingerprint" data-testid="settings-profile__fingerprint">{formatFingerprint(fingerprint)}</code>
-        <Button variant="secondary" size="sm" onclick={copyFingerprint} aria-label={t('Copy')} data-testid="settings-profile__fingerprint-copy">
-          <Icon name="copy" size={14} />
-          {fingerprintCopied ? t('copied_to_clipboard') : t('Copy')}
-        </Button>
-      </div>
-    </SettingsSection>
-  {/if}
 {/if}
 
 <style>
@@ -270,23 +239,5 @@
     margin-top: var(--space-4);
     display: flex;
     justify-content: flex-end;
-  }
-  .fingerprint-row {
-    display: flex;
-    align-items: flex-start;
-    gap: var(--space-3);
-  }
-  .fingerprint {
-    flex: 1;
-    min-width: 0;
-    font-family: var(--font-mono, monospace);
-    font-size: var(--text-sm);
-    color: var(--color-fg-secondary);
-    word-break: break-all;
-    user-select: all;
-    padding: 8px 0 0 0;
-  }
-  .fingerprint-row :global(button) {
-    flex-shrink: 0;
   }
 </style>
