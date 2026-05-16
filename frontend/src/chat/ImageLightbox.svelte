@@ -1,70 +1,53 @@
 <script lang="ts">
-  import { onMount, onDestroy } from 'svelte';
+  import Overlay from '../lib/Overlay.svelte';
   import { lightbox, closeLightbox } from '../lib/state/lightbox.svelte';
   import { t } from '../lib/i18n/i18n.svelte';
   import IconButton from '../lib/IconButton.svelte';
-
-  function onKey(e: KeyboardEvent) {
-    if (e.key === 'Escape') closeLightbox();
-  }
-
-  onMount(() => {
-    window.addEventListener('keydown', onKey);
-  });
-  onDestroy(() => {
-    window.removeEventListener('keydown', onKey);
-  });
 </script>
 
-{#if lightbox.item}
-  <div
-    class="overlay"
-    role="dialog"
-    aria-modal="true"
-    aria-label={t('Image viewer')}
-    tabindex="-1"
-    onclick={(e) => {
-      if (e.target === e.currentTarget) closeLightbox();
-    }}
-    onkeydown={(e) => {
-      if (e.key === 'Enter' || e.key === ' ') {
-        if (e.target === e.currentTarget) {
-          e.preventDefault();
-          closeLightbox();
-        }
-      }
-    }}
-  >
-    {#if lightbox.item.kind === 'image'}
-      <img src={lightbox.item.url} alt={lightbox.item.caption ?? ''} />
-    {:else}
-      <!-- svelte-ignore a11y_media_has_caption -->
-      <video src={lightbox.item.url} controls autoplay></video>
-    {/if}
-    {#if lightbox.item.caption}
-      <div class="caption">{lightbox.item.caption}</div>
-    {/if}
+<Overlay
+  open={lightbox.item != null}
+  onClose={closeLightbox}
+  ariaLabel={t('Image viewer')}
+  backdrop="rgba(0, 0, 0, 0.92)"
+  class="lightbox-overlay"
+>
+  {#if lightbox.item}
+    <div class="content">
+      {#if lightbox.item.kind === 'image'}
+        <img src={lightbox.item.url} alt={lightbox.item.caption ?? ''} />
+      {:else}
+        <!-- svelte-ignore a11y_media_has_caption -->
+        <video src={lightbox.item.url} controls autoplay></video>
+      {/if}
+      {#if lightbox.item.caption}
+        <div class="caption">{lightbox.item.caption}</div>
+      {/if}
+    </div>
     <IconButton
       class="lightbox-close"
       icon="x"
       label={t('Close')}
       onclick={closeLightbox}
     />
-  </div>
-{/if}
+  {/if}
+</Overlay>
 
 <style>
-  .overlay {
-    position: fixed;
-    inset: 0;
-    background: rgba(0, 0, 0, 0.92);
+  /* The dark backdrop reads as click-to-dismiss. */
+  :global(.lightbox-overlay) {
+    cursor: zoom-out;
+  }
+  /* Stacks the media above its caption. `pointer-events: none` lets a click
+     on the 32px gutter fall through to the Overlay backdrop and dismiss —
+     only the media and caption themselves swallow the click. */
+  .content {
     display: flex;
     flex-direction: column;
     align-items: center;
-    justify-content: center;
+    gap: 12px;
     padding: 32px;
-    z-index: var(--z-modal);
-    cursor: zoom-out;
+    pointer-events: none;
   }
   img,
   video {
@@ -72,17 +55,18 @@
     max-height: calc(100vh - 96px);
     border-radius: 4px;
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6);
+    pointer-events: auto;
     cursor: default;
   }
   .caption {
-    margin-top: 12px;
     color: rgba(255, 255, 255, 0.9);
     font-size: var(--text-sm);
     max-width: 80%;
     text-align: center;
+    pointer-events: auto;
     cursor: default;
   }
-  .overlay :global(.lightbox-close) {
+  :global(.lightbox-close) {
     position: absolute;
     top: 16px;
     right: 16px;

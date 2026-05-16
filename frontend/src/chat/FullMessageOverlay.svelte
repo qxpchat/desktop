@@ -1,82 +1,49 @@
 <script lang="ts">
-  import { onMount, onDestroy } from 'svelte';
+  import Overlay from '../lib/Overlay.svelte';
   import { fullMessage, closeFullMessage } from '../lib/state/fullMessage.svelte';
   import { t } from '../lib/i18n/i18n.svelte';
   import IconButton from '../lib/IconButton.svelte';
-
-  function onKey(e: KeyboardEvent) {
-    if (e.key === 'Escape' && fullMessage.open) closeFullMessage();
-  }
-
-  onMount(() => {
-    window.addEventListener('keydown', onKey);
-  });
-  onDestroy(() => {
-    window.removeEventListener('keydown', onKey);
-  });
 </script>
 
-{#if fullMessage.open}
-  <div
-    class="overlay"
-    role="dialog"
-    aria-modal="true"
-    aria-label={t('Full message')}
-    tabindex="-1"
-    onclick={(e) => {
-      if (e.target === e.currentTarget) closeFullMessage();
-    }}
-    onkeydown={(e) => {
-      if ((e.key === 'Enter' || e.key === ' ') && e.target === e.currentTarget) {
-        e.preventDefault();
-        closeFullMessage();
-      }
-    }}
-  >
-    <div class="panel">
-      <header>
-        <span class="title" title={fullMessage.subject}>
-          {fullMessage.subject || t('Full message')}
-        </span>
-        <IconButton icon="x" label={t('Close')} onclick={closeFullMessage} />
-      </header>
+<Overlay
+  open={fullMessage.open}
+  onClose={closeFullMessage}
+  ariaLabel={t('Full message')}
+  backdrop="rgba(0, 0, 0, 0.6)"
+>
+  <div class="panel">
+    <header>
+      <span class="title" title={fullMessage.subject}>
+        {fullMessage.subject || t('Full message')}
+      </span>
+      <IconButton icon="x" label={t('Close')} onclick={closeFullMessage} />
+    </header>
 
-      {#if fullMessage.loading}
-        <div class="state">{t('Loading…')}</div>
-      {:else if fullMessage.error}
-        <div class="state error">{fullMessage.error}</div>
-      {:else}
-        <!-- The body is untrusted message content. `sandbox=""` is the most
-             restrictive setting: a null origin with scripts, forms, and
-             top-level navigation all disabled — no XSS surface. `allow-popups`
-             only lets explicit-target links open a new tab. -->
-        <iframe
-          class="body"
-          title={fullMessage.subject || t('Full message')}
-          sandbox="allow-popups allow-popups-to-escape-sandbox"
-          srcdoc={fullMessage.html ?? ''}
-        ></iframe>
-      {/if}
-    </div>
+    {#if fullMessage.loading}
+      <div class="state">{t('Loading…')}</div>
+    {:else if fullMessage.error}
+      <div class="state error">{fullMessage.error}</div>
+    {:else}
+      <!-- The body is untrusted message content. `sandbox` without
+           `allow-scripts` / `allow-same-origin` gives a null origin with
+           scripts, forms, and top-level navigation disabled — no XSS
+           surface. `allow-popups` only lets explicit-target links open. -->
+      <iframe
+        class="body"
+        title={fullMessage.subject || t('Full message')}
+        sandbox="allow-popups allow-popups-to-escape-sandbox"
+        srcdoc={fullMessage.html ?? ''}
+      ></iframe>
+    {/if}
   </div>
-{/if}
+</Overlay>
 
 <style>
-  .overlay {
-    position: fixed;
-    inset: 0;
-    background: rgba(0, 0, 0, 0.6);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 32px;
-    z-index: var(--z-modal);
-  }
   .panel {
     display: flex;
     flex-direction: column;
-    width: min(720px, 100%);
-    height: min(80vh, 100%);
+    width: min(720px, calc(100vw - 64px));
+    height: min(80vh, calc(100vh - 64px));
     background: var(--color-bg);
     border-radius: 12px;
     overflow: hidden;

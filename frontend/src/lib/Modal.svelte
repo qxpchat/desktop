@@ -22,6 +22,10 @@
 </script>
 
 <script lang="ts">
+  // A card-chrome dialog: the centred-card layer on top of the shared
+  // `Overlay` primitive, which owns the backdrop + Escape + click-outside.
+  import Overlay from './Overlay.svelte';
+
   let {
     open,
     onClose,
@@ -34,61 +38,26 @@
     class: extraClass = '',
     ...rest
   }: Props = $props();
-
-  // Install the window-level Escape handler only while the modal is open.
-  // Prior consumers added the listener in `onMount` (so it survived
-  // `open=false`, leaking a handler per dialog) — effect cleanup pairs the
-  // listener with the open window exactly.
-  $effect(() => {
-    if (!open) return;
-    function onKey(e: KeyboardEvent) {
-      if (e.key === 'Escape') {
-        e.preventDefault();
-        onClose();
-      }
-    }
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  });
 </script>
 
-{#if open}
-  <div
-    class="overlay {extraClass}"
-    {role}
-    aria-modal="true"
-    aria-label={ariaLabel}
-    aria-labelledby={ariaLabelledBy}
-    aria-describedby={ariaDescribedBy}
-    {...rest}
-  >
-    <button class="backdrop" aria-label="Close" onclick={onClose}></button>
-    <div class="card" data-size={size}>
-      {@render children()}
-    </div>
+<Overlay
+  {open}
+  {onClose}
+  {role}
+  {ariaLabel}
+  {ariaLabelledBy}
+  {ariaDescribedBy}
+  class={extraClass}
+  blur
+  {...rest}
+>
+  <div class="card" data-size={size}>
+    {@render children()}
   </div>
-{/if}
+</Overlay>
 
 <style>
-  .overlay {
-    position: fixed;
-    inset: 0;
-    z-index: var(--z-modal);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-  .backdrop {
-    position: absolute;
-    inset: 0;
-    background: var(--color-backdrop);
-    backdrop-filter: blur(4px);
-    border: 0;
-    cursor: default;
-  }
   .card {
-    position: relative;
-    z-index: 1;
     background: var(--color-bg-elevated);
     border-radius: var(--radius-lg);
     box-shadow: 0 16px 48px var(--color-shadow);
