@@ -27,6 +27,7 @@
   import MessageBubble from './MessageBubble.svelte';
   import InfoMessage from './InfoMessage.svelte';
   import Composer from './Composer.svelte';
+  import ContactRequestBar from './ContactRequestBar.svelte';
   import ScrollToLatest from './ScrollToLatest.svelte';
   import ContextMenu from './ContextMenu.svelte';
   import DeleteMessageDialog from './DeleteMessageDialog.svelte';
@@ -80,6 +81,17 @@
     if (item.chatType === 'InBroadcast') return false;
     if (item.chatType === 'Group' && !item.isSelfInGroup) return false;
     return true;
+  });
+
+  // Contact-request chats (`Blocked::Request`) can't be sent to until the
+  // user accepts — core's `prepare_send_msg` bails on every send otherwise.
+  // Swap the composer for the accept/decline bar. Same chatlist-item source
+  // as `canSend`; the row flips `isContactRequest` once accepted, which
+  // re-renders this back to the composer.
+  let contactRequest = $derived.by(() => {
+    const item = chatlist.items.get(chatId);
+    if (!item || !item.isContactRequest) return null;
+    return { name: item.name, isSingle: item.chatType === 'Single' };
   });
 
   $effect(() => {
@@ -653,6 +665,8 @@
         />
       </div>
     </div>
+  {:else if contactRequest}
+    <ContactRequestBar chatName={contactRequest.name} isSingle={contactRequest.isSingle} />
   {:else if canSend}
     <Composer />
   {/if}

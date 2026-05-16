@@ -533,6 +533,33 @@ export async function sendMessage(data: MessageData): Promise<void> {
   }
 }
 
+/** Accept a contact-request chat. Until accepted, deltachat-core's
+ *  `prepare_send_msg` refuses every send with "Cannot send to … Contact
+ *  request" — so the composer stays locked behind this. */
+export async function acceptChat(): Promise<void> {
+  const active = chat.active;
+  if (active == null) return;
+  try {
+    await rpc.call('accept_chat', [active.accountId, active.chatId]);
+  } catch (err) {
+    chat.error = errString(err);
+    throw err;
+  }
+}
+
+/** Block a contact-request chat (declines it). The chat drops out of the
+ *  chatlist; callers unselect it afterwards. */
+export async function blockChat(): Promise<void> {
+  const active = chat.active;
+  if (active == null) return;
+  try {
+    await rpc.call('block_chat', [active.accountId, active.chatId]);
+  } catch (err) {
+    chat.error = errString(err);
+    throw err;
+  }
+}
+
 export async function deleteMessages(ids: number[]): Promise<void> {
   const active = chat.active;
   if (active == null) return;

@@ -257,6 +257,9 @@ export const TID = {
 
   // -- Composer --
   composer: '[data-testid="composer"]',
+  contactRequestBar: '[data-testid="contact-request-bar"]',
+  contactRequestBarAccept: '[data-testid="contact-request-bar__accept"]',
+  contactRequestBarDecline: '[data-testid="contact-request-bar__decline"]',
   composerTextarea: '[data-testid="composer__textarea"]',
   composerSend: '[data-testid="composer__send"]',
   composerAttach: '[data-testid="composer__attach"]',
