@@ -12,7 +12,6 @@
     toggleReaction,
     deleteMessages,
     deleteMessagesForAll,
-    forwardMessages,
     setReplyTo,
     setEditing,
     loadOlder,
@@ -32,8 +31,8 @@
   import ContextMenu from './ContextMenu.svelte';
   import DeleteMessageDialog from './DeleteMessageDialog.svelte';
   import EmojiPicker from './EmojiPicker.svelte';
-  import ChatPicker from './ChatPicker.svelte';
   import InChatSearch from './InChatSearch.svelte';
+  import { startForward } from '../lib/state/forward.svelte';
   import ReactionDetailSheet from './ReactionDetailSheet.svelte';
   import Icon from '../lib/Icon.svelte';
   import Button from '../lib/Button.svelte';
@@ -261,8 +260,6 @@
   let contextOpen = $state<{ message: Message; x: number; y: number } | null>(null);
   let pickerOpen = $state(false);
   let pickerTarget = $state<number | null>(null);
-  let forwardOpen = $state(false);
-  let forwardTargets = $state<number[]>([]);
   let findOpen = $state(false);
   let notice = $state<string | null>(null);
   let deleteTarget = $state<{ ids: number[]; canDeleteForAll: boolean } | null>(null);
@@ -326,8 +323,8 @@
 
   function onForwardSelected() {
     if (orderedSelected.length === 0) return;
-    forwardTargets = orderedSelected;
-    forwardOpen = true;
+    startForward(orderedSelected);
+    exitSelection();
   }
   function onCopySelected() {
     const ids = orderedSelected;
@@ -428,10 +425,7 @@
       label: t('Forward'),
       icon: 'forward',
       action: 'forward',
-      onSelect: () => {
-        forwardTargets = [m.id];
-        forwardOpen = true;
-      },
+      onSelect: () => startForward([m.id]),
     });
     if (m.fromId === CONTACT_ID_SELF && m.viewType === 'Text') {
       actions.push({
@@ -461,17 +455,6 @@
       onSelect: () => enterSelection(m.id),
     });
     return actions;
-  }
-
-  async function onForwardPicked(targetChatId: number) {
-    forwardOpen = false;
-    try {
-      await forwardMessages(forwardTargets, targetChatId);
-    } catch (err) {
-      notice = `${t('Forward failed')}: ${err instanceof Error ? err.message : String(err)}`;
-    }
-    forwardTargets = [];
-    if (isSelecting) exitSelection();
   }
 
   function jumpTo(msgId: number) {
@@ -693,15 +676,6 @@
   onClose={() => {
     pickerOpen = false;
     pickerTarget = null;
-  }}
-/>
-
-<ChatPicker
-  open={forwardOpen}
-  onPick={(id) => void onForwardPicked(id)}
-  onClose={() => {
-    forwardOpen = false;
-    forwardTargets = [];
   }}
 />
 

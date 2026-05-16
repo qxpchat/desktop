@@ -32,6 +32,7 @@
   import ConfirmDialog from '../lib/ConfirmDialog.svelte';
   import ImageLightbox from '../chat/ImageLightbox.svelte';
   import FullMessageOverlay from '../chat/FullMessageOverlay.svelte';
+  import ForwardFlow from './ForwardFlow.svelte';
 
   // Pane-2 width has two valid modes:
   //   - Narrow (pfp-only) at exactly NARROW_W.
@@ -294,6 +295,7 @@
 
 <ImageLightbox />
 <FullMessageOverlay />
+<ForwardFlow />
 
 <ConfirmDialog
   open={removeError != null}

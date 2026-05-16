@@ -99,18 +99,18 @@ test('select-more + bulk forward routes all selected bubbles into a target chat'
   }
   await expect(page.locator(TID.selectionBar)).toHaveAttribute('data-count', String(texts.length));
 
-  // 4. Bulk Forward → chat picker → group. UI stays on the 1:1 after the
-  //    picker closes (selection-bar exits); manually switch to the group
-  //    to verify the messages landed there.
+  // 4. Bulk Forward → selection-bar exits, chat picker opens. Pick the
+  //    group: it opens and a confirm dialog names it; confirm to send.
   await page.locator(TID.selectionBarForward).click();
+  await expect(page.locator(TID.selectionBar)).toHaveCount(0);
   await expect(page.locator(TID.chatPicker)).toBeVisible();
   await page.locator(TID.chatPickerSearch).fill(groupName);
   await page.locator(TID.chatPickerRowByName(groupName)).first().click();
   await expect(page.locator(TID.chatPicker)).toHaveCount(0);
-  await expect(page.locator(TID.selectionBar)).toHaveCount(0);
+  await expect(page.locator(TID.chatTopbarTitle)).toHaveText(groupName);
+  await page.locator(TID.confirmDialogConfirm).click();
 
-  // 5. Switch to the target group → all three forwards arrived.
-  await openChatByName(page, groupName);
+  // 5. Already in the target group → all three forwards arrived.
   for (const t of texts) {
     await expect(
       page.locator(

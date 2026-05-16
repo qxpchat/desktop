@@ -5,11 +5,10 @@
 // re-sent the bubble locally would pass. We create a Group as the target
 // so the forward actually exercises cross-chat routing.
 //
-// Production behaviour (ChatView.onForwardPicked at L468): forwarding
-// fires `forward_messages` and stays on the source chat — it does NOT
-// navigate to the target. We switch chats manually to verify the
-// forwarded bubble landed in the group AND the source chat didn't get
-// a local duplicate.
+// Production behaviour (ForwardFlow.svelte): picking a target chat
+// *opens* that chat, then a ConfirmDialog names it; only on confirm does
+// `forward_messages` fire. We verify the forwarded bubble lands in the
+// group AND the source 1:1 keeps no local duplicate.
 
 import { test, expect } from '../../fixtures/app-paired.js';
 import {
@@ -43,29 +42,71 @@ test('forward routes the message into a different chat (group)', async ({ qxpPai
   );
   await expect(incoming).toBeVisible({ timeout: ARRIVAL_TIMEOUT_MS });
 
-  // 3. Forward → pick the group. The dialog closes and the UI stays on
-  //    the 1:1 (no auto-navigate).
+  // 3. Forward → pick the group. Picker closes, the group chat opens, and
+  //    a confirm dialog names the target.
   await incoming.click({ button: 'right' });
   await page.locator(TID.msgContextMenuItem('forward')).click();
   await expect(page.locator(TID.chatPicker)).toBeVisible();
   await page.locator(TID.chatPickerSearch).fill(groupName);
   await page.locator(TID.chatPickerRowByName(groupName)).first().click();
   await expect(page.locator(TID.chatPicker)).toHaveCount(0);
-  await expect(page.locator(TID.chatTopbarTitle)).toHaveText(peer.displayName);
+  // The target chat is now open — the user sees exactly where it lands.
+  await expect(page.locator(TID.chatTopbarTitle)).toHaveText(groupName);
+  await expect(page.locator(TID.confirmDialogConfirm)).toBeVisible();
+  await page.locator(TID.confirmDialogConfirm).click();
 
-  // 4. Source chat must NOT have a duplicate of the forwarded text — the
-  //    user is still here, they didn't forward into here.
-  const sameTextBubbles = page.locator(
-    `[data-testid="message-bubble"]`,
-    { hasText: original },
-  );
-  await expect(sameTextBubbles).toHaveCount(1);
-
-  // 5. Switch to the target group → forwarded bubble landed there.
-  await openChatByName(page, groupName);
+  // 4. Forwarded bubble landed in the group (we're already here).
   const forwarded = page.locator(
     `[data-testid="message-bubble"][data-direction="outgoing"][data-forwarded="true"]`,
     { hasText: original },
   );
   await expect(forwarded).toBeVisible({ timeout: 15_000 });
+
+  // 5. Back in the source 1:1 — exactly one bubble with that text (the
+  //    original incoming), no local duplicate.
+  await openChatByName(page, peer.displayName);
+  const sameTextBubbles = page.locator(
+    `[data-testid="message-bubble"]`,
+    { hasText: original },
+  );
+  await expect(sameTextBubbles).toHaveCount(1);
+});
+
+// Declining the confirm dialog must send nothing AND drop the user back
+// into the chat the message came from (not strand them in the target).
+test('forward → cancel sends nothing and returns to the source chat', async ({ qxpPaired, page }) => {
+  const { peer } = qxpPaired;
+
+  const groupName = `Cancel target ${Date.now()}`;
+  await createGroupChat(page, peer.displayName, groupName);
+
+  await openChatByName(page, peer.displayName);
+  const original = `cancel-me ${Date.now()}`;
+  await peer.sendTo(original);
+  const incoming = page.locator(
+    `[data-testid="message-bubble"][data-direction="incoming"]`,
+    { hasText: original },
+  );
+  await expect(incoming).toBeVisible({ timeout: ARRIVAL_TIMEOUT_MS });
+
+  // Forward → pick the group → group opens + confirm dialog → decline.
+  await incoming.click({ button: 'right' });
+  await page.locator(TID.msgContextMenuItem('forward')).click();
+  await expect(page.locator(TID.chatPicker)).toBeVisible();
+  await page.locator(TID.chatPickerSearch).fill(groupName);
+  await page.locator(TID.chatPickerRowByName(groupName)).first().click();
+  await expect(page.locator(TID.chatTopbarTitle)).toHaveText(groupName);
+  await page.locator(TID.confirmDialogCancel).click();
+
+  // Back in the source 1:1.
+  await expect(page.locator(TID.chatTopbarTitle)).toHaveText(peer.displayName);
+
+  // The group received nothing.
+  await openChatByName(page, groupName);
+  await expect(
+    page.locator(
+      `[data-testid="message-bubble"][data-forwarded="true"]`,
+      { hasText: original },
+    ),
+  ).toHaveCount(0);
 });
