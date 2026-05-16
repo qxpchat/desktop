@@ -410,5 +410,8 @@
   "You": "You",
   "You are already logged in. Log out first to use this onboarding code.": "You are already logged in. Log out first to use this onboarding code.",
   "Your friends can add this proxy by scanning the QR code.": "Your friends can add this proxy by scanning the QR code.",
-  "Your Name": "Your Name"
+  "Your Name": "Your Name",
+  "Show full message": "Show full message",
+  "Full message": "Full message",
+  "Loading…": "Loading…"
 }

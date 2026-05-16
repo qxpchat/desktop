@@ -14,6 +14,7 @@
   import Icon from '../lib/Icon.svelte';
   import { linkify } from '../lib/format/linkify';
   import { openChatByEmail } from '../lib/chatActions';
+  import { openFullMessage } from '../lib/state/fullMessage.svelte';
   import { detectYouTubeId } from '../lib/format/youtube';
   import { t } from '../lib/i18n/i18n.svelte';
 
@@ -91,6 +92,16 @@
 
   function handleRowClick() {
     if (selection) selection.onToggle();
+  }
+
+  // `hasHtml` is set by core whenever the stored text is not the whole
+  // message — either the body was truncated past 38 lines / 100 chars/line,
+  // or the email carried a real HTML part. Either way the untruncated body
+  // is fetchable via `get_message_html`; surface a "Show full message" link.
+  function showFullMessage() {
+    const accountId = chat.active?.accountId;
+    if (accountId == null) return;
+    void openFullMessage(accountId, message.id, message.subject);
   }
 
   function handleRowKey(e: KeyboardEvent) {
@@ -262,6 +273,15 @@
             {/if}
           {/each}
         </div>
+      {/if}
+
+      {#if message.hasHtml}
+        <button
+          type="button"
+          class="show-full"
+          onclick={showFullMessage}
+          data-testid="message-bubble__show-full"
+        >{t('Show full message')}</button>
       {/if}
 
       <div class="meta" data-testid="message-bubble__meta">
@@ -532,6 +552,30 @@
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+  }
+  /* "Show full message" — sits between the truncated body and the meta row,
+     right-aligned. Accent-coloured so it reads as an action. On outgoing
+     bubbles the accent IS the fill, so flip to the accent-fg colour. */
+  .show-full {
+    display: block;
+    width: fit-content;
+    margin: 4px 0 0 auto;
+    padding: 0;
+    background: transparent;
+    border: 0;
+    color: var(--color-accent);
+    font: inherit;
+    font-size: var(--text-sm);
+    font-weight: 600;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+    cursor: pointer;
+  }
+  .row.outgoing .show-full {
+    color: var(--color-accent-fg);
+  }
+  .show-full:hover {
+    opacity: 0.8;
   }
   .meta {
     display: flex;

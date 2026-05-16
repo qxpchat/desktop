@@ -27,6 +27,7 @@
   import Onboarding from '../onboarding/Onboarding.svelte';
   import Logo from '../lib/Logo.svelte';
   import ImageLightbox from '../chat/ImageLightbox.svelte';
+  import FullMessageOverlay from '../chat/FullMessageOverlay.svelte';
 
   // Pane-2 width has two valid modes:
   //   - Narrow (pfp-only) at exactly NARROW_W.
@@ -273,6 +274,7 @@
 {/if}
 
 <ImageLightbox />
+<FullMessageOverlay />
 
 <style>
   .shell {
