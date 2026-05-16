@@ -55,7 +55,10 @@
     setPaneMode({ kind: 'chooseMembers', flow: 'group', selected: [] });
   }
   function newChannel() {
-    setPaneMode({ kind: 'chooseMembers', flow: 'channel', selected: [] });
+    // No member picker for channels: broadcast recipients can only join via
+    // QR/securejoin (core rejects add_contact_to_chat on OutBroadcast unless
+    // from_handshake). Go straight to naming; invite via QR afterwards.
+    setPaneMode({ kind: 'setGroupMetadata', flow: 'channel', selected: [] });
   }
 </script>
 

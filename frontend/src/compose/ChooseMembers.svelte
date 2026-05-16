@@ -12,7 +12,7 @@
   import { t } from '../lib/i18n/i18n.svelte';
 
   type Props = {
-    mode: { kind: 'chooseMembers'; flow: 'group' | 'channel'; selected: number[] };
+    mode: { kind: 'chooseMembers'; flow: 'group'; selected: number[] };
   };
 
   let { mode }: Props = $props();
@@ -49,7 +49,6 @@
     setPaneMode({ kind: 'setGroupMetadata', flow: mode.flow, selected });
   }
 
-  let headerLabel = $derived(mode.flow === 'group' ? t('New Group') : t('New Channel'));
   let actionLabel = $derived(`${t('Next')}${selected.length > 0 ? ` · ${selected.length}` : ''}`);
 
   let selectedContacts = $derived(
@@ -60,7 +59,7 @@
 <div class="pane" data-testid="choose-members" data-flow={mode.flow}>
   <header class="header">
     <button class="back" onclick={backToInbox} aria-label={t('Cancel')} data-testid="choose-members__cancel">‹</button>
-    <h2>{headerLabel}</h2>
+    <h2>{t('New Group')}</h2>
     <div class="spacer"></div>
     <button class="next" disabled={selected.length === 0} onclick={next} data-testid="choose-members__next">{actionLabel}</button>
   </header>

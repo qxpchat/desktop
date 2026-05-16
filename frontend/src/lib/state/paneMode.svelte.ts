@@ -13,7 +13,7 @@ export type PaneMode =
   | { kind: 'compose' }
   | {
       kind: 'chooseMembers';
-      flow: 'group' | 'channel';
+      flow: 'group';
       selected: number[];
     }
   | {

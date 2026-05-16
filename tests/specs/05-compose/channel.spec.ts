@@ -1,10 +1,11 @@
 // Phase 5 — channel (broadcast) creation.
 //
-// Symmetric to the group spec but via the New Channel button — backed
-// by `create_broadcast` rather than `create_group_chat`. Channels are
-// one-way: subscribers can read but only the owner sends, so we just
-// verify the chat is created with the right name + the first outgoing
-// message lands.
+// Backed by `create_broadcast` rather than `create_group_chat`. Unlike
+// groups, channels have NO member picker: broadcast recipients can only
+// join via QR/securejoin (core rejects add_contact_to_chat on an
+// OutBroadcast). New Channel therefore goes straight to the name step.
+// We verify the chat is created as an OutBroadcast and the first
+// outgoing message lands.
 
 import { test, expect } from '../../fixtures/app-paired.js';
 import { sendComposerText } from '../../helpers/setup.js';
@@ -13,18 +14,15 @@ import { DELIVERED_TIMEOUT_MS } from '../../helpers/timeouts.js';
 
 test.setTimeout(120_000);
 
-test('compose → New Channel → pick subscriber → name → first message sends', async ({ qxpPaired, page }) => {
-  const { peer } = qxpPaired;
+test('compose → New Channel → name → first message sends', async ({ qxpPaired, page }) => {
   const channelName = `Updates ${Date.now()}`;
 
   await page.locator(TID.composeButton).click();
   await expect(page.locator(TID.composePane)).toBeVisible();
   await page.locator(TID.composePaneNewChannel).click();
 
-  await expect(page.locator(TID.chooseMembers)).toHaveAttribute('data-flow', 'channel');
-  await page.locator(TID.contactRowByName(peer.displayName)).first().click();
-  await page.locator(TID.chooseMembersNext).click();
-
+  // New Channel skips the member picker — straight to the name step.
+  await expect(page.locator(TID.chooseMembers)).toHaveCount(0);
   await expect(page.locator(TID.groupMetadata)).toHaveAttribute('data-flow', 'channel');
   await page.locator(TID.groupMetadataName).fill(channelName);
   await page.locator(TID.groupMetadataCreate).click();

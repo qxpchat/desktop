@@ -372,7 +372,7 @@
           </li>
         {/each}
       </ul>
-      {#if chat.selfInGroup}
+      {#if isGroup && chat.selfInGroup}
         <div class="group">
           <button class="row link" onclick={openAddMembers} data-testid="chat-info__add-member">
             <span class="label">{t('Add members')}</span>

@@ -70,7 +70,12 @@
   }
 
   function back() {
-    setPaneMode({ kind: 'chooseMembers', flow: mode.flow, selected: mode.selected });
+    // Channels skip the member picker — go back to the compose pane.
+    if (mode.flow === 'channel') {
+      backToInbox();
+    } else {
+      setPaneMode({ kind: 'chooseMembers', flow: mode.flow, selected: mode.selected });
+    }
   }
 </script>
 
@@ -116,9 +121,11 @@
       <p class="error">{error}</p>
     {/if}
 
-    <p class="member-count">
-      {t('{count} members will be added.', { count: mode.selected.length })}
-    </p>
+    {#if mode.flow === 'group'}
+      <p class="member-count">
+        {t('{count} members will be added.', { count: mode.selected.length })}
+      </p>
+    {/if}
   </div>
 </div>
 
