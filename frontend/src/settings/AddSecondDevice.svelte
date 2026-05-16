@@ -151,7 +151,7 @@
         <li>{t('On the other device choose “Add as Second Device” and scan the QR.')}</li>
       </ol>
       <Button variant="primary" onclick={start} data-testid="settings-add-device__start">
-        {t('Show pairing QR')}
+        {t('Start pairing')}
       </Button>
     </SettingsSection>
   {:else if stage === 'preparing'}
