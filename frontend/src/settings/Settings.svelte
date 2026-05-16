@@ -12,6 +12,9 @@
   import Connectivity from './Connectivity.svelte';
   import Logs from './Logs.svelte';
   import Icon, { type IconName } from '../lib/Icon.svelte';
+  import BackButton from '../lib/BackButton.svelte';
+  import Button from '../lib/Button.svelte';
+  import ConfirmDialog from '../lib/ConfirmDialog.svelte';
   import { t } from '../lib/i18n/i18n.svelte';
 
   type Section =
@@ -32,6 +35,8 @@
   let active = $state<Section>(((initial?.section as Section) ?? 'profile'));
   let connectivitySubView = $state<string | undefined>(initial?.subView);
   let loggingOut = $state(false);
+  let logoutConfirmOpen = $state(false);
+  let logoutError = $state<string | null>(null);
 
   const sections: { id: Section; label: string; icon: IconName }[] = $derived([
     { id: 'profile', label: t('Profile'), icon: 'user' },
@@ -48,13 +53,13 @@
     profiles.list.find((p) => p.id === accounts.selectedId) ?? null,
   );
 
-  async function logout() {
+  let logoutLabel = $derived(
+    activeProfile?.displayName ?? (accounts.selectedId != null ? `account ${accounts.selectedId}` : ''),
+  );
+
+  async function doLogout() {
     const id = accounts.selectedId;
     if (id == null) return;
-    const label = activeProfile?.displayName ?? `account ${id}`;
-    if (!confirm(t('Log out of "{name}"? All local data for this account will be deleted.', { name: label }))) {
-      return;
-    }
     loggingOut = true;
     try {
       await rpc.call('remove_account', [id]);
@@ -62,7 +67,7 @@
       await refreshProfiles(accounts.configuredIds);
       backToChat();
     } catch (err) {
-      alert(`${t('Logout failed')}: ${err instanceof Error ? err.message : String(err)}`);
+      logoutError = err instanceof Error ? err.message : String(err);
     } finally {
       loggingOut = false;
     }
@@ -71,9 +76,7 @@
 
 <section class="settings" data-testid="settings" data-active={active}>
   <header class="topbar" data-tauri-drag-region>
-    <button class="back" onclick={backToChat} aria-label={t('Back')} data-testid="settings__back">
-      <Icon name="chevron-left" size={16} /> {t('Back')}
-    </button>
+    <BackButton label={t('Back')} onclick={backToChat} data-testid="settings__back" />
     <h1>{t('Settings')}</h1>
   </header>
 
@@ -118,13 +121,36 @@
       </div>
 
       <div class="logout-row">
-        <button class="logout" disabled={loggingOut} onclick={logout} data-testid="settings__logout">
+        <Button
+          variant="danger-text"
+          disabled={loggingOut}
+          onclick={() => (logoutConfirmOpen = true)}
+          data-testid="settings__logout"
+        >
           <Icon name="log-out" size={16} />
           {loggingOut ? t('Logging out…') : t('Log out')}
-        </button>
+        </Button>
       </div>
     </div>
   </div>
+
+  <ConfirmDialog
+    open={logoutConfirmOpen}
+    title={t('Log out of "{name}"?', { name: logoutLabel })}
+    message={t('All local data for this account will be deleted.')}
+    confirmLabel={t('Log out')}
+    danger
+    onConfirm={() => void doLogout()}
+    onClose={() => (logoutConfirmOpen = false)}
+  />
+
+  <ConfirmDialog
+    open={logoutError != null}
+    mode="alert"
+    title={t('Logout failed')}
+    message={logoutError ?? ''}
+    onClose={() => (logoutError = null)}
+  />
 </section>
 
 <style>
@@ -142,13 +168,6 @@
     border-bottom: 1px solid var(--color-border);
     background: var(--color-bg-pane);
     flex: 0 0 auto;
-  }
-  .back {
-    color: var(--color-accent);
-    font-size: var(--text-md);
-    display: inline-flex;
-    align-items: center;
-    gap: 2px;
   }
   h1 {
     margin: 0;
@@ -216,21 +235,5 @@
     border-top: 1px solid var(--color-border);
     display: flex;
     justify-content: flex-start;
-  }
-  .logout {
-    padding: 8px 16px;
-    border-radius: var(--radius-md);
-    background: transparent;
-    border: 1px solid var(--color-danger);
-    color: var(--color-danger);
-    font-weight: 600;
-  }
-  .logout:hover:not(:disabled) {
-    background: var(--color-danger);
-    color: white;
-  }
-  .logout:disabled {
-    opacity: 0.5;
-    cursor: default;
   }
 </style>

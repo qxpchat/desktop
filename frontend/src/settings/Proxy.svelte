@@ -14,6 +14,8 @@
   import Toggle from '../lib/Toggle.svelte';
   import Modal from '../lib/Modal.svelte';
   import Button from '../lib/Button.svelte';
+  import BackButton from '../lib/BackButton.svelte';
+  import TextInput from '../lib/TextInput.svelte';
   import ShareProxy from './ShareProxy.svelte';
   import { t } from '../lib/i18n/i18n.svelte';
 
@@ -188,9 +190,7 @@
 </script>
 
 <header class="topbar">
-  <button class="back" onclick={onBack}>
-    <Icon name="chevron-left" size={16} /> {t('Connectivity')}
-  </button>
+  <BackButton label={t('Connectivity')} onclick={onBack} />
   <h2>{t('Proxy')}</h2>
 </header>
 
@@ -227,10 +227,12 @@
           </div>
         </button>
         <div class="row-actions">
-          <button class="link" disabled={busy} onclick={() => (shareTarget = url)}>{t('Share')}</button>
-          <button class="link link-danger" disabled={busy} onclick={() => (removeTarget = url)}>
+          <Button variant="accent-text" size="sm" disabled={busy} onclick={() => (shareTarget = url)}>
+            {t('Share')}
+          </Button>
+          <Button variant="danger-text" size="sm" disabled={busy} onclick={() => (removeTarget = url)}>
             {t('Delete')}
-          </button>
+          </Button>
         </div>
       </div>
     {/each}
@@ -250,7 +252,8 @@
     <h3>{t('Add Proxy')}</h3>
     <p>{t('Supported proxy types: HTTP(S), SOCKS5 and Shadowsocks.')}</p>
     <!-- svelte-ignore a11y_autofocus -->
-    <input
+    <TextInput
+      class="add-field"
       type="url"
       bind:value={addValue}
       placeholder="socks5://user:pass@host:1080"
@@ -293,14 +296,6 @@
     align-items: center;
     gap: var(--space-3);
     margin-bottom: var(--space-4);
-  }
-  .back {
-    color: var(--color-accent);
-    background: transparent;
-    display: inline-flex;
-    align-items: center;
-    gap: 2px;
-    font-size: var(--text-md);
   }
   h2 {
     margin: 0;
@@ -366,20 +361,8 @@
   }
   .row-actions {
     display: flex;
-    gap: var(--space-3);
+    gap: var(--space-1);
     flex: 0 0 auto;
-  }
-  .link {
-    background: transparent;
-    color: var(--color-accent);
-    font-size: var(--text-sm);
-  }
-  .link:disabled {
-    opacity: 0.5;
-    cursor: default;
-  }
-  .link-danger {
-    color: var(--color-danger);
   }
   .error {
     color: var(--color-danger);
@@ -399,20 +382,8 @@
     margin: 0 0 var(--space-3) 0;
     color: var(--color-fg-secondary);
   }
-  .dialog-body input {
-    width: 100%;
-    box-sizing: border-box;
+  .dialog-body :global(.add-field) {
     margin: 0 0 var(--space-4) 0;
-    padding: var(--space-3);
-    border-radius: var(--radius-md);
-    border: 1px solid var(--color-border);
-    background: var(--color-bg);
-    color: var(--color-fg);
-    font-family: var(--font-mono);
-    font-size: var(--text-sm);
-  }
-  .dialog-body input:focus {
-    outline: none;
   }
   .actions {
     display: flex;

@@ -1,6 +1,7 @@
 <script lang="ts">
   import { scale } from 'svelte/transition';
   import { cubicOut } from 'svelte/easing';
+  import Icon from '../lib/Icon.svelte';
   import { t } from '../lib/i18n/i18n.svelte';
 
   type Props = {
@@ -19,7 +20,7 @@
     aria-label={t('Scroll to latest')}
     transition:scale={{ start: 0.7, duration: 160, easing: cubicOut }}
   >
-    <span class="arrow" aria-hidden="true">↓</span>
+    <span class="arrow" aria-hidden="true"><Icon name="chevron-down" size={20} /></span>
     {#if count > 0}
       <span class="badge">{count > 99 ? '99+' : count}</span>
     {/if}
@@ -48,7 +49,7 @@
     transform: translateY(-1px);
   }
   .arrow {
-    font-size: 18px;
+    display: inline-flex;
     line-height: 1;
   }
   .badge {

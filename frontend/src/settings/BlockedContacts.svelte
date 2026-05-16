@@ -3,6 +3,7 @@
   import { rpc } from '../lib/rpc';
   import { accounts } from '../lib/state/accounts.svelte';
   import Avatar from '../lib/Avatar.svelte';
+  import Button from '../lib/Button.svelte';
   import { t } from '../lib/i18n/i18n.svelte';
 
   type Contact = {
@@ -50,7 +51,9 @@
           <span class="name">{c.displayName}</span>
           <span class="addr">{c.address}</span>
         </span>
-        <button class="unblock" onclick={() => unblock(c.id)} data-testid="settings-blocked__unblock">{t('Unblock')}</button>
+        <Button variant="secondary" size="sm" onclick={() => unblock(c.id)} data-testid="settings-blocked__unblock">
+          {t('Unblock')}
+        </Button>
       </li>
     {/each}
   </ul>
@@ -93,18 +96,5 @@
   .addr {
     color: var(--color-fg-secondary);
     font-size: var(--text-sm);
-  }
-  .unblock {
-    height: 32px;
-    padding: 0 var(--space-3);
-    border-radius: var(--radius-md);
-    background: var(--color-bg-hover);
-    color: var(--color-fg);
-    font-size: var(--text-sm);
-    font-weight: 500;
-  }
-  .unblock:hover {
-    background: var(--color-bg-selected);
-    color: var(--color-accent);
   }
 </style>

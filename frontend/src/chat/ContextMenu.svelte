@@ -7,6 +7,7 @@
   import type { Message } from '../lib/state/chat.svelte';
   import Icon, { type IconName } from '../lib/Icon.svelte';
   import Popover from '../lib/Popover.svelte';
+  import MenuItem from '../lib/MenuItem.svelte';
   import { t } from '../lib/i18n/i18n.svelte';
 
   type Action = {
@@ -70,22 +71,15 @@
     {#if actions.length > 0}
       <div class="actions">
         {#each actions as a}
-          <button
-            class="action"
-            class:danger={a.danger}
+          <MenuItem
+            icon={a.icon}
+            label={a.label}
+            danger={a.danger}
             disabled={a.disabled}
             onclick={() => pickAction(a)}
-            role="menuitem"
             data-testid="message-context-menu-item"
             data-action={a.action ?? ''}
-          >
-            {#if a.icon}
-              <span class="action-icon" aria-hidden="true">
-                <Icon name={a.icon} size={16} />
-              </span>
-            {/if}
-            <span>{a.label}</span>
-          </button>
+          />
         {/each}
       </div>
     {/if}
@@ -122,31 +116,5 @@
     flex-direction: column;
     border-top: 1px solid var(--color-border);
     padding-top: 4px;
-  }
-  .action {
-    display: flex;
-    align-items: center;
-    justify-content: flex-start;
-    gap: 8px;
-    padding: 6px 10px;
-    border-radius: var(--radius-sm);
-    background: transparent;
-    color: var(--color-fg);
-    text-align: left;
-    font-size: var(--text-sm);
-  }
-  .action:hover:not(:disabled) {
-    background: var(--color-bg-hover);
-  }
-  .action:disabled {
-    opacity: 0.4;
-    cursor: default;
-  }
-  .action.danger {
-    color: var(--color-danger);
-  }
-  .action-icon {
-    width: 18px;
-    text-align: center;
   }
 </style>

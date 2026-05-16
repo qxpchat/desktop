@@ -2,6 +2,8 @@
   import { importBackup } from '../lib/state/onboarding.svelte';
   import { dropZone } from '../lib/dragdrop.svelte';
   import ProgressOverlay from './ProgressOverlay.svelte';
+  import Button from '../lib/Button.svelte';
+  import BackButton from '../lib/BackButton.svelte';
   import { t } from '../lib/i18n/i18n.svelte';
 
   type Props = {
@@ -11,6 +13,7 @@
   let { onBack }: Props = $props();
 
   let dropEl: HTMLElement | undefined = $state();
+  let fileInput: HTMLInputElement | undefined = $state();
   let dragOver = $state(false);
   let uploading = $state(false);
   let errorMsg = $state<string | null>(null);
@@ -79,7 +82,7 @@
 </script>
 
 <header class="topbar" data-tauri-drag-region>
-  <button class="back" onclick={onBack}>‹ {t('Back')}</button>
+  <BackButton label={t('Back')} onclick={onBack} />
   <h1>{t('Restore Backup')}</h1>
 </header>
 
@@ -94,10 +97,15 @@
     <div class="placeholder" aria-hidden="true"></div>
     <h2>{t('Drop a .tar backup file here')}</h2>
     <p class="hint">{t('Or pick one from your device')}</p>
-    <label class="picker">
-      <input type="file" accept=".tar,application/x-tar" onchange={onPick} data-testid="onboarding-backup-import__picker" />
-      <span>{t('Choose file…')}</span>
-    </label>
+    <input
+      bind:this={fileInput}
+      type="file"
+      accept=".tar,application/x-tar"
+      onchange={onPick}
+      hidden
+      data-testid="onboarding-backup-import__picker"
+    />
+    <Button variant="primary" onclick={() => fileInput?.click()}>{t('Choose file…')}</Button>
     {#if uploading}
       <p class="status">{t('Uploading to daemon…')}</p>
     {/if}
@@ -122,11 +130,6 @@
     gap: var(--space-3);
     min-height: 48px;
     background: var(--color-bg);
-  }
-  .back {
-    color: var(--color-accent);
-    font-size: var(--text-md);
-    padding: var(--space-2);
   }
   h1 {
     margin: 0;
@@ -169,24 +172,6 @@
   .hint {
     margin: 0 0 var(--space-3) 0;
     color: var(--color-fg-secondary);
-  }
-  .picker {
-    display: inline-block;
-  }
-  .picker input {
-    display: none;
-  }
-  .picker span {
-    display: inline-block;
-    padding: 10px 16px;
-    border-radius: var(--radius-md);
-    background: var(--color-accent);
-    color: var(--color-accent-fg);
-    font-weight: 600;
-    cursor: pointer;
-  }
-  .picker span:hover {
-    filter: brightness(1.05);
   }
   .status {
     margin-top: var(--space-3);

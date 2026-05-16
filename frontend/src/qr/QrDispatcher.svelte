@@ -10,6 +10,8 @@
   import { backToChat } from '../lib/state/mainRoute.svelte';
   import Scanner from './Scanner.svelte';
   import Button from '../lib/Button.svelte';
+  import BackButton from '../lib/BackButton.svelte';
+  import TextInput from '../lib/TextInput.svelte';
   import { t } from '../lib/i18n/i18n.svelte';
 
   type Props = {
@@ -265,7 +267,7 @@
 
 <section class="qr" data-testid="qr-dispatcher" data-purpose={purpose}>
   <header class="topbar" data-tauri-drag-region>
-    <button class="back" onclick={backToChat} aria-label={t('Back')} data-testid="qr-dispatcher__back">‹ {t('Back')}</button>
+    <BackButton label={t('Back')} onclick={backToChat} data-testid="qr-dispatcher__back" />
     <h1>{title}</h1>
   </header>
 
@@ -277,26 +279,25 @@
       <p class="hint">{t('Position the QR code inside the frame.')}</p>
 
       <div class="paste-fallback">
-        <label for="qr-paste-input" class="paste-label">{t('Or paste a QR code:')}</label>
-        <input
-          id="qr-paste-input"
-          class="paste-input"
-          type="text"
+        <span class="paste-label">{t('Or paste a QR code:')}</span>
+        <TextInput
           bind:value={pasteText}
           placeholder="openpgp4fpr:… / dcaccount:… / OPENPGP4FPR:…"
           data-testid="qr-dispatcher__paste-input"
         />
-        <button
+        <Button
           class="paste-submit"
+          variant="primary"
+          size="sm"
           disabled={!pasteText.trim() || busy}
           onclick={() => {
-            const t = pasteText.trim();
-            if (t) void onScanned(t);
+            const code = pasteText.trim();
+            if (code) void onScanned(code);
           }}
           data-testid="qr-dispatcher__paste-submit"
         >
           {t('Use this code')}
-        </button>
+        </Button>
       </div>
 
       {#if errorMsg}
@@ -342,10 +343,6 @@
     border-bottom: 1px solid var(--color-border);
     background: var(--color-bg-pane);
     flex: 0 0 auto;
-  }
-  .back {
-    color: var(--color-accent);
-    font-size: var(--text-md);
   }
   h1 {
     margin: 0;
@@ -409,27 +406,7 @@
     font-size: var(--text-sm);
     color: var(--color-fg-secondary);
   }
-  .paste-input {
-    padding: 8px 10px;
-    border-radius: var(--radius-md);
-    border: 1px solid var(--color-border);
-    background: var(--color-bg-elevated);
-    font: inherit;
-    color: var(--color-fg);
-    font-family: var(--font-mono, monospace);
-    font-size: var(--text-sm);
-  }
-  .paste-submit {
+  .paste-fallback :global(.paste-submit) {
     align-self: flex-end;
-    height: 32px;
-    padding: 0 var(--space-3);
-    border-radius: var(--radius-md);
-    background: var(--color-accent);
-    color: var(--color-accent-fg);
-    font-weight: 600;
-  }
-  .paste-submit:disabled {
-    opacity: 0.5;
-    cursor: default;
   }
 </style>

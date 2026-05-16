@@ -9,10 +9,12 @@
   import { accounts } from '../lib/state/accounts.svelte';
   import { onEvent } from '../lib/events';
   import Icon from '../lib/Icon.svelte';
+  import IconButton from '../lib/IconButton.svelte';
   import SettingsSection from '../lib/SettingsSection.svelte';
   import SettingsRow from '../lib/SettingsRow.svelte';
   import Modal from '../lib/Modal.svelte';
   import Button from '../lib/Button.svelte';
+  import TextInput from '../lib/TextInput.svelte';
   import Proxy from './Proxy.svelte';
   import TransportForm, { type LoginParam } from './TransportForm.svelte';
   import { t } from '../lib/i18n/i18n.svelte';
@@ -298,28 +300,40 @@
           {/if}
         </button>
         <div class="row-actions">
-          <button class="icon-btn" disabled={busy} onclick={() => (editForm = r.param)} aria-label={t('Edit')} title={t('Edit')}>
-            <Icon name="pencil" size={14} />
-          </button>
+          <IconButton
+            variant="subtle"
+            shape="square"
+            size={28}
+            iconSize={14}
+            icon="pencil"
+            label={t('Edit')}
+            title={t('Edit')}
+            disabled={busy}
+            onclick={() => (editForm = r.param)}
+          />
           {#if r.addr !== defaultAddr}
-            <button
-              class="icon-btn"
+            <IconButton
+              variant="subtle"
+              shape="square"
+              size={28}
+              iconSize={14}
+              icon={r.isUnpublished ? 'lightbulb' : 'lightbulb-off'}
+              label={r.isUnpublished ? t('Show on contacts') : t('Hide from contacts')}
+              title={r.isUnpublished ? t('Show on contacts') : t('Hide from contacts')}
               disabled={busy}
               onclick={() => void toggleHidden(r)}
-              aria-label={r.isUnpublished ? t('Show on contacts') : t('Hide from contacts')}
-              title={r.isUnpublished ? t('Show on contacts') : t('Hide from contacts')}
-            >
-              <Icon name={r.isUnpublished ? 'lightbulb' : 'lightbulb-off'} size={14} />
-            </button>
-            <button
-              class="icon-btn danger"
+            />
+            <IconButton
+              variant="danger"
+              shape="square"
+              size={28}
+              iconSize={14}
+              icon="trash"
+              label={t('Remove')}
+              title={t('Remove')}
               disabled={busy}
               onclick={() => (removeTarget = r)}
-              aria-label={t('Remove')}
-              title={t('Remove')}
-            >
-              <Icon name="trash" size={14} />
-            </button>
+            />
           {/if}
         </div>
       </div>
@@ -362,9 +376,9 @@
     <div class="dialog-body">
       <h3>{t('Add Relay')}</h3>
       <div class="chooser">
-        <button onclick={findRelays}>{t('Find Relays…')}</button>
-        <button onclick={chooseManual}>{t('Manual Setup')}</button>
-        <button onclick={choosePaste}>{t('Paste Account Code')}</button>
+        <Button variant="secondary" block onclick={findRelays}>{t('Find Relays…')}</Button>
+        <Button variant="secondary" block onclick={chooseManual}>{t('Manual Setup')}</Button>
+        <Button variant="secondary" block onclick={choosePaste}>{t('Paste Account Code')}</Button>
       </div>
       <div class="actions">
         <Button variant="secondary" onclick={() => (addOptionsOpen = false)}>{t('Cancel')}</Button>
@@ -378,14 +392,16 @@
       <h3>{t('Paste Account Code')}</h3>
       <p>{t('Paste a DCACCOUNT:… code from the relay you want to add.')}</p>
       <!-- svelte-ignore a11y_autofocus -->
-      <textarea
+      <TextInput
+        class="paste-field"
+        multiline
+        rows={3}
         bind:value={pasteValue}
         placeholder="DCACCOUNT:https://…"
         autofocus
-        rows="3"
         spellcheck="false"
         autocapitalize="off"
-      ></textarea>
+      />
       <div class="actions">
         <Button variant="secondary" onclick={() => (pasteOpen = false)} disabled={busy}>{t('Cancel')}</Button>
         <Button variant="primary" onclick={submitPaste} disabled={busy || !pasteValue.trim()}>
@@ -539,29 +555,8 @@
   .row-actions {
     display: flex;
     align-items: center;
-    gap: var(--space-2);
+    gap: var(--space-1);
     flex: 0 0 auto;
-  }
-  .icon-btn {
-    width: 28px;
-    height: 28px;
-    border-radius: var(--radius-sm);
-    color: var(--color-fg-secondary);
-    justify-content: center;
-  }
-  .icon-btn:hover:not(:disabled) {
-    background: var(--color-bg-hover);
-    color: var(--color-fg);
-  }
-  .icon-btn.danger {
-    color: var(--color-danger);
-  }
-  .icon-btn.danger:hover:not(:disabled) {
-    background: color-mix(in srgb, var(--color-danger) 12%, transparent);
-  }
-  .icon-btn:disabled {
-    opacity: 0.4;
-    cursor: default;
   }
   .muted-row {
     color: var(--color-fg-tertiary);
@@ -599,41 +594,14 @@
     margin: 0 0 var(--space-3) 0;
     color: var(--color-fg-secondary);
   }
-  .dialog-body textarea {
-    width: 100%;
-    box-sizing: border-box;
+  .dialog-body :global(.paste-field) {
     margin: 0 0 var(--space-4) 0;
-    padding: var(--space-3);
-    border-radius: var(--radius-md);
-    border: 1px solid var(--color-border);
-    background: var(--color-bg);
-    color: var(--color-fg);
-    font-family: var(--font-mono);
-    font-size: var(--text-sm);
-    resize: vertical;
-    min-height: 72px;
-  }
-  .dialog-body textarea:focus {
-    outline: none;
   }
   .chooser {
     display: flex;
     flex-direction: column;
     gap: var(--space-2);
     margin-bottom: var(--space-3);
-  }
-  .chooser button {
-    height: 40px;
-    padding: 0 var(--space-3);
-    border-radius: var(--radius-md);
-    background: var(--color-bg-hover);
-    color: var(--color-fg);
-    font-weight: 500;
-    text-align: left;
-    justify-content: flex-start;
-  }
-  .chooser button:hover {
-    background: var(--color-bg-selected);
   }
   .actions {
     display: flex;

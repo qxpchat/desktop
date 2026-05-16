@@ -10,6 +10,8 @@
   import { fileUrl, formatBytes } from '../lib/files';
   import { onEvent } from '../lib/events';
   import Icon from '../lib/Icon.svelte';
+  import Button from '../lib/Button.svelte';
+  import BackButton from '../lib/BackButton.svelte';
   import DeleteMessageDialog from '../chat/DeleteMessageDialog.svelte';
   import { t } from '../lib/i18n/i18n.svelte';
 
@@ -91,7 +93,7 @@
 
 <section class="media" data-testid="media-browser" data-tab={tab}>
   <header class="topbar" data-tauri-drag-region>
-    <button class="back" onclick={backToChat} aria-label={t('Back')} data-testid="media-browser__back">‹ {t('Back')}</button>
+    <BackButton label={t('Back')} onclick={backToChat} data-testid="media-browser__back" />
     <h1>{t('Media')}</h1>
   </header>
 
@@ -120,7 +122,7 @@
         {#each items as m (m.id)}
           <button class="thumb" onclick={() => jump(m.id)} oncontextmenu={(e) => { e.preventDefault(); void deleteItem(m.id); }} data-testid="media-browser__tile" data-msg-id={m.id} data-view-type={m.viewType}>
             {#if m.viewType === 'Video'}
-              <span class="play" aria-hidden="true">▶</span>
+              <span class="play" aria-hidden="true"><Icon name="play" size={14} /></span>
             {/if}
             {#if m.file}
               <img src={fileUrl(m.file)} alt={m.fileName ?? ''} loading="lazy" />
@@ -139,8 +141,8 @@
               <span class="name">{m.fileName ?? (m.viewType === 'Voice' ? t('Voice message') : t('Audio'))}</span>
               <span class="sub">{new Date(m.timestamp * 1000).toLocaleString()} · {formatBytes(m.fileBytes)}</span>
             </span>
-            <button class="link" onclick={() => jump(m.id)} data-testid="media-browser__row-show">{t('Show')}</button>
-            <button class="link danger" onclick={() => void deleteItem(m.id)} data-testid="media-browser__row-delete">{t('Delete')}</button>
+            <Button variant="accent-text" size="sm" onclick={() => jump(m.id)} data-testid="media-browser__row-show">{t('Show')}</Button>
+            <Button variant="danger-text" size="sm" onclick={() => void deleteItem(m.id)} data-testid="media-browser__row-delete">{t('Delete')}</Button>
           </li>
         {/each}
       </ul>
@@ -156,8 +158,8 @@
               <span class="sub">{new Date(m.timestamp * 1000).toLocaleString()} · {formatBytes(m.fileBytes)}</span>
             </span>
             <a class="link" href={fileUrl(m.file ?? undefined)} download={m.fileName ?? undefined} data-testid="media-browser__row-download">{t('Download')}</a>
-            <button class="link" onclick={() => jump(m.id)} data-testid="media-browser__row-show">{t('Show')}</button>
-            <button class="link danger" onclick={() => void deleteItem(m.id)} data-testid="media-browser__row-delete">{t('Delete')}</button>
+            <Button variant="accent-text" size="sm" onclick={() => jump(m.id)} data-testid="media-browser__row-show">{t('Show')}</Button>
+            <Button variant="danger-text" size="sm" onclick={() => void deleteItem(m.id)} data-testid="media-browser__row-delete">{t('Delete')}</Button>
           </li>
         {/each}
       </ul>
@@ -190,10 +192,6 @@
     min-height: 56px;
     flex: 0 0 auto;
   }
-  .back {
-    color: var(--color-accent);
-    font-size: var(--text-md);
-  }
   h1 {
     margin: 0;
     font-size: var(--text-lg);
@@ -207,10 +205,17 @@
   .tabs button {
     flex: 1;
     padding: 10px;
+    border: 0;
     background: transparent;
     color: var(--color-fg-secondary);
     font-weight: 500;
+    font-size: var(--text-md);
     border-bottom: 2px solid transparent;
+    cursor: pointer;
+    transition: background 0.1s ease, color 0.1s ease;
+  }
+  .tabs button:hover:not(.active) {
+    background: var(--color-bg-hover);
   }
   .tabs button.active {
     color: var(--color-accent);
@@ -283,13 +288,22 @@
     font-size: var(--text-xs);
     color: var(--color-fg-tertiary);
   }
+  /* The download action stays an <a> for the native `download` attribute;
+     styled to match the accent-text Button siblings beside it. */
   .link {
+    display: inline-flex;
+    align-items: center;
+    height: 30px;
+    padding: 0 var(--space-3);
+    border-radius: var(--radius-md);
     background: transparent;
     color: var(--color-accent);
+    font-size: var(--text-sm);
+    font-weight: 600;
     text-decoration: none;
-    padding: 4px 8px;
+    transition: background 0.1s ease;
   }
-  .link.danger {
-    color: var(--color-danger);
+  .link:hover {
+    background: var(--color-bg-hover);
   }
 </style>

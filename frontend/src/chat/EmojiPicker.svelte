@@ -1,6 +1,7 @@
 <script lang="ts">
   import { CATEGORY_LABELS, EMOJI, type Category } from '../lib/emoji/data';
   import { emojiRecents, recordEmojiUse } from '../lib/emoji/recents.svelte';
+  import SearchField from '../lib/SearchField.svelte';
   import { t } from '../lib/i18n/i18n.svelte';
 
   type Props = {
@@ -27,17 +28,25 @@
     if (q) return EMOJI.filter((e) => e.k.includes(q));
     return EMOJI.filter((e) => e.cat === activeCat);
   });
+
+  // Escape dismisses — listener lifecycle-bound to the open window.
+  $effect(() => {
+    if (!open) return;
+    function onKey(e: KeyboardEvent) {
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        onClose();
+      }
+    }
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  });
 </script>
 
 {#if open}
   <button class="backdrop" onclick={onClose} aria-label={t('Close picker')}></button>
   <div class="picker" role="dialog" aria-label={t('Emoji picker')}>
-    <input
-      type="search"
-      class="search"
-      placeholder={t('Search emoji…')}
-      bind:value={search}
-    />
+    <SearchField placeholder={t('Search emoji…')} bind:value={search} />
 
     {#if !search && emojiRecents.list.length > 0}
       <div class="section-label">{t('Recents')}</div>
@@ -114,17 +123,6 @@
     flex-direction: column;
     gap: 8px;
     max-height: 360px;
-  }
-  .search {
-    height: 32px;
-    border-radius: var(--radius-md);
-    background: var(--color-bg-hover);
-    padding: 0 var(--space-3);
-    border: 1px solid transparent;
-    font-size: var(--text-md);
-  }
-  .search:focus {
-    outline: none;
   }
   .cats {
     display: flex;

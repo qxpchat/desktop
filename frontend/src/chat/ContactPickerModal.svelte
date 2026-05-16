@@ -8,6 +8,7 @@
   import ContactRow from '../compose/ContactRow.svelte';
   import Modal from '../lib/Modal.svelte';
   import IconButton from '../lib/IconButton.svelte';
+  import SearchField from '../lib/SearchField.svelte';
   import { t } from '../lib/i18n/i18n.svelte';
 
   type Props = {
@@ -39,10 +40,8 @@
       <h2>{t('Send Contact')}</h2>
       <IconButton variant="subtle" size={28} icon="x" label={t('Close')} onclick={onClose} />
     </header>
-    <!-- svelte-ignore a11y_autofocus -->
-    <input
-      class="search"
-      type="search"
+    <SearchField
+      class="picker-search"
       placeholder={t('Search contacts…')}
       bind:value={search}
       autofocus
@@ -78,17 +77,8 @@
     font-size: var(--text-md);
     font-weight: 600;
   }
-  .search {
+  .content :global(.picker-search) {
     margin: var(--space-3) var(--space-4) 0;
-    height: 32px;
-    border-radius: var(--radius-md);
-    background: var(--color-bg-hover);
-    padding: 0 var(--space-3);
-    border: 1px solid transparent;
-    font-size: var(--text-md);
-  }
-  .search:focus {
-    outline: none;
   }
   .list {
     overflow-y: auto;

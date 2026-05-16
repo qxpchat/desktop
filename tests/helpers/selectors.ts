@@ -71,6 +71,10 @@ export const TID = {
   deleteChatDialogConfirm: '[data-testid="delete-chat-dialog__confirm"]',
   deleteChatDialogCancel: '[data-testid="delete-chat-dialog__cancel"]',
 
+  // -- Shared ConfirmDialog (Modal replacement for native confirm/alert) --
+  confirmDialogConfirm: '[data-testid="confirm-dialog__confirm"]',
+  confirmDialogCancel: '[data-testid="confirm-dialog__cancel"]',
+
   // -- Chat top bar --
   chatTopbar: '[data-testid="chat-topbar"]',
   chatTopbarTitle: '[data-testid="chat-topbar__title"]',

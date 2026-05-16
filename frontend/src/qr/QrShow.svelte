@@ -3,6 +3,9 @@
   import { rpc } from '../lib/rpc';
   import { accounts } from '../lib/state/accounts.svelte';
   import { backToChat } from '../lib/state/mainRoute.svelte';
+  import Button from '../lib/Button.svelte';
+  import BackButton from '../lib/BackButton.svelte';
+  import ConfirmDialog from '../lib/ConfirmDialog.svelte';
   import { t } from '../lib/i18n/i18n.svelte';
 
   type Props = {
@@ -20,6 +23,8 @@
   let url = $state<string | null>(null);
   let error = $state<string | null>(null);
   let copied = $state(false);
+  let withdrawOpen = $state(false);
+  let pasteResult = $state<string | null>(null);
 
   /**
    * Rewrite the daemon QR string into a qxp-hosted invite link. The daemon
@@ -99,18 +104,15 @@
       if (text && accounts.selectedId != null) {
         const qr = fromInviteLink(text.trim());
         const obj = await rpc.call<{ kind: string }>('check_qr', [accounts.selectedId, qr]);
-        alert(`${t('Scanned')}: ${obj.kind}`);
+        pasteResult = `${t('Scanned')}: ${obj.kind}`;
       }
     } catch (err) {
-      alert(`${t('Paste failed')}: ${err instanceof Error ? err.message : String(err)}`);
+      pasteResult = `${t('Paste failed')}: ${err instanceof Error ? err.message : String(err)}`;
     }
   }
 
-  async function withdraw() {
+  async function confirmWithdraw() {
     if (!url || accounts.selectedId == null) return;
-    if (!confirm(t('Withdraw this invite QR? Anyone holding it will no longer be able to join.'))) {
-      return;
-    }
     try {
       await rpc.call('set_config_from_qr', [accounts.selectedId, url]);
       await load();
@@ -122,7 +124,7 @@
 
 <section class="qr-show" data-testid="qr-show" data-scope={chatId == null ? 'self' : 'chat'}>
   <header class="topbar" data-tauri-drag-region>
-    <button class="back" onclick={backToChat} aria-label={t('Back')} data-testid="qr-show__back">‹ {t('Back')}</button>
+    <BackButton label={t('Back')} onclick={backToChat} data-testid="qr-show__back" />
     <h1>{chatId == null ? t('Your QR') : t('Group invite')}</h1>
   </header>
 
@@ -137,9 +139,15 @@
           <p class="url" title={shareUrl} data-testid="qr-show__url">{shareUrl}</p>
         {/if}
         <div class="actions">
-          <button onclick={copy} data-testid="qr-show__copy">{copied ? t('Copied!') : t('Copy link')}</button>
-          <button onclick={paste} data-testid="qr-show__paste">{t('Paste code')}</button>
-          <button class="danger" onclick={withdraw} data-testid="qr-show__withdraw">{t('Withdraw')}</button>
+          <Button variant="secondary" size="sm" onclick={copy} data-testid="qr-show__copy">
+            {copied ? t('Copied!') : t('Copy link')}
+          </Button>
+          <Button variant="secondary" size="sm" onclick={paste} data-testid="qr-show__paste">
+            {t('Paste code')}
+          </Button>
+          <Button variant="danger-text" size="sm" onclick={() => (withdrawOpen = true)} data-testid="qr-show__withdraw">
+            {t('Withdraw')}
+          </Button>
         </div>
       </div>
     {:else}
@@ -147,6 +155,23 @@
     {/if}
   </div>
 </section>
+
+<ConfirmDialog
+  open={withdrawOpen}
+  title={t('Withdraw this invite QR?')}
+  message={t('Anyone holding it will no longer be able to join.')}
+  confirmLabel={t('Withdraw')}
+  danger
+  onConfirm={() => void confirmWithdraw()}
+  onClose={() => (withdrawOpen = false)}
+/>
+
+<ConfirmDialog
+  open={pasteResult != null}
+  mode="alert"
+  title={pasteResult ?? ''}
+  onClose={() => (pasteResult = null)}
+/>
 
 <style>
   .qr-show {
@@ -163,10 +188,6 @@
     border-bottom: 1px solid var(--color-border);
     background: var(--color-bg-pane);
     flex: 0 0 auto;
-  }
-  .back {
-    color: var(--color-accent);
-    font-size: var(--text-md);
   }
   h1 {
     margin: 0;
@@ -221,19 +242,6 @@
     gap: var(--space-2);
     flex-wrap: wrap;
     justify-content: center;
-  }
-  .actions button {
-    padding: 8px 14px;
-    border-radius: var(--radius-md);
-    background: var(--color-bg-hover);
-    color: var(--color-fg);
-    font-weight: 500;
-  }
-  .actions button:hover {
-    background: var(--color-border);
-  }
-  .actions .danger {
-    color: var(--color-danger);
   }
   .hint {
     color: var(--color-fg-secondary);

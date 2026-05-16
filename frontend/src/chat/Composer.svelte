@@ -20,8 +20,8 @@
   import ContactPickerModal from './ContactPickerModal.svelte';
   import EmojiPicker from './EmojiPicker.svelte';
   import QuoteBar from './QuoteBar.svelte';
-  import Icon from '../lib/Icon.svelte';
   import IconButton from '../lib/IconButton.svelte';
+  import ConfirmDialog from '../lib/ConfirmDialog.svelte';
   import { t } from '../lib/i18n/i18n.svelte';
 
   let text = $state('');
@@ -30,6 +30,8 @@
   let attachOpen = $state(false);
   let emojiOpen = $state(false);
   let contactPickerOpen = $state(false);
+  // Shared alert-dialog message — replaces native `alert()`.
+  let notice = $state<string | null>(null);
 
   function insertEmoji(c: string) {
     const ta = textarea;
@@ -215,7 +217,7 @@
     try {
       await run();
     } catch (err) {
-      alert(`Could not attach file: ${err instanceof Error ? err.message : String(err)}`);
+      notice = `${t('Could not attach file')}: ${err instanceof Error ? err.message : String(err)}`;
     }
   }
 
@@ -251,7 +253,7 @@
       return; // command unavailable — leave the default text paste alone
     }
     if (paths.length === 0) return; // a genuine text paste
-    if (paths.length > 1) alert(t('Only one file at a time can be attached.'));
+    if (paths.length > 1) notice = t('Only one file at a time can be attached.');
     text = before; // drop the filename the default paste inserted
     await stageOrWarn(() => stageAttachmentFromPath(paths[0]));
   }
@@ -279,7 +281,7 @@
       await sendContact(contactId, draft);
     } catch (err) {
       text = draft;
-      alert(`Could not share contact: ${err instanceof Error ? err.message : String(err)}`);
+      notice = `${t('Could not share contact')}: ${err instanceof Error ? err.message : String(err)}`;
     } finally {
       sending = false;
     }
@@ -309,7 +311,7 @@
 
   async function startRecording() {
     if (!voiceSupported) {
-      alert('Voice recording is not supported in this browser.');
+      notice = t('Voice recording is not supported in this browser.');
       return;
     }
     try {
@@ -322,7 +324,7 @@
       }, 100);
     } catch (err) {
       recorder = null;
-      alert(`Could not start recording: ${err instanceof Error ? err.message : String(err)}`);
+      notice = `${t('Could not start recording')}: ${err instanceof Error ? err.message : String(err)}`;
     }
   }
 
@@ -347,7 +349,7 @@
         filename: `voice.${ext}`,
       });
     } catch (err) {
-      alert(`Send failed: ${err instanceof Error ? err.message : String(err)}`);
+      notice = `${t('Send failed')}: ${err instanceof Error ? err.message : String(err)}`;
     } finally {
       recorder = null;
       recording = false;
@@ -392,16 +394,26 @@
   {/if}
   <div class="composer" data-testid="composer">
   {#if recording}
-    <button class="cancel-rec" onclick={cancelRecording} aria-label={t('Cancel recording')}>
-      <Icon name="x" size={18} />
-    </button>
+    <IconButton
+      variant="danger"
+      icon="x"
+      iconSize={18}
+      label={t('Cancel recording')}
+      onclick={cancelRecording}
+    />
     <div class="rec-status">
       <span class="rec-dot" aria-hidden="true"></span>
       {t('Recording…')} {fmtElapsed(recElapsed)}
     </div>
-    <button class="send" onclick={stopAndSend} aria-label={t('Send voice message')} disabled={sending} data-testid="composer__send">
-      <Icon name="send" size={18} />
-    </button>
+    <IconButton
+      variant="primary"
+      icon="send"
+      iconSize={18}
+      label={t('Send voice message')}
+      onclick={stopAndSend}
+      disabled={sending}
+      data-testid="composer__send"
+    />
   {:else}
   <IconButton
     variant="subtle"
@@ -471,16 +483,16 @@
     <!-- No send button when there's nothing to send and voice is unavailable;
          hiding it avoids a permanently-disabled placeholder. -->
   {:else}
-    <button
-      class="send"
+    <IconButton
+      variant="primary"
+      icon="send"
+      iconSize={18}
+      label={t('Send message')}
+      title={t('Send (Enter)')}
       disabled={!canSend}
       onclick={send}
-      aria-label={t('Send message')}
-      title={t('Send (Enter)')}
       data-testid="composer__send"
-    >
-      <Icon name="send" size={18} />
-    </button>
+    />
   {/if}
   {/if}
   </div>
@@ -490,6 +502,13 @@
   open={contactPickerOpen}
   onPick={(id) => void shareContact(id)}
   onClose={() => (contactPickerOpen = false)}
+/>
+
+<ConfirmDialog
+  open={notice != null}
+  mode="alert"
+  title={notice ?? ''}
+  onClose={() => (notice = null)}
 />
 
 <style>
@@ -535,24 +554,6 @@
   textarea:disabled {
     opacity: 0.6;
   }
-  .send {
-    flex: 0 0 auto;
-    width: 36px;
-    height: 36px;
-    border-radius: 50%;
-    background: var(--color-accent);
-    color: var(--color-accent-fg);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-  .send:disabled {
-    opacity: 0.4;
-    cursor: default;
-  }
-  .send:not(:disabled):hover {
-    filter: brightness(1.05);
-  }
   .emoji-wrap {
     position: relative;
     flex: 0 0 auto;
@@ -563,19 +564,6 @@
   .emoji-wrap :global(.picker) {
     bottom: calc(100% + var(--space-2));
     right: 0;
-  }
-  .cancel-rec {
-    flex: 0 0 auto;
-    width: 36px;
-    height: 36px;
-    border-radius: 50%;
-    color: var(--color-danger, #b00);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-  .cancel-rec:hover {
-    background: var(--color-bg-hover);
   }
   .rec-status {
     flex: 1;

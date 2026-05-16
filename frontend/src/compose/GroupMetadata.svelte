@@ -3,6 +3,10 @@
   import { contacts } from '../lib/state/contacts.svelte';
   import { accounts } from '../lib/state/accounts.svelte';
   import { backToInbox, setPaneMode } from '../lib/state/paneMode.svelte';
+  import Button from '../lib/Button.svelte';
+  import BackButton from '../lib/BackButton.svelte';
+  import TextInput from '../lib/TextInput.svelte';
+  import Toggle from '../lib/Toggle.svelte';
   import { t } from '../lib/i18n/i18n.svelte';
 
   type Props = {
@@ -81,40 +85,52 @@
 
 <div class="pane" data-testid="group-metadata" data-flow={mode.flow}>
   <header class="header">
-    <button class="back" onclick={back} aria-label={t('Back')} data-testid="group-metadata__back">‹</button>
+    <BackButton label={t('Back')} onclick={back} data-testid="group-metadata__back" />
     <h2>{title}</h2>
     <div class="spacer"></div>
-    <button class="create" disabled={!canCreate} onclick={create} data-testid="group-metadata__create">{t('Create')}</button>
+    <Button
+      variant="primary"
+      size="sm"
+      disabled={!canCreate}
+      onclick={create}
+      data-testid="group-metadata__create"
+    >{t('Create')}</Button>
   </header>
 
   <div class="body">
-    <label class="field">
-      <span class="label">{t('Name')}</span>
-      <input bind:value={name} placeholder={mode.flow === 'group' ? t('Project chat') : t('Updates')} data-testid="group-metadata__name" />
-    </label>
+    <TextInput
+      label={t('Name')}
+      bind:value={name}
+      placeholder={mode.flow === 'group' ? t('Project chat') : t('Updates')}
+      data-testid="group-metadata__name"
+    />
 
     {#if mode.flow === 'group'}
-      <label class="field">
-        <span class="label">{t('Description (optional)')}</span>
-        <textarea bind:value={description} rows="2" placeholder={t('What\'s this group about?')}
-          data-testid="group-metadata__description"
-        ></textarea>
-      </label>
+      <TextInput
+        label={t('Description (optional)')}
+        bind:value={description}
+        multiline
+        rows={2}
+        placeholder={t('What\'s this group about?')}
+        data-testid="group-metadata__description"
+      />
 
-      <label class="toggle" class:disabled={!allSelectedAreVerified}>
-        <input
-          type="checkbox"
-          bind:checked={verified}
-          disabled={!allSelectedAreVerified}
-          data-testid="group-metadata__verified"
-        />
-        <span>
+      <div class="toggle" class:disabled={!allSelectedAreVerified}>
+        <span data-testid="group-metadata__verified" data-checked={verified}>
+          <Toggle
+            checked={verified}
+            onChange={(v) => (verified = v)}
+            disabled={!allSelectedAreVerified}
+            label={t('Verified group')}
+          />
+        </span>
+        <span class="toggle-text">
           {t('Verified group')}
           {#if !allSelectedAreVerified}
             <span class="hint">{t('— available only when every member is already verified')}</span>
           {/if}
         </span>
-      </label>
+      </div>
     {/if}
 
     {#if error}
@@ -144,14 +160,6 @@
     border-bottom: 1px solid var(--color-border);
     min-height: 56px;
   }
-  .back {
-    width: 32px;
-    height: 32px;
-    border-radius: var(--radius-sm);
-    color: var(--color-accent);
-    font-size: 22px;
-    line-height: 1;
-  }
   h2 {
     margin: 0;
     font-size: var(--text-md);
@@ -159,18 +167,6 @@
   }
   .spacer {
     flex: 1;
-  }
-  .create {
-    height: 32px;
-    padding: 0 var(--space-3);
-    border-radius: var(--radius-md);
-    background: var(--color-accent);
-    color: var(--color-accent-fg);
-    font-weight: 600;
-  }
-  .create:disabled {
-    opacity: 0.4;
-    cursor: default;
   }
   .body {
     flex: 1;
@@ -180,40 +176,17 @@
     flex-direction: column;
     gap: var(--space-3);
   }
-  .field {
-    display: flex;
-    flex-direction: column;
-    gap: var(--space-1);
-  }
-  .label {
-    font-size: var(--text-sm);
-    color: var(--color-fg-secondary);
-    font-weight: 500;
-  }
-  .field input,
-  .field textarea {
-    padding: 8px 12px;
-    border-radius: var(--radius-md);
-    border: 1px solid var(--color-border);
-    background: var(--color-bg);
-    font-family: inherit;
-    font-size: var(--text-md);
-    color: var(--color-fg);
-  }
-  .field input:focus,
-  .field textarea:focus {
-    outline: none;
-  }
   .toggle {
     display: flex;
     align-items: flex-start;
-    gap: 8px;
+    gap: var(--space-2);
     padding: var(--space-2) 0;
-    cursor: pointer;
   }
   .toggle.disabled {
     opacity: 0.6;
-    cursor: default;
+  }
+  .toggle-text {
+    font-size: var(--text-md);
   }
   .toggle .hint {
     color: var(--color-fg-tertiary);

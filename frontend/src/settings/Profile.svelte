@@ -6,7 +6,9 @@
   import { uploadBlob } from '../lib/files';
   import Avatar from '../lib/Avatar.svelte';
   import Button from '../lib/Button.svelte';
+  import TextInput from '../lib/TextInput.svelte';
   import SettingsSection from '../lib/SettingsSection.svelte';
+  import ConfirmDialog from '../lib/ConfirmDialog.svelte';
   import { t } from '../lib/i18n/i18n.svelte';
 
   let displayName = $state('');
@@ -17,6 +19,8 @@
   let loaded = $state(false);
   let avatarBusy = $state(false);
   let fileInput: HTMLInputElement | undefined = $state();
+  let removeAvatarOpen = $state(false);
+  let errorMsg = $state<string | null>(null);
 
   onMount(load);
 
@@ -65,15 +69,14 @@
       avatarPath = path;
       await refreshProfiles(accounts.configuredIds);
     } catch (err) {
-      alert(`${t('Could not set avatar')}: ${err instanceof Error ? err.message : String(err)}`);
+      errorMsg = `${t('Could not set avatar')}: ${err instanceof Error ? err.message : String(err)}`;
     } finally {
       avatarBusy = false;
     }
   }
 
-  async function removeAvatar() {
+  async function doRemoveAvatar() {
     if (accounts.selectedId == null || !avatarPath) return;
-    if (!confirm(t('Remove profile picture?'))) return;
     avatarBusy = true;
     try {
       // Empty string clears the avatar in deltachat-core.
@@ -81,7 +84,7 @@
       avatarPath = null;
       await refreshProfiles(accounts.configuredIds);
     } catch (err) {
-      alert(`${t('Could not remove avatar')}: ${err instanceof Error ? err.message : String(err)}`);
+      errorMsg = `${t('Could not remove avatar')}: ${err instanceof Error ? err.message : String(err)}`;
     } finally {
       avatarBusy = false;
     }
@@ -113,13 +116,13 @@
         />
       </button>
       <div class="avatar-actions">
-        <button class="link" onclick={() => fileInput?.click()} disabled={avatarBusy}>
+        <Button variant="accent-text" size="sm" onclick={() => fileInput?.click()} disabled={avatarBusy}>
           {avatarPath ? t('Change photo') : t('Upload photo')}
-        </button>
+        </Button>
         {#if avatarPath}
-          <button class="link danger" onclick={removeAvatar} disabled={avatarBusy}>
+          <Button variant="danger-text" size="sm" onclick={() => (removeAvatarOpen = true)} disabled={avatarBusy}>
             {t('Remove photo')}
-          </button>
+          </Button>
         {/if}
       </div>
       <input
@@ -131,15 +134,25 @@
       />
     </div>
 
-    <label class="field">
-      <span class="field-label">{t('Display name')}</span>
-      <input bind:value={displayName} placeholder={t('Your name')} data-testid="settings-profile__name" />
-    </label>
+    <div class="field">
+      <TextInput
+        label={t('Display name')}
+        bind:value={displayName}
+        placeholder={t('Your name')}
+        data-testid="settings-profile__name"
+      />
+    </div>
 
-    <label class="field">
-      <span class="field-label">{t('Signature')}</span>
-      <textarea bind:value={signature} rows="3" placeholder={t('Shown in your contact info')} data-testid="settings-profile__signature"></textarea>
-    </label>
+    <div class="field">
+      <TextInput
+        label={t('Signature')}
+        bind:value={signature}
+        multiline
+        rows={3}
+        placeholder={t('Shown in your contact info')}
+        data-testid="settings-profile__signature"
+      />
+    </div>
 
     <div class="actions">
       <Button variant="primary" onclick={save} disabled={saving} data-testid="settings-profile__save">
@@ -148,6 +161,22 @@
     </div>
   </SettingsSection>
 {/if}
+
+<ConfirmDialog
+  open={removeAvatarOpen}
+  title={t('Remove profile picture?')}
+  confirmLabel={t('Remove photo')}
+  danger
+  onConfirm={() => void doRemoveAvatar()}
+  onClose={() => (removeAvatarOpen = false)}
+/>
+
+<ConfirmDialog
+  open={errorMsg != null}
+  mode="alert"
+  title={errorMsg ?? ''}
+  onClose={() => (errorMsg = null)}
+/>
 
 <style>
   h2 {
@@ -172,6 +201,9 @@
     cursor: pointer;
     flex: 0 0 auto;
   }
+  .avatar-btn:hover:not(:disabled) {
+    filter: brightness(0.95);
+  }
   .avatar-btn:disabled {
     cursor: default;
     opacity: 0.6;
@@ -182,58 +214,9 @@
     align-items: flex-start;
     gap: var(--space-1);
   }
-  .avatar-actions .link {
-    background: transparent;
-    color: var(--color-accent);
-    padding: 4px 0;
-    font-size: var(--text-md);
-    font-weight: 500;
-    justify-content: flex-start;
-  }
-  .avatar-actions .link:hover:not(:disabled) {
-    text-decoration: underline;
-  }
-  .avatar-actions .link.danger {
-    color: var(--color-danger);
-  }
-  .avatar-actions .link:disabled {
-    opacity: 0.5;
-    cursor: default;
-  }
   .field {
     display: block;
     margin-bottom: var(--space-4);
-  }
-  .field-label {
-    display: block;
-    font-size: var(--text-xs);
-    color: var(--color-fg-secondary);
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
-    margin-bottom: 6px;
-  }
-  .field input,
-  .field textarea {
-    width: 100%;
-    box-sizing: border-box;
-    padding: 0 var(--space-3);
-    border-radius: var(--radius-md);
-    border: 1px solid var(--color-border);
-    background: var(--color-bg);
-    color: var(--color-fg);
-    font-family: inherit;
-    font-size: var(--text-sm);
-    resize: vertical;
-  }
-  .field input {
-    height: 36px;
-  }
-  .field textarea {
-    padding: var(--space-2) var(--space-3);
-  }
-  .field input:focus,
-  .field textarea:focus {
-    outline: none;
   }
   .actions {
     margin-top: var(--space-4);

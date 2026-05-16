@@ -12,6 +12,7 @@
   import { setMainRoute } from '../lib/state/mainRoute.svelte';
   import Avatar from '../lib/Avatar.svelte';
   import Icon from '../lib/Icon.svelte';
+  import BackButton from '../lib/BackButton.svelte';
   import { liveLocations } from '../lib/state/liveLocations.svelte';
   import { t } from '../lib/i18n/i18n.svelte';
 
@@ -87,7 +88,7 @@
     {:else if mainRoute.route.kind === 'profileEditor'}
       <div class="profile-shell">
         <header class="profile-header" data-tauri-drag-region>
-          <button class="back" onclick={() => mainRoute.route = { kind: 'chat' }} aria-label={t('Back')}>‹ {t('Back')}</button>
+          <BackButton label={t('Back')} onclick={() => (mainRoute.route = { kind: 'chat' })} />
           <h1>{t('Profile')}</h1>
         </header>
         <div class="profile-body">
@@ -215,10 +216,6 @@
     margin: 0;
     font-size: var(--text-lg);
     font-weight: 600;
-  }
-  .profile-header .back {
-    color: var(--color-accent);
-    background: transparent;
   }
   .profile-body {
     flex: 1;

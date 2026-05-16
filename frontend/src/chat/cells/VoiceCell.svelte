@@ -4,6 +4,7 @@
   import { fileUrl } from '../../lib/files';
   import { t } from '../../lib/i18n/i18n.svelte';
   import Button from '../../lib/Button.svelte';
+  import Icon from '../../lib/Icon.svelte';
 
   type Props = {
     message: Message;
@@ -167,7 +168,7 @@
 
 <div class="voice" style:--cell-bg={bg} style:--cell-fg={fg} style:--cell-accent={accent}>
   <button class="play" onclick={toggle} aria-label={playing ? t('Pause') : t('Play')}>
-    {playing ? '❚❚' : '▶'}
+    <Icon name={playing ? 'pause' : 'play'} size={14} />
   </button>
   <div
     class="wave"
@@ -235,14 +236,21 @@
     color: var(--cell-fg);
   }
   .play {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
     width: 32px;
     height: 32px;
+    border: 0;
     border-radius: 50%;
     background: var(--cell-accent);
     color: var(--cell-bg);
-    font-size: 12px;
+    cursor: pointer;
     flex: 0 0 auto;
-    justify-content: center;
+    transition: filter 0.1s ease;
+  }
+  .play:hover {
+    filter: brightness(1.08);
   }
   .wave {
     flex: 1;

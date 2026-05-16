@@ -2,6 +2,9 @@
   import { onboarding, createInstantAccount, DEFAULT_RELAY } from '../lib/state/onboarding.svelte';
   import ProgressOverlay from './ProgressOverlay.svelte';
   import Button from '../lib/Button.svelte';
+  import BackButton from '../lib/BackButton.svelte';
+  import TextInput from '../lib/TextInput.svelte';
+  import MenuItem from '../lib/MenuItem.svelte';
   import { t } from '../lib/i18n/i18n.svelte';
 
   type Props = {
@@ -29,23 +32,37 @@
       /* error already surfaced via onboarding.phase = failed */
     }
   }
+
+  // Escape closes the alternate-server menu.
+  $effect(() => {
+    if (!altMenuOpen) return;
+    function onKey(e: KeyboardEvent) {
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        altMenuOpen = false;
+      }
+    }
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  });
 </script>
 
 <header class="topbar" data-tauri-drag-region>
-  <button class="back" onclick={onBack} aria-label={t('Back')}>‹ {t('Back')}</button>
+  <BackButton label={t('Back')} onclick={onBack} />
 </header>
 
 <main class="instant" data-testid="onboarding-instant">
   <div class="avatar" aria-hidden="true">{avatarLetter}</div>
 
-  <input
-    class="name"
-    type="text"
-    placeholder={t('Your name')}
-    bind:value={displayName}
-    autocomplete="nickname"
-    data-testid="onboarding-instant__name"
-  />
+  <div class="name-field">
+    <TextInput
+      align="center"
+      placeholder={t('Your name')}
+      bind:value={displayName}
+      autocomplete="nickname"
+      data-testid="onboarding-instant__name"
+    />
+  </div>
 
   <p class="hint">{t('Set a name so others recognize you.')}</p>
 
@@ -65,18 +82,16 @@
 
     {#if altMenuOpen}
       <div class="alt-menu" role="menu">
-        <a href="https://chatmail.at/relays" target="_blank" rel="noopener noreferrer" role="menuitem">
+        <a class="alt-link" href="https://chatmail.at/relays" target="_blank" rel="noopener noreferrer" role="menuitem">
           {t('Other Servers (web ↗)')}
         </a>
-        <button
-          role="menuitem"
+        <MenuItem
+          label={t('Manual Setup')}
           onclick={() => {
             altMenuOpen = false;
             onManual();
           }}
-        >
-          {t('Manual Setup')}
-        </button>
+        />
       </div>
     {/if}
   </div>
@@ -91,11 +106,6 @@
     align-items: center;
     min-height: 48px;
     background: var(--color-bg);
-  }
-  .back {
-    color: var(--color-accent);
-    font-size: var(--text-md);
-    padding: var(--space-2) var(--space-2);
   }
   .instant {
     min-height: calc(100vh - 48px);
@@ -120,18 +130,8 @@
     font-weight: 600;
     margin-bottom: var(--space-3);
   }
-  .name {
+  .name-field {
     width: 100%;
-    height: 44px;
-    padding: 0 var(--space-3);
-    border-radius: var(--radius-md);
-    border: 1px solid var(--color-border);
-    background: var(--color-bg-pane);
-    font-size: var(--text-lg);
-    text-align: center;
-  }
-  .name:focus {
-    outline: none;
   }
   .hint {
     color: var(--color-fg-secondary);
@@ -165,23 +165,20 @@
     border: 1px solid var(--color-border);
     border-radius: var(--radius-md);
     box-shadow: 0 8px 24px var(--color-shadow);
-    overflow: hidden;
+    padding: 4px;
     display: flex;
     flex-direction: column;
   }
-  .alt-menu > * {
-    padding: var(--space-3) var(--space-4);
-    font-size: var(--text-md);
+  /* External-link menu row — styled to match the MenuItem sibling. */
+  .alt-link {
+    padding: 8px 10px;
+    border-radius: var(--radius-sm);
+    font-size: var(--text-sm);
     color: var(--color-fg);
-    text-align: left;
     text-decoration: none;
-    display: block;
-    background: transparent;
+    transition: background 0.1s ease;
   }
-  .alt-menu > *:hover {
+  .alt-link:hover {
     background: var(--color-bg-hover);
-  }
-  .alt-menu > * + * {
-    border-top: 1px solid var(--color-border);
   }
 </style>

@@ -6,6 +6,7 @@
   import { setMainRoute } from '../lib/state/mainRoute.svelte';
   import SettingsSection from '../lib/SettingsSection.svelte';
   import SettingsRow from '../lib/SettingsRow.svelte';
+  import Button from '../lib/Button.svelte';
   import { t } from '../lib/i18n/i18n.svelte';
 
   let status = $state<'idle' | 'exporting' | 'ready' | 'error'>('idle');
@@ -81,7 +82,7 @@
     {:else if status === 'error'}
       <div class="row">
         <span class="label danger">{message ?? t('Export failed')}</span>
-        <button class="ghost" onclick={() => (status = 'idle')}>{t('Try again')}</button>
+        <Button variant="secondary" size="sm" onclick={() => (status = 'idle')}>{t('Try again')}</Button>
       </div>
     {/if}
   </div>
@@ -156,17 +157,5 @@
   }
   .label.danger {
     color: var(--color-danger);
-  }
-  .ghost {
-    height: 32px;
-    padding: 0 var(--space-3);
-    border-radius: var(--radius-md);
-    background: var(--color-bg-hover);
-    color: var(--color-fg);
-    font-size: var(--text-sm);
-    font-weight: 500;
-  }
-  .ghost:hover {
-    background: var(--color-bg-selected);
   }
 </style>

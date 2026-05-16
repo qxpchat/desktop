@@ -27,6 +27,9 @@
   import Splitter from './Splitter.svelte';
   import Onboarding from '../onboarding/Onboarding.svelte';
   import Logo from '../lib/Logo.svelte';
+  import Button from '../lib/Button.svelte';
+  import Icon from '../lib/Icon.svelte';
+  import ConfirmDialog from '../lib/ConfirmDialog.svelte';
   import ImageLightbox from '../chat/ImageLightbox.svelte';
   import FullMessageOverlay from '../chat/FullMessageOverlay.svelte';
 
@@ -200,13 +203,15 @@
     showAddAccountOnboarding = true;
   }
 
+  let removeError = $state<string | null>(null);
+
   async function removeAccount(id: number) {
     try {
       await rpc.call('remove_account', [id]);
       await refreshAccounts();
       await refreshProfiles(accounts.configuredIds);
     } catch (err) {
-      alert(`Could not remove account: ${err instanceof Error ? err.message : String(err)}`);
+      removeError = err instanceof Error ? err.message : String(err);
     }
   }
 
@@ -248,7 +253,12 @@
   <div data-testid="onboarding">
     <Onboarding />
     {#if showAddAccountOnboarding && accounts.configuredIds.length > 0}
-      <button class="onboarding-back" onclick={() => (showAddAccountOnboarding = false)}>← {t('Back')}</button>
+      <div class="onboarding-back">
+        <Button variant="secondary" size="sm" onclick={() => (showAddAccountOnboarding = false)}>
+          <Icon name="chevron-left" size={14} />
+          {t('Back')}
+        </Button>
+      </div>
     {/if}
   </div>
 {:else}
@@ -284,6 +294,14 @@
 
 <ImageLightbox />
 <FullMessageOverlay />
+
+<ConfirmDialog
+  open={removeError != null}
+  mode="alert"
+  title={t('Could not remove account')}
+  message={removeError ?? ''}
+  onClose={() => (removeError = null)}
+/>
 
 <style>
   .shell {
@@ -326,15 +344,6 @@
     position: fixed;
     top: calc(var(--titlebar-gutter) + var(--space-2));
     left: var(--space-3);
-    padding: 8px 14px;
-    border-radius: var(--radius-md);
-    background: var(--color-bg-elevated);
-    border: 1px solid var(--color-border);
-    color: var(--color-fg);
-    font-weight: 600;
     z-index: 100;
-  }
-  .onboarding-back:hover {
-    background: var(--color-bg-hover);
   }
 </style>

@@ -24,6 +24,7 @@
   import type { ChatListItem } from '../lib/state/chatlist.svelte';
   import { canLeaveBeforeDelete } from '../lib/chatActions';
   import Icon from '../lib/Icon.svelte';
+  import SearchField from '../lib/SearchField.svelte';
   import { t } from '../lib/i18n/i18n.svelte';
   import { onShortcut } from '../lib/shortcuts';
   import ComposePane from '../compose/ComposePane.svelte';
@@ -74,14 +75,13 @@
   let otherUnreadLabel = $derived(otherUnread > 99 ? '99+' : String(otherUnread));
 
   let search = $state('');
-  let searchInput: HTMLInputElement | undefined = $state();
+  let searchField: { focus: () => void } | undefined = $state();
 
   // Cmd/Ctrl+K focuses the chat-list search input — handler matches
   // the global shortcut dispatched from `lib/shortcuts.ts`. Effect's
   // cleanup return handles unsubscribe.
   $effect(() => onShortcut('focus-search', () => {
-    searchInput?.focus();
-    searchInput?.select();
+    searchField?.focus();
   }));
   $effect(() => {
     setSearchQuery(search);
@@ -210,13 +210,12 @@
           {/if}
         </button>
         {#if !narrow}
-          <input
+          <SearchField
             class="search"
-            type="search"
             placeholder={t('Search chats…')}
             aria-label={t('Search chats')}
             bind:value={search}
-            bind:this={searchInput}
+            bind:this={searchField}
             data-testid="chat-list-search"
           />
         {/if}
@@ -395,18 +394,9 @@
     border: 2px solid var(--color-bg-pane);
     pointer-events: none;
   }
-  .search {
+  .header :global(.search) {
     flex: 1;
-    height: 32px;
-    border-radius: var(--radius-md);
-    background: var(--color-bg-hover);
-    padding: 0 var(--space-3);
-    border: 1px solid transparent;
-    font-size: var(--text-md);
     min-width: 0;
-  }
-  .search:focus {
-    outline: none;
   }
   .compose {
     width: 32px;

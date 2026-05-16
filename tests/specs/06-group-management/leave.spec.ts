@@ -1,6 +1,6 @@
 // Phase 6 — leave a group via ChatInfo.
 //
-// Click Leave → confirm dialog → core sends the leave message + drops
+// Click Leave → ConfirmDialog → core sends the leave message + drops
 // self from the group. We verify three things, not just the UI nav:
 //   1. The topbar with the group's title is gone (selectChat(null) ran).
 //   2. The daemon-side state confirms `selfInGroup=false` on that chat
@@ -16,7 +16,6 @@ test.setTimeout(60_000);
 
 test('leave: drops selfInGroup, keeps the chat row in the list', async ({ qxpPaired, page }) => {
   const { peer, mainRpc } = qxpPaired;
-  page.on('dialog', (d) => void d.accept());
 
   const groupName = `Bye ${Date.now()}`;
   await createGroupAndOpenInfo(page, peer.displayName, groupName);
@@ -32,6 +31,7 @@ test('leave: drops selfInGroup, keeps the chat row in the list', async ({ qxpPai
   expect(before.selfInGroup).toBe(true);
 
   await page.locator(TID.chatInfoLeave).click();
+  await page.locator(TID.confirmDialogConfirm).click();
 
   // 1. Topbar with the group name is gone.
   await expect(

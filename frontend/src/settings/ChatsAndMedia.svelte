@@ -5,6 +5,9 @@
   import SettingsSection from '../lib/SettingsSection.svelte';
   import SettingsRow from '../lib/SettingsRow.svelte';
   import Toggle from '../lib/Toggle.svelte';
+  import TextInput from '../lib/TextInput.svelte';
+  import Select from '../lib/Select.svelte';
+  import Button from '../lib/Button.svelte';
   import { t } from '../lib/i18n/i18n.svelte';
 
   // Subset of deltachat config keys this section manages.
@@ -98,21 +101,22 @@
   </SettingsSection>
 
   {#snippet mediaQualitySelect()}
-    <select
-      class="select"
+    <Select
       bind:value={mediaQuality}
+      options={[
+        { value: '0', label: t('Balanced') },
+        { value: '1', label: t('High') },
+      ]}
       onchange={() => void setKey('media_quality', mediaQuality)}
-    >
-      <option value="0">{t('Balanced')}</option>
-      <option value="1">{t('High')}</option>
-    </select>
+    />
   {/snippet}
 
   {#snippet downloadLimitInput()}
-    <input
-      class="number"
+    <TextInput
+      class="cm-number"
       type="number"
       min="0"
+      align="right"
       bind:value={downloadLimit}
       onchange={() => void setKey('download_limit', downloadLimit)}
     />
@@ -136,25 +140,27 @@
   </SettingsSection>
 
   {#snippet deviceDeleteRight()}
-    <input
-      class="number"
+    <TextInput
+      class="cm-number"
       type="number"
       min="0"
+      align="right"
       bind:value={deleteDeviceAfter}
       onchange={() => void setKey('delete_device_after', deleteDeviceAfter)}
     />
-    <button class="ghost" onclick={previewDeleteDevice}>{t('Preview')}</button>
+    <Button variant="secondary" size="sm" onclick={previewDeleteDevice}>{t('Preview')}</Button>
   {/snippet}
 
   {#snippet serverDeleteRight()}
-    <input
-      class="number"
+    <TextInput
+      class="cm-number"
       type="number"
       min="0"
+      align="right"
       bind:value={deleteServerAfter}
       onchange={() => void setKey('delete_server_after', deleteServerAfter)}
     />
-    <button class="ghost" onclick={previewDeleteServer}>{t('Preview')}</button>
+    <Button variant="secondary" size="sm" onclick={previewDeleteServer}>{t('Preview')}</Button>
   {/snippet}
 {/if}
 
@@ -167,35 +173,8 @@
   .muted {
     color: var(--color-fg-tertiary);
   }
-  .select,
-  .number {
-    height: 32px;
-    padding: 0 var(--space-3);
-    border-radius: var(--radius-md);
-    border: 1px solid var(--color-border);
-    background: var(--color-bg);
-    color: var(--color-fg);
-    font-size: var(--text-sm);
-    font-family: inherit;
-  }
-  .number {
-    width: 100px;
-    text-align: right;
-  }
-  .select:focus,
-  .number:focus {
-    outline: none;
-  }
-  .ghost {
-    height: 32px;
-    padding: 0 var(--space-3);
-    border-radius: var(--radius-md);
-    background: var(--color-bg-hover);
-    color: var(--color-fg);
-    font-size: var(--text-sm);
-    font-weight: 500;
-  }
-  .ghost:hover {
-    background: var(--color-bg-selected);
+  /* Constrain the numeric TextInput in the row's right slot. */
+  :global(.cm-number) {
+    width: 96px;
   }
 </style>

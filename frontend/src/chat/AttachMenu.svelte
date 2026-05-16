@@ -1,5 +1,6 @@
 <script lang="ts">
-  import Icon, { type IconName } from '../lib/Icon.svelte';
+  import type { IconName } from '../lib/Icon.svelte';
+  import MenuItem from '../lib/MenuItem.svelte';
   import { t } from '../lib/i18n/i18n.svelte';
 
   type Props = {
@@ -25,16 +26,33 @@
     { icon: 'file', label: t('File'), action: onPickFile, tid: 'file' },
     { icon: 'user', label: t('Contact'), action: onShareContact, tid: 'contact' },
   ]);
+
+  // Escape closes — pairs the listener with the open window via effect
+  // cleanup so it never lingers while the menu is shut.
+  $effect(() => {
+    if (!open) return;
+    function onKey(e: KeyboardEvent) {
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        onClose();
+      }
+    }
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  });
 </script>
 
 {#if open}
   <button class="backdrop" onclick={onClose} aria-label={t('Close attach menu')}></button>
   <div class="menu" role="menu" aria-label={t('Attach')} data-testid="attach-menu">
-    {#each items as it}
-      <button role="menuitem" onclick={() => pick(it.action)} data-testid="attach-menu-item" data-action={it.tid}>
-        <span class="icon" aria-hidden="true"><Icon name={it.icon} size={18} /></span>
-        <span>{it.label}</span>
-      </button>
+    {#each items as it (it.tid)}
+      <MenuItem
+        icon={it.icon}
+        label={it.label}
+        onclick={() => pick(it.action)}
+        data-testid="attach-menu-item"
+        data-action={it.tid}
+      />
     {/each}
   </div>
 {/if}
@@ -44,6 +62,7 @@
     position: fixed;
     inset: 0;
     background: transparent;
+    border: 0;
     z-index: 9;
   }
   .menu {
@@ -55,32 +74,7 @@
     border: 1px solid var(--color-border);
     border-radius: var(--radius-md);
     box-shadow: 0 12px 32px var(--color-shadow);
-    overflow: hidden;
+    padding: 4px;
     min-width: 200px;
-  }
-  .menu button {
-    display: flex;
-    align-items: center;
-    justify-content: flex-start;
-    gap: 12px;
-    width: 100%;
-    padding: 10px 14px;
-    text-align: left;
-    background: transparent;
-    color: var(--color-fg);
-    font-size: var(--text-md);
-  }
-  .menu button:hover {
-    background: var(--color-bg-hover);
-  }
-  .menu button + button {
-    border-top: 1px solid var(--color-border);
-  }
-  .icon {
-    width: 24px;
-    color: var(--color-fg-secondary);
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
   }
 </style>

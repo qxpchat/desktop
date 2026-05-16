@@ -7,6 +7,8 @@
   import Avatar from '../lib/Avatar.svelte';
   import ConnectionIndicator from './ConnectionIndicator.svelte';
   import Icon from '../lib/Icon.svelte';
+  import MenuItem from '../lib/MenuItem.svelte';
+  import ConfirmDialog from '../lib/ConfirmDialog.svelte';
   import { t } from '../lib/i18n/i18n.svelte';
 
   type Props = {
@@ -24,6 +26,7 @@
   }: Props = $props();
 
   let menuFor = $state<number | null>(null);
+  let removeTarget = $state<number | null>(null);
   let proxyEnabled = $state(false);
 
   async function refreshProxyState() {
@@ -54,6 +57,19 @@
     menuFor = id;
   }
 
+  // Escape closes the account menu — listener bound to the open window.
+  $effect(() => {
+    if (menuFor == null) return;
+    function onKey(e: KeyboardEvent) {
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        menuFor = null;
+      }
+    }
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  });
+
   function openProfileEditor() {
     menuFor = null;
     setMainRoute({ kind: 'profileEditor' });
@@ -70,10 +86,8 @@
 
   function remove(id: number) {
     menuFor = null;
-    if (!confirm(t('Remove this account? All local data for it will be deleted.'))) return;
-    onRemoveAccount(id);
+    removeTarget = id;
   }
-
 </script>
 
 <aside class="nav" aria-label={t('Profiles')}>
@@ -109,9 +123,9 @@
         {#if menuFor === profile.id}
           <button class="menu-backdrop" onclick={() => (menuFor = null)} aria-label={t('Close menu')}></button>
           <div class="menu" role="menu" data-testid="nav-tabs__account-menu">
-            <button onclick={openProfileEditor} data-testid="nav-tabs__account-menu-edit">{t('Edit profile')}</button>
-            <button onclick={() => onSelect(profile.id)} data-testid="nav-tabs__account-menu-switch">{t('Switch to')}</button>
-            <button class="danger" onclick={() => remove(profile.id)} data-testid="nav-tabs__account-menu-remove">{t('Remove…')}</button>
+            <MenuItem label={t('Edit profile')} onclick={openProfileEditor} data-testid="nav-tabs__account-menu-edit" />
+            <MenuItem label={t('Switch to')} onclick={() => onSelect(profile.id)} data-testid="nav-tabs__account-menu-switch" />
+            <MenuItem label={t('Remove…')} danger onclick={() => remove(profile.id)} data-testid="nav-tabs__account-menu-remove" />
           </div>
         {/if}
       </div>
@@ -156,6 +170,18 @@
     </button>
   </div>
 </aside>
+
+<ConfirmDialog
+  open={removeTarget != null}
+  title={t('Remove this account?')}
+  message={t('All local data for it will be deleted.')}
+  confirmLabel={t('Remove')}
+  danger
+  onConfirm={() => {
+    if (removeTarget != null) onRemoveAccount(removeTarget);
+  }}
+  onClose={() => (removeTarget = null)}
+/>
 
 <style>
   .nav {
@@ -285,20 +311,5 @@
     display: flex;
     flex-direction: column;
     min-width: 160px;
-  }
-  .menu button {
-    padding: 6px 10px;
-    border-radius: var(--radius-sm);
-    background: transparent;
-    color: var(--color-fg);
-    text-align: left;
-    justify-content: flex-start;
-    font-size: var(--text-sm);
-  }
-  .menu button:hover {
-    background: var(--color-bg-hover);
-  }
-  .menu button.danger {
-    color: var(--color-danger);
   }
 </style>

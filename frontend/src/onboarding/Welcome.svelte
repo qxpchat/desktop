@@ -1,6 +1,7 @@
 <script lang="ts">
   import Logo from '../lib/Logo.svelte';
   import Button from '../lib/Button.svelte';
+  import MenuItem from '../lib/MenuItem.svelte';
   import { t } from '../lib/i18n/i18n.svelte';
 
   type Props = {
@@ -68,9 +69,9 @@
 
       {#if altMenuOpen}
         <div class="alt-menu" role="menu">
-          <button role="menuitem" onclick={manualSetup} data-testid="onboarding-welcome__manual-setup">{t('Manual Setup')}</button>
-          <button role="menuitem" onclick={restoreBackup} data-testid="onboarding-welcome__restore-backup">{t('Restore Backup')}</button>
-          <button role="menuitem" onclick={addAsSecondDevice} data-testid="onboarding-welcome__add-second-device">{t('Add as Second Device')}</button>
+          <MenuItem label={t('Manual Setup')} onclick={manualSetup} data-testid="onboarding-welcome__manual-setup" />
+          <MenuItem label={t('Restore Backup')} onclick={restoreBackup} data-testid="onboarding-welcome__restore-backup" />
+          <MenuItem label={t('Add as Second Device')} onclick={addAsSecondDevice} data-testid="onboarding-welcome__add-second-device" />
         </div>
       {/if}
     </div>
@@ -130,20 +131,8 @@
     border: 1px solid var(--color-border);
     border-radius: var(--radius-md);
     box-shadow: 0 8px 24px var(--color-shadow);
-    overflow: hidden;
+    padding: 4px;
     display: flex;
     flex-direction: column;
-  }
-  .alt-menu button {
-    padding: var(--space-3) var(--space-4);
-    justify-content: flex-start;
-    color: var(--color-fg);
-    font-size: var(--text-md);
-  }
-  .alt-menu button:hover {
-    background: var(--color-bg-hover);
-  }
-  .alt-menu button + button {
-    border-top: 1px solid var(--color-border);
   }
 </style>

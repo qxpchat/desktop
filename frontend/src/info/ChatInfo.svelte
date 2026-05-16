@@ -26,6 +26,12 @@
   import Icon from '../lib/Icon.svelte';
   import Modal from '../lib/Modal.svelte';
   import Button from '../lib/Button.svelte';
+  import BackButton from '../lib/BackButton.svelte';
+  import SettingsRow from '../lib/SettingsRow.svelte';
+  import ConfirmDialog from '../lib/ConfirmDialog.svelte';
+  import TextInput from '../lib/TextInput.svelte';
+  import SearchField from '../lib/SearchField.svelte';
+  import Select from '../lib/Select.svelte';
   import { osmEmbedUrl, osmShareUrl } from '../lib/format/openstreetmap';
   import { t } from '../lib/i18n/i18n.svelte';
 
@@ -39,6 +45,12 @@
 
   let editingName = $state(false);
   let nameInput = $state('');
+
+  // One descriptor drives the shared confirm dialog; `errorMsg` drives the
+  // shared alert dialog — both replace the webview's native dialogs.
+  type Confirm = { title: string; message?: string; confirmLabel: string; run: () => void };
+  let pendingConfirm = $state<Confirm | null>(null);
+  let errorMsg = $state<string | null>(null);
 
   // ---- add-member dialog ----
   let addMemberOpen = $state(false);
@@ -95,33 +107,63 @@
     await setEphemeralTimer(accounts.selectedId, chat.id, seconds);
   }
 
-  async function leave() {
+  function leave() {
+    if (!chat) return;
+    pendingConfirm = {
+      title: t('Leave this group?'),
+      message: t('You will need to be re-invited to rejoin.'),
+      confirmLabel: t('Leave'),
+      run: () => void doLeave(),
+    };
+  }
+  async function doLeave() {
     if (!chat || accounts.selectedId == null) return;
-    if (!confirm('Leave this group? You will need to be re-invited to rejoin.')) return;
     await leaveGroupChat(accounts.selectedId, chat.id);
     backToChat();
     selectChat(null);
   }
 
-  async function deleteChat() {
+  function deleteChat() {
+    if (!chat) return;
+    pendingConfirm = {
+      title: t('Delete this chat from your device?'),
+      message: t('Other members will keep their copy.'),
+      confirmLabel: t('Delete chat'),
+      run: () => void doDeleteChat(),
+    };
+  }
+  async function doDeleteChat() {
     if (!chat || accounts.selectedId == null) return;
-    if (!confirm('Delete this chat from your device? Other members will keep their copy.')) return;
     await deleteChatLocally(accounts.selectedId, chat.id);
     backToChat();
     selectChat(null);
   }
 
-  async function blockContact() {
+  function blockContact() {
+    if (!other) return;
+    pendingConfirm = {
+      title: t('Block {name}?', { name: other.displayName }),
+      confirmLabel: t('Block contact'),
+      run: () => void doBlockContact(),
+    };
+  }
+  async function doBlockContact() {
     if (!other || accounts.selectedId == null) return;
-    if (!confirm(`Block ${other.displayName}?`)) return;
     await blockChatContact(accounts.selectedId, other.id);
     backToChat();
     selectChat(null);
   }
 
-  async function removeMember(memberId: number) {
+  function removeMember(memberId: number) {
+    if (!chat) return;
+    pendingConfirm = {
+      title: t('Remove this member?'),
+      confirmLabel: t('Remove'),
+      run: () => void doRemoveMember(memberId),
+    };
+  }
+  async function doRemoveMember(memberId: number) {
     if (!chat || accounts.selectedId == null) return;
-    if (!confirm('Remove this member?')) return;
     await removeChatMember(accounts.selectedId, chat.id, memberId);
   }
 
@@ -164,7 +206,7 @@
       addMemberOpen = false;
       addMemberPicked = [];
     } catch (err) {
-      alert(`Add member failed: ${err instanceof Error ? err.message : String(err)}`);
+      errorMsg = `${t('Add member failed')}: ${err instanceof Error ? err.message : String(err)}`;
     } finally {
       addMemberBusy = false;
     }
@@ -189,7 +231,7 @@
       const path = await uploadBlob(file, ext);
       await setChatAvatar(accounts.selectedId, chat.id, path);
     } catch (err) {
-      alert(`Could not set image: ${err instanceof Error ? err.message : String(err)}`);
+      errorMsg = `${t('Could not set image')}: ${err instanceof Error ? err.message : String(err)}`;
     } finally {
       avatarBusy = false;
     }
@@ -221,20 +263,20 @@
     setMainRoute({ kind: 'qrShow', chatId: chat.id });
   }
 
-  const EPHEMERAL_OPTIONS = $derived([
-    { v: 0, l: t('Off') },
-    { v: 30, l: t('30 sec') },
-    { v: 300, l: t('5 min') },
-    { v: 3600, l: t('1 hour') },
-    { v: 86400, l: t('1 day') },
-    { v: 604800, l: t('1 week') },
-    { v: 2592000, l: t('4 weeks') },
+  const ephemeralOptions = $derived([
+    { value: '0', label: t('Off') },
+    { value: '30', label: t('30 sec') },
+    { value: '300', label: t('5 min') },
+    { value: '3600', label: t('1 hour') },
+    { value: '86400', label: t('1 day') },
+    { value: '604800', label: t('1 week') },
+    { value: '2592000', label: t('4 weeks') },
   ]);
 </script>
 
 <section class="info" data-testid="chat-info">
   <header class="topbar" data-tauri-drag-region>
-    <button class="back" onclick={backToChat} aria-label={t('Back')} data-testid="chat-info__back">‹ {t('Back')}</button>
+    <BackButton label={t('Back')} onclick={backToChat} data-testid="chat-info__back" />
     <h1>{t('Info')}</h1>
   </header>
 
@@ -279,7 +321,9 @@
         />
       {/if}
       {#if editingName}
-        <input bind:value={nameInput} placeholder={t('Name')} data-testid="chat-info__name-input" />
+        <div class="name-edit">
+          <TextInput bind:value={nameInput} align="center" placeholder={t('Name')} data-testid="chat-info__name-input" />
+        </div>
         <div class="actions">
           <Button variant="secondary" onclick={() => (editingName = false)} data-testid="chat-info__name-cancel">{t('Cancel')}</Button>
           <Button variant="primary" onclick={rename} data-testid="chat-info__name-save">{t('Save')}</Button>
@@ -287,7 +331,12 @@
       {:else}
         <h2 data-testid="chat-info__name">{chat.name || t('(no name)')}</h2>
         {#if isGroup || isBroadcast}
-          <button class="link" onclick={() => { nameInput = chat?.name ?? ''; editingName = true; }} data-testid="chat-info__rename">{t('Rename')}</button>
+          <Button
+            variant="accent-text"
+            size="sm"
+            onclick={() => { nameInput = chat?.name ?? ''; editingName = true; }}
+            data-testid="chat-info__rename"
+          >{t('Rename')}</Button>
         {/if}
         {#if other?.address}
           <p class="muted">{other.address}</p>
@@ -323,36 +372,32 @@
     {/if}
 
     <div class="group">
-      <button class="row link" onclick={showMedia} data-testid="chat-info__media">
-        <span class="label">{t('Media, Audio & Files')}</span>
-        <Icon name="chevron-right" size={14} />
-      </button>
+      <SettingsRow label={t('Media, Audio & Files')} onClick={showMedia} data-testid="chat-info__media" />
       {#if (isGroup || isOutBroadcast) && chat.isEncrypted}
-        <button class="row link" onclick={showQr} data-testid="chat-info__qr-invite">
-          <span class="label">{t('Invite QR')}</span>
-          <Icon name="chevron-right" size={14} />
-        </button>
+        <SettingsRow label={t('Invite QR')} onClick={showQr} data-testid="chat-info__qr-invite" />
       {/if}
     </div>
 
     <div class="group">
-      <div class="row">
-        <span class="label">{t('Disappearing messages')}</span>
-        <select onchange={(e) => void onSetEphemeral(Number((e.currentTarget as HTMLSelectElement).value))} value={chat.ephemeralTimer} data-testid="chat-info__ephemeral">
-          {#each EPHEMERAL_OPTIONS as o}
-            <option value={o.v}>{o.l}</option>
-          {/each}
-        </select>
-      </div>
+      <SettingsRow label={t('Disappearing messages')} right={ephemeralSelect} />
     </div>
+
+    {#snippet ephemeralSelect()}
+      <Select
+        value={String(chat?.ephemeralTimer ?? 0)}
+        options={ephemeralOptions}
+        onchange={(e) => void onSetEphemeral(Number((e.currentTarget as HTMLSelectElement).value))}
+        data-testid="chat-info__ephemeral"
+      />
+    {/snippet}
 
     {#if isSingle && sharedChats.length > 0}
       <h3>{t('Shared Chats')}</h3>
       <div class="group">
         {#each sharedChats as s (s.id)}
-          <button class="row link" onclick={() => openSharedChat(s.id)}>
+          <button class="shared-row" onclick={() => openSharedChat(s.id)}>
             <Avatar name={s.name} color={s.color} imagePath={s.profileImage} size={32} />
-            <span class="label shared-name">{s.name || t('(no name)')}</span>
+            <span class="shared-name">{s.name || t('(no name)')}</span>
             <Icon name="chevron-right" size={14} />
           </button>
         {/each}
@@ -370,38 +415,34 @@
               <span class="m-addr">{m.address}</span>
             </span>
             {#if m.id !== 1 && chat.selfInGroup}
-              <button class="link-danger" onclick={() => void removeMember(m.id)} data-testid="chat-info__member-remove">{t('Remove')}</button>
+              <Button
+                variant="danger-text"
+                size="sm"
+                onclick={() => void removeMember(m.id)}
+                data-testid="chat-info__member-remove"
+              >{t('Remove')}</Button>
             {/if}
           </li>
         {/each}
       </ul>
       {#if isGroup && chat.selfInGroup}
         <div class="group">
-          <button class="row link" onclick={openAddMembers} data-testid="chat-info__add-member">
-            <span class="label">{t('Add members')}</span>
-            <Icon name="chevron-right" size={14} />
-          </button>
+          <SettingsRow label={t('Add members')} onClick={openAddMembers} data-testid="chat-info__add-member" />
         </div>
       {/if}
     {/if}
 
     {#if isSingle && other}
       <div class="group">
-        <button class="row danger-row" onclick={blockContact}>
-          <span class="label">{t('Block contact')}</span>
-        </button>
+        <SettingsRow label={t('Block contact')} danger onClick={blockContact} />
       </div>
     {/if}
 
     <div class="group">
       {#if (isGroup || isBroadcast) && chat.selfInGroup}
-        <button class="row danger-row" onclick={leave} data-testid="chat-info__leave">
-          <span class="label">{t('Leave')}</span>
-        </button>
+        <SettingsRow label={t('Leave')} danger onClick={leave} data-testid="chat-info__leave" />
       {/if}
-      <button class="row danger-row" onclick={deleteChat} data-testid="chat-info__delete">
-        <span class="label">{t('Delete chat')}</span>
-      </button>
+      <SettingsRow label={t('Delete chat')} danger onClick={deleteChat} data-testid="chat-info__delete" />
     </div>
   {/if}
 
@@ -413,8 +454,7 @@
   >
     <div class="add-member-dialog" data-testid="chat-info__add-member-dialog">
       <h3>{t('Add members')}</h3>
-      <input
-        class="search"
+      <SearchField
         bind:value={addMemberQuery}
         placeholder={t('Search contacts')}
         data-testid="chat-info__add-member-search"
@@ -462,6 +502,23 @@
       </div>
     </div>
   </Modal>
+
+  <ConfirmDialog
+    open={pendingConfirm != null}
+    title={pendingConfirm?.title ?? ''}
+    message={pendingConfirm?.message}
+    confirmLabel={pendingConfirm?.confirmLabel}
+    danger
+    onConfirm={() => pendingConfirm?.run()}
+    onClose={() => (pendingConfirm = null)}
+  />
+
+  <ConfirmDialog
+    open={errorMsg != null}
+    mode="alert"
+    title={errorMsg ?? ''}
+    onClose={() => (errorMsg = null)}
+  />
 </section>
 
 <style>
@@ -479,10 +536,6 @@
     background: var(--color-bg);
     min-height: 56px;
     flex: 0 0 auto;
-  }
-  .back {
-    color: var(--color-accent);
-    font-size: var(--text-md);
   }
   h1 {
     margin: 0;
@@ -506,13 +559,9 @@
     margin: 0 0 4px;
     font-size: var(--text-xl);
   }
-  .header input {
-    padding: 8px 12px;
-    border-radius: var(--radius-md);
-    border: 1px solid var(--color-border);
-    font-size: var(--text-lg);
-    text-align: center;
+  .name-edit {
     margin-top: 8px;
+    width: 220px;
   }
   .header .actions {
     display: flex;
@@ -583,41 +632,23 @@
   .live-loc-open:hover {
     text-decoration: underline;
   }
-  .row {
+  .shared-row {
     display: flex;
     align-items: center;
-    justify-content: flex-start;
     gap: var(--space-3);
-    padding: 8px 0;
+    padding: 8px var(--space-3);
     min-height: 48px;
     width: 100%;
+    border: 0;
     background: transparent;
     color: var(--color-fg);
     text-align: left;
-  }
-  .row + .row {
-    border-top: 1px solid color-mix(in srgb, var(--color-border) 60%, transparent);
-  }
-  .row.link {
     cursor: pointer;
     border-radius: var(--radius-md);
     transition: background 0.1s ease;
   }
-  .row.link:hover {
+  .shared-row:hover {
     background: var(--color-bg-hover);
-  }
-  .row .label {
-    flex: 1;
-    min-width: 0;
-  }
-  .label {
-    flex: 1;
-  }
-  .row select {
-    padding: 6px 10px;
-    border-radius: var(--radius-md);
-    border: 1px solid var(--color-border);
-    background: var(--color-bg);
   }
   h3 {
     margin: var(--space-5) var(--space-4) var(--space-2);
@@ -626,6 +657,8 @@
     font-weight: 600;
   }
   .shared-name {
+    flex: 1;
+    min-width: 0;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -653,32 +686,18 @@
     font-size: var(--text-sm);
     color: var(--color-fg-secondary);
   }
-  .link {
-    background: transparent;
-    color: var(--color-accent);
-    padding: 0;
-  }
-  .link-danger {
-    background: transparent;
-    color: var(--color-danger);
-    padding: 0;
-    font-size: var(--text-sm);
-  }
-  .danger-row {
-    color: var(--color-danger);
-    cursor: pointer;
-    font-weight: 500;
-  }
-  .danger-row:hover {
-    background: var(--color-bg-hover);
-  }
   /* --- avatar edit --- */
   .avatar-edit {
     position: relative;
     padding: 0;
+    border: 0;
     background: transparent;
     border-radius: 50%;
     cursor: pointer;
+    transition: filter 0.1s ease;
+  }
+  .avatar-edit:hover:not(:disabled) {
+    filter: brightness(0.95);
   }
   .avatar-edit:disabled {
     opacity: 0.6;
@@ -718,14 +737,6 @@
     margin: 0;
     font-size: var(--text-lg);
     font-weight: 600;
-  }
-  .search {
-    padding: 8px 12px;
-    border-radius: var(--radius-md);
-    border: 1px solid var(--color-border);
-    background: var(--color-bg);
-    color: var(--color-fg);
-    font: inherit;
   }
   .picker {
     list-style: none;

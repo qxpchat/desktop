@@ -9,6 +9,9 @@
   import { accounts } from '../lib/state/accounts.svelte';
   import ContactRow from './ContactRow.svelte';
   import Avatar from '../lib/Avatar.svelte';
+  import Button from '../lib/Button.svelte';
+  import BackButton from '../lib/BackButton.svelte';
+  import SearchField from '../lib/SearchField.svelte';
   import { t } from '../lib/i18n/i18n.svelte';
 
   type Props = {
@@ -58,16 +61,20 @@
 
 <div class="pane" data-testid="choose-members" data-flow={mode.flow}>
   <header class="header">
-    <button class="back" onclick={backToInbox} aria-label={t('Cancel')} data-testid="choose-members__cancel">‹</button>
+    <BackButton label={t('Cancel')} onclick={backToInbox} data-testid="choose-members__cancel" />
     <h2>{t('New Group')}</h2>
     <div class="spacer"></div>
-    <button class="next" disabled={selected.length === 0} onclick={next} data-testid="choose-members__next">{actionLabel}</button>
+    <Button
+      variant="primary"
+      size="sm"
+      disabled={selected.length === 0}
+      onclick={next}
+      data-testid="choose-members__next"
+    >{actionLabel}</Button>
   </header>
 
   <div class="search-row">
-    <input
-      class="search"
-      type="search"
+    <SearchField
       placeholder={t('Search contacts…')}
       aria-label={t('Search contacts')}
       bind:value={search}
@@ -119,14 +126,6 @@
     border-bottom: 1px solid var(--color-border);
     min-height: 56px;
   }
-  .back {
-    width: 32px;
-    height: 32px;
-    border-radius: var(--radius-sm);
-    color: var(--color-accent);
-    font-size: 22px;
-    line-height: 1;
-  }
   h2 {
     margin: 0;
     font-size: var(--text-md);
@@ -135,33 +134,9 @@
   .spacer {
     flex: 1;
   }
-  .next {
-    height: 32px;
-    padding: 0 var(--space-3);
-    border-radius: var(--radius-md);
-    background: var(--color-accent);
-    color: var(--color-accent-fg);
-    font-weight: 600;
-  }
-  .next:disabled {
-    opacity: 0.4;
-    cursor: default;
-  }
   .search-row {
     padding: var(--space-2) var(--space-3);
     border-bottom: 1px solid var(--color-border);
-  }
-  .search {
-    width: 100%;
-    height: 32px;
-    border-radius: var(--radius-md);
-    background: var(--color-bg-hover);
-    padding: 0 var(--space-3);
-    border: 1px solid transparent;
-    font-size: var(--text-md);
-  }
-  .search:focus {
-    outline: none;
   }
   .pills {
     display: flex;

@@ -2,6 +2,7 @@
   import { prefs, savePrefs, getAccent, setAccent, type Theme } from '../lib/prefs.svelte';
   import { accounts } from '../lib/state/accounts.svelte';
   import SettingsSection from '../lib/SettingsSection.svelte';
+  import SegmentedControl from '../lib/SegmentedControl.svelte';
   import { t } from '../lib/i18n/i18n.svelte';
 
   // Accent is a per-profile setting — the picker reads + writes the
@@ -109,25 +110,30 @@
     prefs.textScale = v;
     savePrefs();
   }
+
+  const themeOptions = $derived(
+    THEMES.map((th) => ({
+      value: th,
+      label: THEME_LABELS[th](),
+      testId: 'settings-appearance__theme-option',
+      data: { 'data-theme': th },
+    })),
+  );
+  const textSizeOptions = $derived(
+    TEXT_SIZES.map((s) => ({ value: s.value, label: s.label })),
+  );
 </script>
 
 <h2>{t('Appearance')}</h2>
 
 <SettingsSection title={t('Theme')}>
-  <div class="seg" role="radiogroup" aria-label={t('Theme')} data-testid="settings-appearance__theme">
-    {#each THEMES as theme}
-      <button
-        role="radio"
-        aria-checked={prefs.theme === theme}
-        class:active={prefs.theme === theme}
-        onclick={() => setTheme(theme)}
-        data-testid="settings-appearance__theme-option"
-        data-theme={theme}
-      >
-        {THEME_LABELS[theme]()}
-      </button>
-    {/each}
-  </div>
+  <SegmentedControl
+    options={themeOptions}
+    value={prefs.theme}
+    onChange={setTheme}
+    ariaLabel={t('Theme')}
+    data-testid="settings-appearance__theme"
+  />
 </SettingsSection>
 
 <SettingsSection title={t('Accent color')}>
@@ -151,18 +157,12 @@
   title={t('Text size')}
   footer={t('Affects every text element using the size tokens — most of the app.')}
 >
-  <div class="seg" role="radiogroup" aria-label={t('Text size')}>
-    {#each TEXT_SIZES as size}
-      <button
-        role="radio"
-        aria-checked={prefs.textScale === size.value}
-        class:active={prefs.textScale === size.value}
-        onclick={() => setTextScale(size.value)}
-      >
-        {size.label}
-      </button>
-    {/each}
-  </div>
+  <SegmentedControl
+    options={textSizeOptions}
+    value={prefs.textScale}
+    onChange={setTextScale}
+    ariaLabel={t('Text size')}
+  />
 </SettingsSection>
 
 <style>
@@ -170,31 +170,6 @@
     margin: 0 0 var(--space-5) 0;
     font-size: var(--text-xl);
     font-weight: 600;
-  }
-  /* Segmented theme picker — pill background with a sliding-looking
-     accent button. Matches Signal Desktop's segmented theme control. */
-  .seg {
-    display: inline-flex;
-    padding: 3px;
-    background: var(--color-bg-hover);
-    border-radius: var(--radius-md);
-  }
-  .seg button {
-    padding: 6px 16px;
-    background: transparent;
-    border-radius: calc(var(--radius-md) - 2px);
-    text-transform: capitalize;
-    color: var(--color-fg);
-    font-size: var(--text-sm);
-    font-weight: 500;
-    transition: background 0.1s ease, color 0.1s ease;
-  }
-  .seg button:hover:not(.active) {
-    color: var(--color-fg);
-  }
-  .seg button.active {
-    background: var(--color-accent);
-    color: var(--color-accent-fg);
   }
   .swatches {
     display: grid;

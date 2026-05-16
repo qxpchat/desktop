@@ -29,6 +29,8 @@
   import IconButton from '../lib/IconButton.svelte';
   import Modal from '../lib/Modal.svelte';
   import Button from '../lib/Button.svelte';
+  import TextInput from '../lib/TextInput.svelte';
+  import Select from '../lib/Select.svelte';
   import { t } from '../lib/i18n/i18n.svelte';
 
   type Props =
@@ -113,102 +115,45 @@
     </header>
 
     <div class="form">
-      <label class="field">
-        <span>{t('Email')}</span>
-        <!-- svelte-ignore a11y_autofocus -->
-        <input
-          type="email"
-          bind:value={email}
-          disabled={isEdit}
-          autofocus={!isEdit}
-          autocapitalize="off"
-          autocorrect="off"
-          spellcheck="false"
-        />
-      </label>
-      <label class="field">
-        <span>{t('Password')}</span>
-        <input
-          type="password"
-          bind:value={password}
-          autocomplete="current-password"
-          onkeydown={(e) => {
-            if (e.key === 'Enter' && canSubmit) submit();
-          }}
-        />
-      </label>
+      <TextInput
+        label={t('Email')}
+        type="email"
+        bind:value={email}
+        disabled={isEdit}
+        autofocus={!isEdit}
+        autocapitalize="off"
+        autocorrect="off"
+        spellcheck="false"
+      />
+      <TextInput
+        label={t('Password')}
+        type="password"
+        bind:value={password}
+        autocomplete="current-password"
+        onkeydown={(e) => {
+          if (e.key === 'Enter' && canSubmit) submit();
+        }}
+      />
 
-      <button class="disclosure" onclick={() => (advancedOpen = !advancedOpen)} type="button">
-        <Icon name={advancedOpen ? 'arrow-down' : 'chevron-right'} size={14} />
+      <Button class="disclosure-btn" variant="accent-text" size="sm" onclick={() => (advancedOpen = !advancedOpen)}>
+        <Icon name={advancedOpen ? 'chevron-down' : 'chevron-right'} size={14} />
         {t('More options')}
-      </button>
+      </Button>
 
       {#if advancedOpen}
         <div class="advanced">
-          <label class="field">
-            <span>{t('IMAP Security')}</span>
-            <select bind:value={imapSecurity}>
-              {#each securityOptions as o (o.value)}
-                <option value={o.value}>{o.label}</option>
-              {/each}
-            </select>
-          </label>
-          <label class="field">
-            <span>{t('IMAP Login')}</span>
-            <input bind:value={imapUser} placeholder={t('Automatic')} autocapitalize="off" autocorrect="off" spellcheck="false" />
-          </label>
-          <label class="field">
-            <span>{t('IMAP Server')}</span>
-            <input bind:value={imapServer} placeholder={t('Automatic')} autocapitalize="off" autocorrect="off" spellcheck="false" />
-          </label>
-          <label class="field">
-            <span>{t('IMAP Port')}</span>
-            <input
-              bind:value={imapPort}
-              placeholder={t('Automatic')}
-              inputmode="numeric"
-              pattern="\d*"
-            />
-          </label>
+          <Select label={t('IMAP Security')} bind:value={imapSecurity} options={securityOptions} />
+          <TextInput label={t('IMAP Login')} bind:value={imapUser} placeholder={t('Automatic')} autocapitalize="off" autocorrect="off" spellcheck="false" />
+          <TextInput label={t('IMAP Server')} bind:value={imapServer} placeholder={t('Automatic')} autocapitalize="off" autocorrect="off" spellcheck="false" />
+          <TextInput label={t('IMAP Port')} bind:value={imapPort} placeholder={t('Automatic')} inputmode="numeric" pattern="\d*" />
 
-          <label class="field">
-            <span>{t('SMTP Security')}</span>
-            <select bind:value={smtpSecurity}>
-              {#each securityOptions as o (o.value)}
-                <option value={o.value}>{o.label}</option>
-              {/each}
-            </select>
-          </label>
-          <label class="field">
-            <span>{t('SMTP Login')}</span>
-            <input bind:value={smtpUser} placeholder={t('Automatic')} autocapitalize="off" autocorrect="off" spellcheck="false" />
-          </label>
-          <label class="field">
-            <span>{t('SMTP Password')}</span>
-            <input type="password" bind:value={smtpPassword} placeholder={t('Automatic')} />
-          </label>
-          <label class="field">
-            <span>{t('SMTP Server')}</span>
-            <input bind:value={smtpServer} placeholder={t('Automatic')} autocapitalize="off" autocorrect="off" spellcheck="false" />
-          </label>
-          <label class="field">
-            <span>{t('SMTP Port')}</span>
-            <input
-              bind:value={smtpPort}
-              placeholder={t('Automatic')}
-              inputmode="numeric"
-              pattern="\d*"
-            />
-          </label>
+          <Select label={t('SMTP Security')} bind:value={smtpSecurity} options={securityOptions} />
+          <TextInput label={t('SMTP Login')} bind:value={smtpUser} placeholder={t('Automatic')} autocapitalize="off" autocorrect="off" spellcheck="false" />
+          <TextInput label={t('SMTP Password')} type="password" bind:value={smtpPassword} placeholder={t('Automatic')} />
+          <TextInput label={t('SMTP Server')} bind:value={smtpServer} placeholder={t('Automatic')} autocapitalize="off" autocorrect="off" spellcheck="false" />
+          <TextInput label={t('SMTP Port')} bind:value={smtpPort} placeholder={t('Automatic')} inputmode="numeric" pattern="\d*" />
 
-          <label class="field">
-            <span>{t('Certificate Check')}</span>
-            <select bind:value={certificateChecks}>
-              {#each certOptions as o (o.value)}
-                <option value={o.value}>{o.label}</option>
-              {/each}
-            </select>
-          </label>
+          <Select label={t('Certificate Check')} bind:value={certificateChecks} options={certOptions} />
 
           <p class="hint">{t('Leave fields blank to detect automatically.')}</p>
         </div>
@@ -246,44 +191,9 @@
     flex-direction: column;
     gap: var(--space-3);
   }
-  .field {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-  }
-  .field > span {
-    font-size: var(--text-xs);
-    color: var(--color-fg-secondary);
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
-  }
-  .field input,
-  .field select {
-    height: 36px;
-    padding: 0 var(--space-3);
-    border-radius: var(--radius-md);
-    border: 1px solid var(--color-border);
-    background: var(--color-bg);
-    color: var(--color-fg);
-    font-size: var(--text-sm);
-  }
-  .field input:focus,
-  .field select:focus {
-    outline: none;
-  }
-  .field input:disabled {
-    color: var(--color-fg-tertiary);
-    background: var(--color-bg-hover);
-  }
-  .disclosure {
-    background: transparent;
-    color: var(--color-accent);
-    padding: 6px 0;
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    font-weight: 500;
+  .form :global(.disclosure-btn) {
     align-self: flex-start;
+    padding-inline: var(--space-1);
   }
   .advanced {
     display: flex;

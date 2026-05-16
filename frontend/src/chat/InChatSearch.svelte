@@ -3,10 +3,10 @@
   // `search_messages` to that chat, and steps prev/next through hits with
   // jump-and-flash behaviour.
 
-  import { tick } from 'svelte';
   import { rpc } from '../lib/rpc';
   import { flashMessage } from '../lib/state/chat.svelte';
   import IconButton from '../lib/IconButton.svelte';
+  import SearchField from '../lib/SearchField.svelte';
   import { t } from '../lib/i18n/i18n.svelte';
 
   type Props = {
@@ -22,14 +22,13 @@
   let hits = $state<number[]>([]);
   let index = $state(0);
   let busy = $state(false);
-  let input: HTMLInputElement | undefined = $state();
   let debounce: ReturnType<typeof setTimeout> | null = null;
   let gen = 0;
 
+  // The bar is `{#if open}`-gated, so it mounts fresh each open — `autofocus`
+  // on the field fires every time. Reset hit state when it closes.
   $effect(() => {
-    if (open) {
-      void tick().then(() => input?.focus());
-    } else {
+    if (!open) {
       query = '';
       hits = [];
       index = 0;
@@ -110,12 +109,12 @@
 
 {#if open}
   <div class="bar" role="search" data-testid="in-chat-search">
-    <input
-      bind:this={input}
-      type="search"
+    <SearchField
+      class="find-field"
       placeholder={t('Find in chat…')}
       bind:value={query}
       onkeydown={onKeyDown}
+      autofocus
       aria-label={t('Find in chat')}
       data-testid="in-chat-search__input"
     />
@@ -128,8 +127,26 @@
         0 / 0
       {/if}
     </span>
-    <button onclick={prev} disabled={hits.length === 0} aria-label={t('Previous match')} title={t('Previous (Shift+Enter)')} data-testid="in-chat-search__prev">↑</button>
-    <button onclick={next} disabled={hits.length === 0} aria-label={t('Next match')} title={t('Next (Enter)')} data-testid="in-chat-search__next">↓</button>
+    <IconButton
+      variant="subtle"
+      size={28}
+      icon="chevron-up"
+      label={t('Previous match')}
+      title={t('Previous (Shift+Enter)')}
+      disabled={hits.length === 0}
+      onclick={prev}
+      data-testid="in-chat-search__prev"
+    />
+    <IconButton
+      variant="subtle"
+      size={28}
+      icon="chevron-down"
+      label={t('Next match')}
+      title={t('Next (Enter)')}
+      disabled={hits.length === 0}
+      onclick={next}
+      data-testid="in-chat-search__next"
+    />
     <IconButton
       variant="subtle"
       size={28}
@@ -151,18 +168,8 @@
     background: var(--color-bg-elevated);
     border-bottom: 1px solid var(--color-border);
   }
-  input {
+  .bar :global(.find-field) {
     flex: 1;
-    height: 32px;
-    padding: 0 12px;
-    border-radius: var(--radius-md);
-    border: 1px solid var(--color-border);
-    background: var(--color-bg);
-    font-size: var(--text-md);
-    color: var(--color-fg);
-  }
-  input:focus {
-    outline: none;
   }
   .count {
     font-size: var(--text-xs);
@@ -170,19 +177,5 @@
     font-variant-numeric: tabular-nums;
     min-width: 4em;
     text-align: right;
-  }
-  button {
-    width: 32px;
-    height: 32px;
-    border-radius: var(--radius-sm);
-    color: var(--color-fg-secondary);
-    background: transparent;
-  }
-  button:hover:not(:disabled) {
-    background: var(--color-bg-hover);
-    color: var(--color-fg);
-  }
-  button:disabled {
-    opacity: 0.4;
   }
 </style>

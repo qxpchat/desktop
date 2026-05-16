@@ -36,6 +36,9 @@
   import InChatSearch from './InChatSearch.svelte';
   import ReactionDetailSheet from './ReactionDetailSheet.svelte';
   import Icon from '../lib/Icon.svelte';
+  import Button from '../lib/Button.svelte';
+  import IconButton from '../lib/IconButton.svelte';
+  import ConfirmDialog from '../lib/ConfirmDialog.svelte';
   import { onShortcut } from '../lib/shortcuts';
 
   type Props = {
@@ -261,6 +264,7 @@
   let forwardOpen = $state(false);
   let forwardTargets = $state<number[]>([]);
   let findOpen = $state(false);
+  let notice = $state<string | null>(null);
   let deleteTarget = $state<{ ids: number[]; canDeleteForAll: boolean } | null>(null);
   let reactorsTarget = $state<number | null>(null);
 
@@ -464,7 +468,7 @@
     try {
       await forwardMessages(forwardTargets, targetChatId);
     } catch (err) {
-      alert(`Forward failed: ${err instanceof Error ? err.message : String(err)}`);
+      notice = `${t('Forward failed')}: ${err instanceof Error ? err.message : String(err)}`;
     }
     forwardTargets = [];
     if (isSelecting) exitSelection();
@@ -524,11 +528,11 @@
   // the HTML `File[]` and the Tauri `string[]` (OS paths) pathways.
   async function stageFirst<T>(items: T[], stage: (item: T) => Promise<void>) {
     if (items.length === 0) return;
-    if (items.length > 1) alert(t('Only one file at a time can be attached.'));
+    if (items.length > 1) notice = t('Only one file at a time can be attached.');
     try {
       await stage(items[0]);
     } catch (err) {
-      alert(`Could not attach file: ${err instanceof Error ? err.message : String(err)}`);
+      notice = `${t('Could not attach file')}: ${err instanceof Error ? err.message : String(err)}`;
     }
   }
 
@@ -553,7 +557,7 @@
   {#if dragActive}
     <div class="drop-overlay" role="presentation">
       <div class="drop-card">
-        <div class="drop-icon" aria-hidden="true">⤓</div>
+        <div class="drop-icon" aria-hidden="true"><Icon name="download" size={44} /></div>
         <div class="drop-title">{t('Drop to attach')}</div>
         <div class="drop-hint">{t('Add a caption, then hit send.')}</div>
       </div>
@@ -627,38 +631,43 @@
 
   {#if isSelecting}
     <div class="selection-bar" role="toolbar" aria-label={t('Selection actions')} data-testid="selection-bar" data-count={selectedCount}>
-      <button class="cancel" onclick={exitSelection} data-testid="selection-bar__cancel">{t('Cancel')}</button>
+      <Button variant="accent-text" size="sm" onclick={exitSelection} data-testid="selection-bar__cancel">
+        {t('Cancel')}
+      </Button>
       <span class="count" data-testid="selection-bar__count">
         {selectedCount === 1 ? t('1 selected') : t('{n} selected', { n: selectedCount })}
       </span>
       <div class="actions">
-        <button
-          class="action"
+        <IconButton
+          variant="subtle"
+          shape="square"
+          icon="forward"
+          iconSize={18}
+          label={t('Forward')}
           disabled={selectedCount === 0}
           onclick={onForwardSelected}
-          aria-label={t('Forward')}
           data-testid="selection-bar__forward"
-        >
-          <Icon name="forward" size={18} />
-        </button>
-        <button
-          class="action"
+        />
+        <IconButton
+          variant="subtle"
+          shape="square"
+          icon="copy"
+          iconSize={18}
+          label={t('Copy')}
           disabled={selectedCount === 0}
           onclick={onCopySelected}
-          aria-label={t('Copy')}
           data-testid="selection-bar__copy"
-        >
-          <Icon name="copy" size={18} />
-        </button>
-        <button
-          class="action danger"
+        />
+        <IconButton
+          variant="danger"
+          shape="square"
+          icon="trash-2"
+          iconSize={18}
+          label={t('Delete')}
           disabled={selectedCount === 0}
           onclick={onDeleteSelected}
-          aria-label={t('Delete')}
           data-testid="selection-bar__delete"
-        >
-          <Icon name="trash-2" size={18} />
-        </button>
+        />
       </div>
     </div>
   {:else if canSend}
@@ -721,6 +730,13 @@
   onClose={() => (reactorsTarget = null)}
 />
 
+<ConfirmDialog
+  open={notice != null}
+  mode="alert"
+  title={notice ?? ''}
+  onClose={() => (notice = null)}
+/>
+
 <style>
   .chat-view {
     position: relative;
@@ -752,7 +768,8 @@
     max-width: 360px;
   }
   .drop-icon {
-    font-size: 48px;
+    display: flex;
+    justify-content: center;
     line-height: 1;
     margin-bottom: var(--space-3);
     color: var(--color-accent);
@@ -834,16 +851,6 @@
     background: var(--color-bg-elevated);
     border-top: 1px solid var(--color-border);
   }
-  .selection-bar .cancel {
-    background: transparent;
-    color: var(--color-accent);
-    font-size: var(--text-md);
-    padding: 6px 10px;
-    border-radius: var(--radius-sm);
-  }
-  .selection-bar .cancel:hover {
-    background: var(--color-bg-hover);
-  }
   .selection-bar .count {
     flex: 1;
     color: var(--color-fg-secondary);
@@ -853,26 +860,6 @@
   .selection-bar .actions {
     display: flex;
     gap: var(--space-2);
-  }
-  .selection-bar .action {
-    background: transparent;
-    color: var(--color-fg);
-    width: 36px;
-    height: 36px;
-    border-radius: var(--radius-md);
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-  }
-  .selection-bar .action:hover:not(:disabled) {
-    background: var(--color-bg-hover);
-  }
-  .selection-bar .action:disabled {
-    opacity: 0.35;
-    cursor: default;
-  }
-  .selection-bar .action.danger {
-    color: var(--color-danger);
   }
   .daymarker span {
     font-size: var(--text-xs);

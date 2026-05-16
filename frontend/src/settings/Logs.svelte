@@ -11,6 +11,8 @@
   import { logs, clearLogs, type LogEntry } from '../lib/state/logs.svelte';
   import Icon from '../lib/Icon.svelte';
   import Toggle from '../lib/Toggle.svelte';
+  import Button from '../lib/Button.svelte';
+  import SegmentedControl from '../lib/SegmentedControl.svelte';
   import { t } from '../lib/i18n/i18n.svelte';
 
   let header = $state<string>('');
@@ -109,25 +111,24 @@
     return { info, warning, error };
   }
   let c = $derived(counts());
+
+  const filterOptions = $derived([
+    { value: 'all', label: `${t('All')} (${logs.entries.length})` },
+    { value: 'info', label: `${t('Info')} (${c.info})` },
+    { value: 'warning', label: `${t('Warning')} (${c.warning})` },
+    { value: 'error', label: `${t('Error')} (${c.error})` },
+  ]);
 </script>
 
 <h2>{t('Logs')}</h2>
 
 <div class="toolbar">
-  <div class="filters">
-    <button class:active={filter === 'all'} onclick={() => (filter = 'all')}>
-      {t('All')} <span class="muted">({logs.entries.length})</span>
-    </button>
-    <button class:active={filter === 'info'} onclick={() => (filter = 'info')}>
-      {t('Info')} <span class="muted">({c.info})</span>
-    </button>
-    <button class:active={filter === 'warning'} onclick={() => (filter = 'warning')}>
-      {t('Warning')} <span class="muted">({c.warning})</span>
-    </button>
-    <button class:active={filter === 'error'} onclick={() => (filter = 'error')}>
-      {t('Error')} <span class="muted">({c.error})</span>
-    </button>
-  </div>
+  <SegmentedControl
+    options={filterOptions}
+    value={filter}
+    onChange={(v) => (filter = v as typeof filter)}
+    ariaLabel={t('Filter log level')}
+  />
   <div class="actions">
     <label class="toggle">
       <Toggle checked={redact} onChange={(v) => (redact = v)} label={t('Redact addresses')} />
@@ -137,12 +138,12 @@
       <Toggle checked={autoScroll} onChange={(v) => (autoScroll = v)} label={t('Auto-scroll')} />
       <span>{t('Auto-scroll')}</span>
     </label>
-    <button class="ghost" onclick={copyAll} title={t('Copy all')}>
+    <Button variant="secondary" size="sm" onclick={copyAll} title={t('Copy all')}>
       <Icon name="copy" size={14} /> {t('Copy')}
-    </button>
-    <button class="ghost" onclick={clearLogs} title={t('Clear log buffer')}>
+    </Button>
+    <Button variant="secondary" size="sm" onclick={clearLogs} title={t('Clear log buffer')}>
       <Icon name="trash" size={14} /> {t('Clear')}
-    </button>
+    </Button>
   </div>
 </div>
 
@@ -179,36 +180,6 @@
     gap: var(--space-3);
     margin-bottom: var(--space-3);
   }
-  .filters {
-    display: inline-flex;
-    border: 1px solid var(--color-border);
-    border-radius: var(--radius-md);
-    overflow: hidden;
-    background: var(--color-bg-elevated);
-  }
-  .filters button {
-    padding: 6px 12px;
-    background: transparent;
-    color: var(--color-fg);
-    font-size: var(--text-sm);
-    border-right: 1px solid var(--color-border);
-  }
-  .filters button:last-child {
-    border-right: none;
-  }
-  .filters button:hover {
-    background: var(--color-bg-hover);
-  }
-  .filters button.active {
-    background: var(--color-bg-selected);
-    color: var(--color-accent);
-    font-weight: 600;
-  }
-  .filters .muted {
-    color: var(--color-fg-tertiary);
-    font-weight: 400;
-    margin-left: 4px;
-  }
   .actions {
     display: inline-flex;
     align-items: center;
@@ -221,21 +192,6 @@
     gap: 6px;
     font-size: var(--text-sm);
     color: var(--color-fg-secondary);
-  }
-  .ghost {
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    padding: 6px 10px;
-    background: transparent;
-    color: var(--color-fg-secondary);
-    border: 1px solid var(--color-border);
-    border-radius: var(--radius-md);
-    font-size: var(--text-sm);
-  }
-  .ghost:hover {
-    background: var(--color-bg-hover);
-    color: var(--color-fg);
   }
   .card {
     border: 1px solid var(--color-border);

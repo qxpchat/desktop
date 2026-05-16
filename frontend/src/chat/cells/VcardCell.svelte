@@ -3,6 +3,7 @@
   import { rpc } from '../../lib/rpc';
   import { accounts } from '../../lib/state/accounts.svelte';
   import { selectChat } from '../../lib/state/selection.svelte';
+  import ConfirmDialog from '../../lib/ConfirmDialog.svelte';
   import { t } from '../../lib/i18n/i18n.svelte';
 
   type Props = {
@@ -27,6 +28,7 @@
   };
 
   let vc = $derived(message.vcardContact as VcardContact | null);
+  let errorMsg = $state<string | null>(null);
 
   async function openChat() {
     if (!vc || accounts.selectedId == null) return;
@@ -42,7 +44,7 @@
       ]);
       selectChat(chatId);
     } catch (err) {
-      alert(`${t('Could not open chat')}: ${err instanceof Error ? err.message : String(err)}`);
+      errorMsg = `${t('Could not open chat')}: ${err instanceof Error ? err.message : String(err)}`;
     }
   }
 
@@ -65,6 +67,13 @@
 {#if message.text}
   <div class="caption">{message.text}</div>
 {/if}
+
+<ConfirmDialog
+  open={errorMsg != null}
+  mode="alert"
+  title={errorMsg ?? ''}
+  onClose={() => (errorMsg = null)}
+/>
 
 <style>
   .vcard {
@@ -107,13 +116,19 @@
     white-space: nowrap;
   }
   .open {
-    padding: 4px 10px;
-    border-radius: 6px;
+    padding: 5px 10px;
+    border: 0;
+    border-radius: var(--radius-md);
     background: var(--cell-accent);
     color: var(--cell-bg);
     font-size: var(--text-xs);
     font-weight: 600;
     flex: 0 0 auto;
+    cursor: pointer;
+    transition: filter 0.1s ease;
+  }
+  .open:hover {
+    filter: brightness(1.08);
   }
   .caption {
     margin-top: 6px;

@@ -2,6 +2,10 @@
   import { onboarding, loginManually } from '../lib/state/onboarding.svelte';
   import ProgressOverlay from './ProgressOverlay.svelte';
   import Button from '../lib/Button.svelte';
+  import BackButton from '../lib/BackButton.svelte';
+  import TextInput from '../lib/TextInput.svelte';
+  import Select from '../lib/Select.svelte';
+  import Icon from '../lib/Icon.svelte';
   import { t } from '../lib/i18n/i18n.svelte';
 
   type Props = {
@@ -43,90 +47,64 @@
       /* error surfaced via onboarding.phase */
     }
   }
+
+  const securityOptions = $derived([
+    { value: '', label: t('Auto') },
+    { value: '1', label: 'SSL/TLS' },
+    { value: '2', label: 'STARTTLS' },
+    { value: '3', label: t('Plain') },
+  ]);
+  const certOptions = $derived([
+    { value: '', label: t('Auto') },
+    { value: '1', label: t('Strict') },
+    { value: '3', label: t('Accept invalid') },
+  ]);
 </script>
 
 <header class="topbar" data-tauri-drag-region>
-  <button class="back" onclick={onBack} aria-label={t('Back')}>‹ {t('Back')}</button>
+  <BackButton label={t('Back')} onclick={onBack} />
   <h1>{t('Manual Setup')}</h1>
 </header>
 
 <main class="manual" data-testid="onboarding-manual">
-  <label class="field">
-    <span class="label">{t('Email')}</span>
-    <input
-      type="email"
-      bind:value={addr}
-      autocomplete="email"
-      placeholder="you@example.com"
-      autocapitalize="off"
-      spellcheck="false"
-      data-testid="onboarding-manual__addr"
-    />
-  </label>
+  <TextInput
+    label={t('Email')}
+    type="email"
+    bind:value={addr}
+    autocomplete="email"
+    placeholder="you@example.com"
+    autocapitalize="off"
+    spellcheck="false"
+    data-testid="onboarding-manual__addr"
+  />
 
-  <label class="field">
-    <span class="label">{t('Password')}</span>
-    <input
-      type="password"
-      bind:value={mailPw}
-      autocomplete="current-password"
-      data-testid="onboarding-manual__password"
-    />
-  </label>
+  <TextInput
+    label={t('Password')}
+    type="password"
+    bind:value={mailPw}
+    autocomplete="current-password"
+    data-testid="onboarding-manual__password"
+  />
 
-  <button class="advanced-toggle" onclick={() => (advancedOpen = !advancedOpen)} aria-expanded={advancedOpen}>
-    {advancedOpen ? '▾' : '▸'} {t('Advanced')}
-  </button>
+  <Button class="advanced-toggle" variant="accent-text" size="sm" onclick={() => (advancedOpen = !advancedOpen)}>
+    <Icon name={advancedOpen ? 'chevron-down' : 'chevron-right'} size={14} />
+    {t('Advanced')}
+  </Button>
 
   {#if advancedOpen}
     <fieldset>
       <legend>{t('IMAP (incoming)')}</legend>
-      <label class="field">
-        <span class="label">{t('Server')}</span>
-        <input bind:value={mail_server} placeholder="imap.example.com" autocapitalize="off" spellcheck="false" />
-      </label>
-      <label class="field">
-        <span class="label">{t('Port')}</span>
-        <input type="number" bind:value={mail_port} placeholder="993" />
-      </label>
-      <label class="field">
-        <span class="label">{t('Security')}</span>
-        <select bind:value={mail_security}>
-          <option value="">{t('Auto')}</option>
-          <option value="1">SSL/TLS</option>
-          <option value="2">STARTTLS</option>
-          <option value="3">{t('Plain')}</option>
-        </select>
-      </label>
-      <label class="field">
-        <span class="label">{t('Cert check')}</span>
-        <select bind:value={imap_certificate_checks}>
-          <option value="">{t('Auto')}</option>
-          <option value="1">{t('Strict')}</option>
-          <option value="3">{t('Accept invalid')}</option>
-        </select>
-      </label>
+      <TextInput label={t('Server')} bind:value={mail_server} placeholder="imap.example.com" autocapitalize="off" spellcheck="false" />
+      <TextInput label={t('Port')} type="number" bind:value={mail_port} placeholder="993" />
+      <Select label={t('Security')} bind:value={mail_security} options={securityOptions} />
+      <Select label={t('Cert check')} bind:value={imap_certificate_checks} options={certOptions} />
     </fieldset>
 
     <fieldset>
       <legend>{t('SMTP (outgoing)')}</legend>
-      <label class="field">
-        <span class="label">{t('Server')}</span>
-        <input bind:value={send_server} placeholder="smtp.example.com" autocapitalize="off" spellcheck="false" />
-      </label>
-      <label class="field">
-        <span class="label">{t('Port')}</span>
-        <input type="number" bind:value={send_port} placeholder="465" />
-      </label>
-      <label class="field">
-        <span class="label">{t('Security')}</span>
-        <select bind:value={send_security}>
-          <option value="">{t('Auto')}</option>
-          <option value="1">SSL/TLS</option>
-          <option value="2">STARTTLS</option>
-          <option value="3">{t('Plain')}</option>
-        </select>
-      </label>
+      <TextInput label={t('Server')} bind:value={send_server} placeholder="smtp.example.com" autocapitalize="off" spellcheck="false" />
+      <TextInput label={t('Port')} type="number" bind:value={send_port} placeholder="465" />
+      <Select label={t('Security')} bind:value={send_security} options={securityOptions} />
     </fieldset>
   {/if}
 
@@ -146,11 +124,6 @@
     min-height: 48px;
     background: var(--color-bg);
   }
-  .back {
-    color: var(--color-accent);
-    font-size: var(--text-md);
-    padding: var(--space-2);
-  }
   h1 {
     margin: 0;
     font-size: var(--text-lg);
@@ -164,37 +137,9 @@
     flex-direction: column;
     gap: var(--space-3);
   }
-  .field {
-    display: flex;
-    flex-direction: column;
-    gap: var(--space-1);
-  }
-  .label {
-    font-size: var(--text-sm);
-    color: var(--color-fg-secondary);
-    font-weight: 500;
-  }
-  input,
-  select {
-    height: 40px;
-    padding: 0 var(--space-3);
-    border-radius: var(--radius-md);
-    border: 1px solid var(--color-border);
-    background: var(--color-bg-pane);
-    font-size: var(--text-md);
-  }
-  input:focus,
-  select:focus {
-    outline: none;
-  }
-  .advanced-toggle {
+  .manual :global(.advanced-toggle) {
     align-self: flex-start;
-    padding: var(--space-2) 0;
-    color: var(--color-fg-secondary);
-    font-size: var(--text-sm);
-  }
-  .advanced-toggle:hover {
-    color: var(--color-fg);
+    padding-inline: var(--space-1);
   }
   fieldset {
     border: 1px solid var(--color-border);

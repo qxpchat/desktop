@@ -12,6 +12,9 @@
   import { rpc } from '../lib/rpc';
   import ContactRow from './ContactRow.svelte';
   import Icon from '../lib/Icon.svelte';
+  import BackButton from '../lib/BackButton.svelte';
+  import SearchField from '../lib/SearchField.svelte';
+  import ConfirmDialog from '../lib/ConfirmDialog.svelte';
   import { t } from '../lib/i18n/i18n.svelte';
 
   type Props = {
@@ -21,6 +24,7 @@
   let { onSelectChat }: Props = $props();
 
   let search = $state('');
+  let errorMsg = $state<string | null>(null);
 
   // Initialise contact scope on mount; refresh when account switches.
   $effect(() => {
@@ -44,7 +48,7 @@
       onSelectChat(chatId);
       backToInbox();
     } catch (err) {
-      alert(`${t('Could not start chat')}: ${err instanceof Error ? err.message : String(err)}`);
+      errorMsg = err instanceof Error ? err.message : String(err);
     }
   }
 
@@ -64,14 +68,12 @@
 
 <aside class="pane" aria-label={t('New conversation')} data-testid="compose-pane">
   <header class="header">
-    <button class="back" onclick={backToInbox} title={t('Back')} aria-label={t('Back to inbox')} data-testid="compose-pane__back">‹</button>
+    <BackButton label={t('Back')} onclick={backToInbox} data-testid="compose-pane__back" />
     <h2>{t('New conversation')}</h2>
   </header>
 
   <div class="search-row">
-    <input
-      class="search"
-      type="search"
+    <SearchField
       placeholder={t('Search contacts…')}
       aria-label={t('Search contacts')}
       bind:value={search}
@@ -113,6 +115,14 @@
   </ul>
 </aside>
 
+<ConfirmDialog
+  open={errorMsg != null}
+  mode="alert"
+  title={t('Could not start chat')}
+  message={errorMsg ?? ''}
+  onClose={() => (errorMsg = null)}
+/>
+
 <style>
   .pane {
     display: flex;
@@ -133,17 +143,6 @@
     min-height: 56px;
     flex: 0 0 auto;
   }
-  .back {
-    width: 32px;
-    height: 32px;
-    border-radius: var(--radius-sm);
-    color: var(--color-accent);
-    font-size: 22px;
-    line-height: 1;
-  }
-  .back:hover {
-    background: var(--color-bg-hover);
-  }
   h2 {
     margin: 0;
     font-size: var(--text-md);
@@ -152,18 +151,6 @@
   .search-row {
     padding: var(--space-2) var(--space-3);
     border-bottom: 1px solid var(--color-border);
-  }
-  .search {
-    width: 100%;
-    height: 32px;
-    border-radius: var(--radius-md);
-    background: var(--color-bg-hover);
-    padding: 0 var(--space-3);
-    border: 1px solid transparent;
-    font-size: var(--text-md);
-  }
-  .search:focus {
-    outline: none;
   }
   .actions {
     display: block;

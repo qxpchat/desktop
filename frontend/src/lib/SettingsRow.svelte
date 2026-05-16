@@ -17,9 +17,21 @@
     right?: Snippet;
     danger?: boolean;
     disabled?: boolean;
+    /** Forwarded to the row element — `data-testid` and other `data-*`
+     *  E2E hooks land on the actual button/div, no wrapper needed. */
+    'data-testid'?: string;
   };
 
-  let { label, description, icon, onClick, right, danger = false, disabled = false }: Props = $props();
+  let {
+    label,
+    description,
+    icon,
+    onClick,
+    right,
+    danger = false,
+    disabled = false,
+    ...rest
+  }: Props = $props();
 </script>
 
 {#snippet body()}
@@ -32,7 +44,9 @@
   </span>
   {#if right}
     <span class="value">{@render right()}</span>
-  {:else if onClick}
+  {:else if onClick && !danger}
+    <!-- Danger rows are terminal actions (Delete / Leave / Block), not
+         navigation — so they skip the chevron a normal clickable row gets. -->
     <span class="value chevron"><Icon name="chevron-right" size={14} /></span>
   {/if}
 {/snippet}
@@ -44,11 +58,12 @@
     class:danger
     {disabled}
     onclick={onClick}
+    {...rest}
   >
     {@render body()}
   </button>
 {:else}
-  <div class="row" class:danger>
+  <div class="row" class:danger {...rest}>
     {@render body()}
   </div>
 {/if}

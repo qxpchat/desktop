@@ -7,6 +7,7 @@
   import Avatar from '../lib/Avatar.svelte';
   import Modal from '../lib/Modal.svelte';
   import IconButton from '../lib/IconButton.svelte';
+  import SearchField from '../lib/SearchField.svelte';
   import { t } from '../lib/i18n/i18n.svelte';
 
   type Props = {
@@ -41,9 +42,8 @@
         data-testid="chat-picker__close"
       />
     </header>
-    <input
-      type="search"
-      class="search"
+    <SearchField
+      class="picker-search"
       placeholder={t('Search chats…')}
       bind:value={search}
       data-testid="chat-picker__search"
@@ -82,17 +82,8 @@
     font-size: var(--text-md);
     font-weight: 600;
   }
-  .search {
+  .content :global(.picker-search) {
     margin: var(--space-3) var(--space-4) 0;
-    height: 32px;
-    padding: 0 var(--space-3);
-    border-radius: var(--radius-md);
-    background: var(--color-bg-hover);
-    border: 1px solid transparent;
-    font-size: var(--text-md);
-  }
-  .search:focus {
-    outline: none;
   }
   .list {
     overflow-y: auto;
