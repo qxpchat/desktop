@@ -1,0 +1,61 @@
+name: Release
+
+# Build qxp for macOS + Windows and attach the bundles to a GitHub release
+# whenever a version tag (e.g. v0.7.0) is pushed.
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: macos-latest   # Apple Silicon (.dmg / .app)
+          - platform: windows-latest # x86_64 (.msi / .exe nsis)
+
+    runs-on: ${{ matrix.platform }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Fetch submodules
+        # .gitmodules pins deltachat-core-rust over ssh://git@codeberg.org;
+        # CI has no SSH key, so rewrite to https before init.
+        run: |
+          git config --global url."https://codeberg.org/".insteadOf "ssh://git@codeberg.org/"
+          git submodule update --init --recursive
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache Rust build
+        uses: swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+
+      - name: Install frontend dependencies
+        run: npm --prefix frontend ci
+
+      - name: Build + release
+        uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tagName: ${{ github.ref_name }}
+          releaseName: qxp ${{ github.ref_name }}
+          releaseDraft: true
+          prerelease: false
