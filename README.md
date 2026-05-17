@@ -16,6 +16,42 @@ src-tauri/     # Tauri 2 shell crate (`qxp-desktop`).
                # Spawns the daemon in-process; opens a native window.
 ```
 
+## Install on NixOS
+
+The repo is a flake. Run the app without installing anything:
+
+```sh
+nix run github:qxpchat/qxp
+```
+
+Install it into your profile:
+
+```sh
+nix profile install github:qxpchat/qxp
+```
+
+Or declaratively — add the flake as an input and pull the package into
+your system or user config:
+
+```nix
+# flake.nix
+inputs.qxp.url = "github:qxpchat/qxp";
+
+# NixOS — configuration.nix (inputs threaded through via specialArgs)
+environment.systemPackages = [ inputs.qxp.packages.${pkgs.system}.default ];
+
+# …or home-manager
+home.packages = [ inputs.qxp.packages.${pkgs.system}.default ];
+```
+
+`packages.default` and `apps.default` are exposed for `x86_64-linux` and
+`aarch64-linux`. The install also drops a desktop entry and icons, so qxp
+shows up in your application launcher. The binary is wrapped with
+`WEBKIT_DISABLE_DMABUF_RENDERER=1`, so it renders correctly on NixOS out
+of the box.
+
+Other distros: build from source — see below.
+
 ## Prerequisites
 
 NixOS shell already wires the GTK / WebKit deps Tauri needs on Linux:

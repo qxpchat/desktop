@@ -1,0 +1,12 @@
+[Desktop Entry]
+Type=Application
+Name=qxp
+GenericName=Chatmail Client
+Comment=Desktop client for Chatmail / Delta Chat protocol
+Exec=qxp-desktop
+Icon=chat.qxp.desktop
+Terminal=false
+Categories=Network;InstantMessaging;Social;
+StartupNotify=true
+StartupWMClass=qxp-desktop
+MimeType=x-scheme-handler/openpgp4fpr;x-scheme-handler/dcaccount;x-scheme-handler/dclogin;x-scheme-handler/mailto;
