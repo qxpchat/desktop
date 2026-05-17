@@ -41,9 +41,10 @@
           inherit version;
           src = ./frontend;
 
-          # Placeholder: replace with the hash printed by the first
-          # `nix build` ("got: sha256-…").
-          npmDepsHash = lib.fakeHash;
+          # Pin of frontend/package-lock.json's npm dep closure. Re-run
+          # `nix build` after any lockfile change and update to the printed
+          # "got: sha256-…" hash.
+          npmDepsHash = "sha256-WhPGam/wsnGUjE39WRE5UoHBWNl09izeuACKnPrp6zY=";
 
           installPhase = ''
             runHook preInstall

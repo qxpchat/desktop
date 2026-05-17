@@ -27,7 +27,7 @@ nix run github:qxpchat/qxp
 Install it into your profile:
 
 ```sh
-nix profile install github:qxpchat/qxp
+nix profile add github:qxpchat/qxp
 ```
 
 Or declaratively — add the flake as an input and pull the package into
