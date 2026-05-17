@@ -31,7 +31,7 @@ help:
 server:
 	cd server && cargo run
 
-ui:
+ui: frontend/node_modules
 	cd frontend && npm run dev -- --host
 
 tauri-dev: frontend/node_modules
@@ -47,7 +47,7 @@ frontend/node_modules: frontend/package.json
 	cd frontend && npm install
 	@touch frontend/node_modules
 
-build:
+build: frontend/node_modules
 	cd frontend && npm run build
 
 check: frontend/node_modules
