@@ -146,6 +146,14 @@ type BasicChat = {
   isDeviceChat: boolean;
 };
 
+// Minimal shape of `get_message_notification_info`. `summaryPrefix` is the
+// sender name (set in groups, null in 1:1s); `summaryText` is the message
+// preview — body text, or a label like "Image" for media.
+type NotificationInfo = {
+  summaryPrefix: string | null;
+  summaryText: string;
+};
+
 let notifStarted = false;
 export function startIncomingNotifications(): void {
   ensureBaseTitleCaptured();
@@ -168,22 +176,20 @@ export function startIncomingNotifications(): void {
     if (isActive) return;
 
     try {
-      const [chat, msgMap] = await Promise.all([
+      const [chat, info] = await Promise.all([
         rpc.call<BasicChat>('get_basic_chat_info', [accountId, chatId]),
-        rpc.call<Record<number, { kind: string; sender?: { displayName?: string } }>>(
-          'get_messages',
-          [accountId, [msgId]],
-        ),
+        rpc.call<NotificationInfo>('get_message_notification_info', [accountId, msgId]),
       ]);
 
       if (chat.isMuted || chat.isSelfTalk || chat.isDeviceChat) return;
 
-      const m = msgMap[msgId];
-      const sender =
-        m && m.kind === 'message' ? m.sender?.displayName ?? 'someone' : 'someone';
-
       const title = chat.name || '(no name)';
-      const body = `new message from ${sender}`;
+      // `summaryPrefix` is the sender name in groups — prepend it so the
+      // body reads "Alice: hello"; in 1:1s it's null and the text stands
+      // alone. `summaryText` is the message preview (or a media label).
+      const body = info.summaryPrefix
+        ? `${info.summaryPrefix}: ${info.summaryText}`
+        : info.summaryText;
       const tag = `${accountId}-${chatId}`;
 
       pushPending({ accountId, chatId, firedAt: Date.now() });
