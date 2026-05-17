@@ -641,21 +641,46 @@ export async function markNoticed(): Promise<void> {
   }
 }
 
+/** Upload `file` as bytes and classify it. Shared by the stage-one
+ *  (`stageAttachment`) and send-each (`sendAttachment`) paths. */
+async function uploadAttachment(
+  file: File,
+): Promise<{ path: string; viewtype: MessageViewtype }> {
+  const ext = (file.name.split('.').pop() ?? 'bin').toLowerCase();
+  const path = await uploadBlob(file, ext);
+  return { path, viewtype: viewtypeForFile(file) };
+}
+
 /** Upload `file` (as bytes) and stage it as the chat's pending attachment so
  *  the user can add a caption before sending. The `_uploads/`-backed copy is
  *  servable by the daemon, so image attachments get a thumbnail preview.
  *  Replaces any previously staged file. */
 export async function stageAttachment(file: File): Promise<void> {
   if (chat.active == null) return;
-  const ext = (file.name.split('.').pop() ?? 'bin').toLowerCase();
-  const path = await uploadBlob(file, ext);
-  const viewtype = viewtypeForFile(file);
+  const { path, viewtype } = await uploadAttachment(file);
   setPendingAttachment({
     viewtype,
     file: path,
     filename: file.name,
     previewUrl: isImageViewtype(viewtype) ? (fileUrl(path) ?? null) : null,
   });
+}
+
+/** Upload `file` and send it straight away as its own message. deltachat is
+ *  one-file-per-message, so a multi-file pick fans out into N messages —
+ *  there's no caption step, unlike the single-file `stageAttachment`. */
+export async function sendAttachment(file: File): Promise<void> {
+  if (chat.active == null) return;
+  const { path, viewtype } = await uploadAttachment(file);
+  await sendMessage({ viewtype, file: path, filename: file.name });
+}
+
+/** Send an OS-path file (Tauri multi-file drop) straight away as its own
+ *  message — the no-upload-round-trip counterpart of `sendAttachment`. */
+export async function sendAttachmentFromPath(localPath: string): Promise<void> {
+  if (chat.active == null) return;
+  const name = basename(localPath);
+  await sendMessage({ viewtype: viewtypeForName(name), file: localPath, filename: name });
 }
 
 /** Stage an OS-path source (Tauri drag-drop) without an upload round-trip —
@@ -673,7 +698,7 @@ export async function stageAttachmentFromPath(localPath: string): Promise<void> 
   });
 }
 
-function basename(p: string): string {
+export function basename(p: string): string {
   const trimmed = p.replace(/[\\/]+$/, '');
   const idx = Math.max(trimmed.lastIndexOf('/'), trimmed.lastIndexOf('\\'));
   return idx >= 0 ? trimmed.slice(idx + 1) : trimmed;

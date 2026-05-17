@@ -6,7 +6,10 @@
     stageContact,
     stageAttachment,
     stageAttachmentFromPath,
+    sendAttachment,
+    sendAttachmentFromPath,
     setPendingAttachment,
+    basename,
     chat,
     setReplyTo,
     setEditing,
@@ -17,6 +20,7 @@
   import { VoiceRecorder, pickMimeType, extensionForMime } from '../lib/audio/recorder';
   import AttachMenu from './AttachMenu.svelte';
   import AttachmentBar from './AttachmentBar.svelte';
+  import MultiSendConfirm, { type MultiBatch } from './MultiSendConfirm.svelte';
   import ContactPickerModal from './ContactPickerModal.svelte';
   import EmojiPicker from './EmojiPicker.svelte';
   import QuoteBar from './QuoteBar.svelte';
@@ -32,6 +36,8 @@
   let contactPickerOpen = $state(false);
   // Shared alert-dialog message — replaces native `alert()`.
   let notice = $state<string | null>(null);
+  // Multi-file pick/paste awaiting a send-N-messages confirmation.
+  let multiBatch = $state<MultiBatch | null>(null);
 
   function insertEmoji(c: string) {
     const ta = textarea;
@@ -253,9 +259,17 @@
       return; // command unavailable — leave the default text paste alone
     }
     if (paths.length === 0) return; // a genuine text paste
-    if (paths.length > 1) notice = t('Only one file at a time can be attached.');
     text = before; // drop the filename the default paste inserted
-    await stageOrWarn(() => stageAttachmentFromPath(paths[0]));
+    if (paths.length === 1) {
+      await stageOrWarn(() => stageAttachmentFromPath(paths[0]));
+      return;
+    }
+    multiBatch = {
+      names: paths.map(basename),
+      send: async () => {
+        for (const p of paths) await sendAttachmentFromPath(p);
+      },
+    };
   }
 
   // Pasted images usually arrive nameless — give them a real filename so the
@@ -371,9 +385,18 @@
 
   function onFilePicked(e: Event) {
     const input = e.currentTarget as HTMLInputElement;
-    const file = input.files?.[0];
-    if (file) void stageOrWarn(() => stageAttachment(file));
+    const files = input.files ? Array.from(input.files) : [];
     input.value = '';
+    if (files.length === 1) {
+      void stageOrWarn(() => stageAttachment(files[0]));
+    } else if (files.length > 1) {
+      multiBatch = {
+        names: files.map((f) => f.name),
+        send: async () => {
+          for (const f of files) await sendAttachment(f);
+        },
+      };
+    }
   }
 </script>
 
@@ -431,7 +454,7 @@
     onShareContact={() => (contactPickerOpen = true)}
   />
 
-  <input bind:this={fileInput} type="file" hidden onchange={onFilePicked} data-testid="composer__file-input" />
+  <input bind:this={fileInput} type="file" multiple hidden onchange={onFilePicked} data-testid="composer__file-input" />
 
   <textarea
     bind:this={textarea}
@@ -506,6 +529,12 @@
   mode="alert"
   title={notice ?? ''}
   onClose={() => (notice = null)}
+/>
+
+<MultiSendConfirm
+  batch={multiBatch}
+  onClose={() => (multiBatch = null)}
+  onError={(m) => (notice = `${t('Could not attach file')}: ${m}`)}
 />
 
 <style>
