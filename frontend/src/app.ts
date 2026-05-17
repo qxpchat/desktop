@@ -53,3 +53,20 @@ document.addEventListener('click', (e) => {
   e.preventDefault();
   void openUrl(href);
 });
+
+// Single-audio playback: starting any <audio> pauses every other one, so
+// two voice/audio messages never play at once. `play` doesn't bubble, but
+// a capture-phase document listener still receives it. Covers both players
+// — AudioCell's native control and VoiceCell's custom transport — with no
+// per-cell coordination.
+document.addEventListener(
+  'play',
+  (e) => {
+    const started = e.target;
+    if (!(started instanceof HTMLAudioElement)) return;
+    for (const el of document.querySelectorAll('audio')) {
+      if (el !== started && !el.paused) el.pause();
+    }
+  },
+  true,
+);
