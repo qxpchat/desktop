@@ -122,6 +122,11 @@ let pendingQuery = '';
 let queryDebounce: ReturnType<typeof setTimeout> | null = null;
 let loadGen = 0;
 
+// Chat currently open in pane 3. Its `items` payload is kept present even
+// when a search filter excludes it from the rendered list, so the chat
+// topbar and composer keep live metadata while the user types a query.
+let pinnedChatId: number | null = null;
+
 export function setActiveAccount(accountId: number | null): void {
   if (chatlist.accountId === accountId) return;
   chatlist.accountId = accountId;
@@ -137,6 +142,15 @@ export function setActiveAccount(accountId: number | null): void {
 export function reloadChatlist(): void {
   if (chatlist.accountId == null) return;
   void load();
+}
+
+/** Pin the chat open in pane 3 so its `items` payload survives
+ *  search-filtered reloads. The topbar / composer read chat metadata from
+ *  `items`, but a search query can drop the chat from the fetched entries.
+ *  Called by `selectChat`. */
+export function pinChatItem(id: number | null): void {
+  pinnedChatId = id;
+  if (id != null && !chatlist.items.has(id)) void patchItem(id);
 }
 
 export function setSearchQuery(q: string): void {
@@ -166,35 +180,46 @@ async function load(): Promise<void> {
     ]);
     if (gen !== loadGen || chatlist.accountId !== accountId) return;
 
-    if (ids.length === 0) {
-      chatlist.ids = [];
-      chatlist.items = new Map();
-      return;
-    }
-
-    const entries = await rpc.call<Entries>('get_chatlist_items_by_entries', [accountId, ids]);
-    if (gen !== loadGen || chatlist.accountId !== accountId) return;
+    // Fetch the pinned (open) chat's payload alongside the visible entries —
+    // even when a search filter dropped it from `ids` — so the topbar /
+    // composer never blank out mid-search. It lands in `items` but not in
+    // `ids`, so it isn't rendered as a list row.
+    const fetchIds =
+      pinnedChatId != null && !ids.includes(pinnedChatId) ? [...ids, pinnedChatId] : ids;
 
     const items = new Map<number, ChatListItem>();
     const visibleIds: number[] = [];
     let sawArchive = false;
-    for (const id of ids) {
-      const e = entries[id];
-      if (e && e.kind === 'ChatListItem') {
-        items.set(id, e);
-        visibleIds.push(id);
-      } else if (e && e.kind === 'ArchiveLink') {
-        sawArchive = true;
-      } else if (e && e.kind === 'Error') {
-        console.error(`chatlist entry #${id} failed:`, e.error);
+
+    if (fetchIds.length > 0) {
+      const entries = await rpc.call<Entries>('get_chatlist_items_by_entries', [
+        accountId,
+        fetchIds,
+      ]);
+      if (gen !== loadGen || chatlist.accountId !== accountId) return;
+      for (const id of ids) {
+        const e = entries[id];
+        if (e && e.kind === 'ChatListItem') {
+          items.set(id, e);
+          visibleIds.push(id);
+        } else if (e && e.kind === 'ArchiveLink') {
+          sawArchive = true;
+        } else if (e && e.kind === 'Error') {
+          console.error(`chatlist entry #${id} failed:`, e.error);
+        }
+      }
+      if (pinnedChatId != null && !items.has(pinnedChatId)) {
+        const e = entries[pinnedChatId];
+        if (e && e.kind === 'ChatListItem') items.set(pinnedChatId, e);
       }
     }
 
     chatlist.ids = visibleIds;
     chatlist.items = items;
     // The archive-link sentinel only shows up in inbox listings; preserve any
-    // existing flag while archive-only is active so we know to come back.
-    if (!chatlist.archivedOnly) chatlist.hasArchive = sawArchive;
+    // existing flag while archive-only is active so we know to come back. An
+    // empty `ids` carries no archive signal — keep the prior flag.
+    if (!chatlist.archivedOnly && ids.length > 0) chatlist.hasArchive = sawArchive;
   } catch (err) {
     console.error('chatlist load failed:', err);
   } finally {

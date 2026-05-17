@@ -4,11 +4,15 @@
 
 import { untrack } from 'svelte';
 import { mainRoute } from './mainRoute.svelte';
+import { pinChatItem } from './chatlist.svelte';
 
 export const selection = $state<{ chatId: number | null }>({ chatId: null });
 
 export function selectChat(id: number | null): void {
   selection.chatId = id;
+  // Keep the open chat's payload in `chatlist.items` — the topbar / composer
+  // read metadata from there, but a search filter can drop it from the list.
+  pinChatItem(id);
   // Switching chats from anywhere — chat list click, forward-picker result,
   // search-jump-to-message, push notification — should always land you in
   // the chat view itself. Otherwise the user is stuck looking at the prior
