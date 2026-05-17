@@ -146,7 +146,7 @@
         <p class="ok" data-testid="settings-add-device__done">{t('The other device received your account.')}</p>
       {/if}
       <ol class="steps">
-        <li>{t('Install Delta Chat on the other device.')}</li>
+        <li>{t('Install a chatmail client on the other device.')}</li>
         <li>{t('Keep both devices on the same Wi-Fi network.')}</li>
         <li>{t('On the other device choose “Add as Second Device” and scan the QR.')}</li>
       </ol>

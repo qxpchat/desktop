@@ -27,7 +27,7 @@
       scannedQr = qr;
       confirmOpen = true;
     } else {
-      scanError = 'That QR is not a Delta Chat backup pair code.';
+      scanError = 'That QR is not a chatmail client backup pair code.';
       scannerKey += 1;
     }
   }
@@ -68,7 +68,7 @@
 
 <main class="page" data-testid="onboarding-backup-receive">
   <p class="hint">
-    {t('On your other device, open Delta Chat and choose Settings → Add Second Device. Point your camera at the QR code shown there.')}
+    {t('On your other device, open your chatmail client and choose Settings → Add Second Device. Point your camera at the QR code shown there.')}
   </p>
 
   {#key scannerKey}

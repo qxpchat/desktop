@@ -115,7 +115,7 @@
   </div>
 
   <p class="footnote">
-    {t('Backups are produced by Delta Chat\'s')}
+    {t('Backups are produced by your chatmail client\'s')}
     <em>{t('Settings → Add Second Device → Export Backup')}</em>.
   </p>
 </main>
