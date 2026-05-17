@@ -1,6 +1,6 @@
 [package]
 name = "qxp-desktop"
-version = "0.12.0"
+version = "0.13.1"
 edition = "2021"
 description = "qxp Tauri desktop shell — wraps the qxp-web daemon + Svelte SPA in a native window."
 license = "MPL-2.0"
@@ -42,6 +42,11 @@ custom-protocol = ["tauri/custom-protocol"]
 objc2 = "0.6"
 objc2-foundation = { version = "0.3", features = ["NSString", "NSArray", "NSURL"] }
 objc2-app-kit = { version = "0.3", features = ["NSPasteboard", "NSPasteboardItem"] }
+
+# Linux taskbar/dock badge — emits the com.canonical.Unity.LauncherEntry
+# D-Bus signal. zbus is the standard pure-Rust D-Bus crate (no libdbus).
+[target.'cfg(target_os = "linux")'.dependencies]
+zbus = "5"
 
 # Same dev-profile dance as the daemon — deltachat-core's transitive async
 # functions need opt-level >= 1 to fit on tokio's default 2 MB worker stacks.

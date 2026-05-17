@@ -1,10 +1,10 @@
 // Phase 3 — multi-file attachment.
 //
-// Picking more than one file in the composer's file input skips the
-// caption step: deltachat is one-file-per-message, so the batch is
-// confirmed and then fanned out into N separate messages. This spec
-// drives the hidden input directly with two files of different types
-// and asserts both land as outgoing bubbles.
+// Picking more than one file stacks every file as its own preview row in
+// the composer. The user can drop individual rows with the row's X. On
+// send, deltachat's one-file-per-message model fans the stack out into N
+// messages (the caption rides the first only). This spec picks three
+// files, removes one, and asserts the remaining two land as bubbles.
 
 import { test, expect } from '../../fixtures/app-paired.js';
 import { openChatByName } from '../../helpers/setup.js';
@@ -18,35 +18,42 @@ test.beforeAll(() => {
   ensureFixtures();
 });
 
-test('multi-file pick confirms then sends one message per file', async ({ qxpPaired, page }) => {
+test('multi-file pick stacks previews and sends one message per file', async ({
+  qxpPaired,
+  page,
+}) => {
   const { peer } = qxpPaired;
 
   await openChatByName(page, peer.displayName);
 
-  // Two files of different types — png stages as Image, pdf as File.
+  // Pick three files — png stages as Image, pdf/mp3 each as their own row.
   await page
     .locator(TID.composerFileInput)
-    .setInputFiles([mediaPath('test.png'), mediaPath('test.pdf')]);
+    .setInputFiles([mediaPath('test.png'), mediaPath('test.pdf'), mediaPath('test.mp3')]);
 
-  // No attachment-preview row for a multi-pick — straight to the confirm.
-  await expect(page.locator(TID.composerAttachmentBar)).toHaveCount(0);
-  await expect(page.locator(TID.multiSendConfirm)).toBeVisible();
-  await page.locator(TID.confirmDialogConfirm).click();
-  await expect(page.locator(TID.multiSendConfirm)).toHaveCount(0);
+  const rows = page.locator(TID.composerAttachmentBar);
+  await expect(rows).toHaveCount(3);
+
+  // Drop the middle row (the pdf) via its X — leaves png + mp3.
+  await rows.nth(1).locator(TID.composerAttachmentBarClose).click();
+  await expect(rows).toHaveCount(2);
+
+  await page.locator(TID.composerSend).click();
+  await expect(rows).toHaveCount(0);
 
   const imageBubble = page
     .locator('[data-testid="message-bubble"][data-direction="outgoing"][data-view-type="Image"]')
     .first();
-  const fileBubble = page
-    .locator('[data-testid="message-bubble"][data-direction="outgoing"][data-view-type="File"]')
+  const audioBubble = page
+    .locator('[data-testid="message-bubble"][data-direction="outgoing"][data-view-type="Audio"]')
     .first();
 
   await expect(imageBubble).toBeVisible({ timeout: 10_000 });
-  await expect(fileBubble).toBeVisible({ timeout: 10_000 });
+  await expect(audioBubble).toBeVisible({ timeout: 10_000 });
   await expect(imageBubble).toHaveAttribute('data-state', 'delivered', {
     timeout: DELIVERED_TIMEOUT_MS,
   });
-  await expect(fileBubble).toHaveAttribute('data-state', 'delivered', {
+  await expect(audioBubble).toHaveAttribute('data-state', 'delivered', {
     timeout: DELIVERED_TIMEOUT_MS,
   });
 });

@@ -127,8 +127,11 @@
                 "$dir/chat.qxp.desktop.png"
             done
 
+            # Install as qxp.desktop — matches the Tauri deb/rpm bundler
+            # (which names the entry after productName) so the Unity
+            # LauncherEntry badge URI resolves on every Linux channel.
             mkdir -p $out/share/applications
-            cp chat.qxp.desktop $out/share/applications/
+            cp chat.qxp.desktop $out/share/applications/qxp.desktop
           '';
 
           # WKWebView's DMABUF renderer is broken on many GPUs/VMs; disable it

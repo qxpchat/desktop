@@ -269,7 +269,6 @@ export const TID = {
   composerFileInput: '[data-testid="composer__file-input"]',
   composerAttachmentBar: '[data-testid="composer__attachment-bar"]',
   composerAttachmentBarClose: '[data-testid="composer__attachment-bar-close"]',
-  multiSendConfirm: '[data-testid="multi-send-confirm"]',
 
   // -- Attach menu --
   attachMenu: '[data-testid="attach-menu"]',

@@ -46,12 +46,15 @@ fn main() {
         .expect("error while running tauri application");
 }
 
-/// Set the macOS dock-tile badge to `label` (e.g. "3", "99+", or None to
-/// clear). The frontend calls this every time the unread total changes.
-/// No-op on Linux/Windows — there's no portable taskbar-badge primitive;
-/// the frontend's title-prefix + favicon dot covers those platforms.
+/// Set the OS taskbar/dock unread badge to `count` (0 clears it). The
+/// frontend calls this every time the unread total changes.
+///
+/// - macOS: dock-tile badge label, capped at "99+".
+/// - Linux: `com.canonical.Unity.LauncherEntry` D-Bus signal — picked up by
+///   KDE, Unity, and GNOME with a Dash-to-Dock / AppIndicator extension.
+/// - Windows: no-op; the frontend's title-prefix + favicon dot covers it.
 #[tauri::command]
-fn set_badge(label: Option<String>) {
+fn set_badge(count: u32) {
     #[cfg(target_os = "macos")]
     {
         use objc2_app_kit::NSApplication;
@@ -66,17 +69,79 @@ fn set_badge(label: Option<String>) {
         };
         let app = NSApplication::sharedApplication(mtm);
         let dock_tile = app.dockTile();
-        // Empty string would still paint an empty bubble on some macOS
-        // releases; passing nil clears it cleanly.
-        let ns = label
-            .as_deref()
-            .filter(|s| !s.is_empty())
-            .map(NSString::from_str);
+        // nil clears the bubble; an empty string paints an empty one on some
+        // macOS releases.
+        let ns = match count {
+            0 => None,
+            1..=99 => Some(NSString::from_str(&count.to_string())),
+            _ => Some(NSString::from_str("99+")),
+        };
         dock_tile.setBadgeLabel(ns.as_deref());
     }
-    #[cfg(not(target_os = "macos"))]
-    {
-        tracing::debug!("set_badge no-op on this platform: label={:?}", label);
+    #[cfg(target_os = "linux")]
+    set_unity_launcher_count(count);
+    #[cfg(target_os = "windows")]
+    tracing::debug!("set_badge no-op on Windows: count={count}");
+}
+
+/// Basename of our installed `.desktop` file, as `application://NAME.desktop`
+/// — the app URI the Unity LauncherEntry signal targets.
+///
+/// GIO sets `GIO_LAUNCHED_DESKTOP_FILE` to the full path of the entry that
+/// launched the process, so the URI matches whatever the running channel
+/// actually installed — `qxp.desktop` for deb/rpm/Nix, the hash-mangled
+/// `appimagekit_<md5>-qxp.desktop` for an integrated AppImage. Falls back to
+/// `qxp.desktop` when the var is unset (e.g. launched from a terminal).
+#[cfg(target_os = "linux")]
+fn launcher_app_uri() -> String {
+    use std::path::Path;
+
+    let name = std::env::var_os("GIO_LAUNCHED_DESKTOP_FILE")
+        .and_then(|p| Path::new(&p).file_name().map(|f| f.to_owned()))
+        .and_then(|f| f.into_string().ok())
+        .filter(|f| f.ends_with(".desktop"))
+        .unwrap_or_else(|| "qxp.desktop".to_string());
+    format!("application://{name}")
+}
+
+/// Broadcast the Unity LauncherEntry `Update` signal so the desktop shows an
+/// unread count on the app icon. It's a fire-and-forget session-bus signal —
+/// no service owns it; launchers/extensions listen for it.
+#[cfg(target_os = "linux")]
+fn set_unity_launcher_count(count: u32) {
+    use std::collections::HashMap;
+    use std::sync::OnceLock;
+    use zbus::zvariant::Value;
+
+    // One session-bus connection, created lazily and reused. `None` means
+    // there's no session bus (e.g. headless) — skip silently thereafter.
+    static BUS: OnceLock<Option<zbus::blocking::Connection>> = OnceLock::new();
+    let Some(conn) = BUS.get_or_init(|| match zbus::blocking::Connection::session() {
+        Ok(c) => Some(c),
+        Err(e) => {
+            tracing::debug!("no session bus for launcher badge: {e}");
+            None
+        }
+    }) else {
+        return;
+    };
+
+    // The launching .desktop is fixed for the process lifetime — resolve once.
+    static APP_URI: OnceLock<String> = OnceLock::new();
+    let app_uri = APP_URI.get_or_init(launcher_app_uri);
+
+    let mut props: HashMap<&str, Value> = HashMap::new();
+    props.insert("count", Value::I64(count.into()));
+    props.insert("count-visible", Value::Bool(count > 0));
+
+    if let Err(e) = conn.emit_signal(
+        None::<&str>,
+        "/com/canonical/Unity/LauncherEntry",
+        "com.canonical.Unity.LauncherEntry",
+        "Update",
+        &(app_uri.as_str(), props),
+    ) {
+        tracing::debug!("launcher badge signal failed: {e}");
     }
 }
 

@@ -9,9 +9,6 @@
     flashMessage,
     stageAttachment,
     stageAttachmentFromPath,
-    sendAttachment,
-    sendAttachmentFromPath,
-    basename,
     toggleReaction,
     deleteMessages,
     deleteMessagesForAll,
@@ -30,7 +27,6 @@
   import MessageBubble from './MessageBubble.svelte';
   import InfoMessage from './InfoMessage.svelte';
   import Composer from './Composer.svelte';
-import MultiSendConfirm, { type MultiBatch } from './MultiSendConfirm.svelte';
   import ContactRequestBar from './ContactRequestBar.svelte';
   import ScrollToLatest from './ScrollToLatest.svelte';
   import ContextMenu from './ContextMenu.svelte';
@@ -488,18 +484,14 @@ import MultiSendConfirm, { type MultiBatch } from './MultiSendConfirm.svelte';
   // pass local paths to the daemon. The HTML handlers stay for browser-mode
   // Playwright runs, which fire synthetic DragEvents the test relies on.
   //
-  // Drop of a single file stages it in the composer (preview row above the
-  // textarea) so the user can add a caption. A multi-file drop skips the
-  // caption step: deltachat is one-file-per-message, so it fans out into N
-  // messages after a confirmation.
+  // A drop stages each file as a composer preview row; the user adds an
+  // optional caption and hits send. A multi-file drop stages every file.
   //
   // dragDepth is a counter, not boolean — dragenter/dragleave fire as the
   // cursor crosses child boundaries, so a plain flag would flicker.
   let chatViewEl: HTMLElement | undefined = $state();
   let dragDepth = $state(0);
   let dragActive = $derived(dragDepth > 0);
-  // Multi-file drop awaiting a send-N-messages confirmation.
-  let multiBatch = $state<MultiBatch | null>(null);
 
   function hasFiles(e: DragEvent): boolean {
     return Array.from(e.dataTransfer?.types ?? []).includes('Files');
@@ -522,45 +514,25 @@ import MultiSendConfirm, { type MultiBatch } from './MultiSendConfirm.svelte';
     if (!hasFiles(e)) return;
     e.preventDefault();
     dragDepth = 0;
-    await handleDropped(
-      Array.from(e.dataTransfer?.files ?? []),
-      stageAttachment,
-      sendAttachment,
-      (f) => f.name,
-    );
+    await stageDropped(Array.from(e.dataTransfer?.files ?? []), stageAttachment);
   }
 
-  // Drop handler shared by the HTML `File[]` and Tauri `string[]` (OS paths)
-  // pathways. One item → stage it for a caption; many → confirm, then send
-  // each as its own message.
-  async function handleDropped<T>(
-    items: T[],
-    stage: (item: T) => Promise<void>,
-    sendOne: (item: T) => Promise<void>,
-    nameOf: (item: T) => string,
-  ) {
-    if (items.length === 0) return;
-    if (items.length === 1) {
+  // Stage every dropped item as a composer attachment. Works for both the
+  // HTML `File[]` and the Tauri `string[]` (OS paths) pathways.
+  async function stageDropped<T>(items: T[], stage: (item: T) => Promise<void>) {
+    for (const it of items) {
       try {
-        await stage(items[0]);
+        await stage(it);
       } catch (err) {
         notice = `${t('Could not attach file')}: ${err instanceof Error ? err.message : String(err)}`;
       }
-      return;
     }
-    multiBatch = {
-      names: items.map(nameOf),
-      send: async () => {
-        for (const it of items) await sendOne(it);
-      },
-    };
   }
 
   dropZone({
     el: () => chatViewEl ?? null,
     onState: (s) => (dragDepth = s === 'over' ? 1 : 0),
-    onDrop: (paths) =>
-      handleDropped(paths, stageAttachmentFromPath, sendAttachmentFromPath, basename),
+    onDrop: (paths) => stageDropped(paths, stageAttachmentFromPath),
   });
 </script>
 
@@ -749,12 +721,6 @@ import MultiSendConfirm, { type MultiBatch } from './MultiSendConfirm.svelte';
   mode="alert"
   title={notice ?? ''}
   onClose={() => (notice = null)}
-/>
-
-<MultiSendConfirm
-  batch={multiBatch}
-  onClose={() => (multiBatch = null)}
-  onError={(m) => (notice = `${t('Could not attach file')}: ${m}`)}
 />
 
 <style>

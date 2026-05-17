@@ -210,9 +210,7 @@ export function updateUnreadIndicators(unread: number): void {
   document.title = unread > 0 ? `(${unread > 99 ? '99+' : unread}) ${baseTitle}` : baseTitle;
   updateFavicon(unread);
   if (inTauri()) {
-    void invoke('set_badge', {
-      label: unread > 0 ? (unread > 99 ? '99+' : String(unread)) : null,
-    }).catch(() => undefined);
+    void invoke('set_badge', { count: unread }).catch(() => undefined);
   }
 }
 

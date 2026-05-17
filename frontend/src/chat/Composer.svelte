@@ -6,10 +6,8 @@
     stageContact,
     stageAttachment,
     stageAttachmentFromPath,
-    sendAttachment,
-    sendAttachmentFromPath,
-    setPendingAttachment,
-    basename,
+    clearPendingAttachments,
+    removePendingAttachment,
     chat,
     setReplyTo,
     setEditing,
@@ -20,7 +18,6 @@
   import { VoiceRecorder, pickMimeType, extensionForMime } from '../lib/audio/recorder';
   import AttachMenu from './AttachMenu.svelte';
   import AttachmentBar from './AttachmentBar.svelte';
-  import MultiSendConfirm, { type MultiBatch } from './MultiSendConfirm.svelte';
   import ContactPickerModal from './ContactPickerModal.svelte';
   import EmojiPicker from './EmojiPicker.svelte';
   import QuoteBar from './QuoteBar.svelte';
@@ -36,8 +33,6 @@
   let contactPickerOpen = $state(false);
   // Shared alert-dialog message — replaces native `alert()`.
   let notice = $state<string | null>(null);
-  // Multi-file pick/paste awaiting a send-N-messages confirmation.
-  let multiBatch = $state<MultiBatch | null>(null);
 
   function insertEmoji(c: string) {
     const ta = textarea;
@@ -104,30 +99,36 @@
 
   let replyTarget = $derived(chat.replyToId != null ? (chat.messages.get(chat.replyToId) ?? null) : null);
   let editTarget = $derived(chat.editingId != null ? (chat.messages.get(chat.editingId) ?? null) : null);
-  let pendingAttachment = $derived(chat.pendingAttachment);
+  let pendingAttachments = $derived(chat.pendingAttachments);
 
   let canSend = $derived(
     !sending &&
       chat.active != null &&
-      (text.trim().length > 0 || pendingAttachment != null),
+      (text.trim().length > 0 || pendingAttachments.length > 0),
   );
 
   async function send() {
     if (!canSend) return;
-    const att = pendingAttachment;
+    const atts = pendingAttachments;
     const toSend = text;
     sending = true;
     try {
-      if (att != null) {
+      if (atts.length > 0) {
         const trimmed = toSend.trim();
-        await sendMessage({
-          viewtype: att.viewtype,
-          file: att.file,
-          filename: att.filename,
-          text: trimmed.length > 0 ? trimmed : undefined,
-          quotedMessageId: chat.replyToId ?? undefined,
-        });
-        setPendingAttachment(null);
+        // deltachat is one-file-per-message: fan the staged files out into
+        // N messages. The caption and the reply quote ride the first
+        // message only; the rest are sent bare.
+        for (let i = 0; i < atts.length; i++) {
+          const att = atts[i];
+          await sendMessage({
+            viewtype: att.viewtype,
+            file: att.file,
+            filename: att.filename,
+            text: i === 0 && trimmed.length > 0 ? trimmed : undefined,
+            quotedMessageId: i === 0 ? (chat.replyToId ?? undefined) : undefined,
+          });
+        }
+        clearPendingAttachments();
         if (chat.replyToId != null) setReplyTo(null);
       } else {
         await sendText(toSend);
@@ -260,16 +261,7 @@
     }
     if (paths.length === 0) return; // a genuine text paste
     text = before; // drop the filename the default paste inserted
-    if (paths.length === 1) {
-      await stageOrWarn(() => stageAttachmentFromPath(paths[0]));
-      return;
-    }
-    multiBatch = {
-      names: paths.map(basename),
-      send: async () => {
-        for (const p of paths) await sendAttachmentFromPath(p);
-      },
-    };
+    for (const p of paths) await stageOrWarn(() => stageAttachmentFromPath(p));
   }
 
   // Pasted images usually arrive nameless — give them a real filename so the
@@ -383,20 +375,11 @@
     return `${Math.floor(s / 60)}:${(s % 60).toString().padStart(2, '0')}`;
   }
 
-  function onFilePicked(e: Event) {
+  async function onFilePicked(e: Event) {
     const input = e.currentTarget as HTMLInputElement;
     const files = input.files ? Array.from(input.files) : [];
     input.value = '';
-    if (files.length === 1) {
-      void stageOrWarn(() => stageAttachment(files[0]));
-    } else if (files.length > 1) {
-      multiBatch = {
-        names: files.map((f) => f.name),
-        send: async () => {
-          for (const f of files) await sendAttachment(f);
-        },
-      };
-    }
+    for (const f of files) await stageOrWarn(() => stageAttachment(f));
   }
 </script>
 
@@ -406,12 +389,9 @@
   {:else if replyTarget}
     <QuoteBar target={replyTarget} mode="reply" onClose={() => setReplyTo(null)} />
   {/if}
-  {#if pendingAttachment}
-    <AttachmentBar
-      attachment={pendingAttachment}
-      onClose={() => setPendingAttachment(null)}
-    />
-  {/if}
+  {#each pendingAttachments as att, i (i)}
+    <AttachmentBar attachment={att} onClose={() => removePendingAttachment(i)} />
+  {/each}
   <div class="composer" data-testid="composer">
   {#if recording}
     <IconButton
@@ -488,7 +468,7 @@
     />
   </div>
 
-  {#if text.trim().length === 0 && pendingAttachment == null}
+  {#if text.trim().length === 0 && pendingAttachments.length === 0}
     {#if voiceSupported}
       <IconButton
         variant="subtle"
@@ -529,12 +509,6 @@
   mode="alert"
   title={notice ?? ''}
   onClose={() => (notice = null)}
-/>
-
-<MultiSendConfirm
-  batch={multiBatch}
-  onClose={() => (multiBatch = null)}
-  onError={(m) => (notice = `${t('Could not attach file')}: ${m}`)}
 />
 
 <style>

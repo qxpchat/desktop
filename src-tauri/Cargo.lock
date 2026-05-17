@@ -5952,7 +5952,7 @@ checksum = "478e0585659a122aa407eb7e3c0e1fa51b1d8a870038bd29f0cf4a8551eea972"
 
 [[package]]
 name = "qxp-desktop"
-version = "0.10.1"
+version = "0.13.1"
 dependencies = [
  "anyhow",
  "objc2",
@@ -5968,11 +5968,12 @@ dependencies = [
  "tokio",
  "tracing",
  "tracing-subscriber",
+ "zbus",
 ]
 
 [[package]]
 name = "qxp-web"
-version = "0.10.1"
+version = "0.13.1"
 dependencies = [
  "anyhow",
  "axum",

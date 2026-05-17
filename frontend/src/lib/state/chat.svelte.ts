@@ -182,11 +182,11 @@ export type ChatState = {
   replyToId: number | null;
   /** Composer state: id of own message being edited. */
   editingId: number | null;
-  /** Composer state: file staged for sending alongside the next message.
-   *  Set by drag-drop / attach-menu pick; cleared by send or by the user
-   *  hitting the X on the attachment preview. At most one file at a time
-   *  (extras are rejected — deltachat sends one file per message). */
-  pendingAttachment: PendingAttachment | null;
+  /** Composer state: files staged for the next send, oldest first. Added by
+   *  drag-drop / paste / attach-menu pick; an entry is removed by the X on
+   *  its preview row, the whole list cleared by send. deltachat is
+   *  one-file-per-message, so send fans the list out into N messages. */
+  pendingAttachments: PendingAttachment[];
   /** Highlight pulse target — ChatView animates the bubble briefly on jump. */
   highlightId: number | null;
   /** Active jump-to-message target. Set by `jumpToMessage` for the
@@ -214,7 +214,7 @@ export const chat = $state<ChatState>({
   error: null,
   replyToId: null,
   editingId: null,
-  pendingAttachment: null,
+  pendingAttachments: [],
   highlightId: null,
   jumpTargetId: null,
 });
@@ -228,16 +228,25 @@ export function setEditing(id: number | null): void {
   chat.editingId = id;
   chat.replyToId = null;
   // Editing an existing message can't carry a new attachment — clear the
-  // staged file so we don't silently lose it on the next send.
-  chat.pendingAttachment = null;
+  // staged files so we don't silently lose them on the next send.
+  chat.pendingAttachments = [];
 }
 
-export function setPendingAttachment(att: PendingAttachment | null): void {
-  chat.pendingAttachment = att;
-  // Staging an attachment exits edit mode — you can't attach a file to an
-  // existing-message edit request (core only edits text). Reply mode stays
-  // intact since "reply with a file" is a normal action.
-  if (att != null) chat.editingId = null;
+/** Append a staged file to the composer. Exits edit mode — you can't attach
+ *  a file to an existing-message edit request (core only edits text). Reply
+ *  mode stays intact since "reply with a file" is a normal action. */
+export function addPendingAttachment(att: PendingAttachment): void {
+  chat.pendingAttachments.push(att);
+  chat.editingId = null;
+}
+
+/** Drop the staged file at `index` — the X on its preview row. */
+export function removePendingAttachment(index: number): void {
+  chat.pendingAttachments.splice(index, 1);
+}
+
+export function clearPendingAttachments(): void {
+  chat.pendingAttachments = [];
 }
 
 let flashGen = 0;
@@ -264,7 +273,7 @@ export function setActiveChat(active: ActiveChat | null): void {
   chat.error = null;
   chat.replyToId = null;
   chat.editingId = null;
-  chat.pendingAttachment = null;
+  chat.pendingAttachments = [];
   chat.highlightId = null;
   // `jumpTargetId` deliberately *not* cleared here: when a search hit
   // for a different chat fires the jump, `selectChat` → `setActiveChat`
@@ -641,46 +650,20 @@ export async function markNoticed(): Promise<void> {
   }
 }
 
-/** Upload `file` as bytes and classify it. Shared by the stage-one
- *  (`stageAttachment`) and send-each (`sendAttachment`) paths. */
-async function uploadAttachment(
-  file: File,
-): Promise<{ path: string; viewtype: MessageViewtype }> {
-  const ext = (file.name.split('.').pop() ?? 'bin').toLowerCase();
-  const path = await uploadBlob(file, ext);
-  return { path, viewtype: viewtypeForFile(file) };
-}
-
-/** Upload `file` (as bytes) and stage it as the chat's pending attachment so
+/** Upload `file` (as bytes) and append it to the composer's staged files so
  *  the user can add a caption before sending. The `_uploads/`-backed copy is
- *  servable by the daemon, so image attachments get a thumbnail preview.
- *  Replaces any previously staged file. */
+ *  servable by the daemon, so image attachments get a thumbnail preview. */
 export async function stageAttachment(file: File): Promise<void> {
   if (chat.active == null) return;
-  const { path, viewtype } = await uploadAttachment(file);
-  setPendingAttachment({
+  const ext = (file.name.split('.').pop() ?? 'bin').toLowerCase();
+  const path = await uploadBlob(file, ext);
+  const viewtype = viewtypeForFile(file);
+  addPendingAttachment({
     viewtype,
     file: path,
     filename: file.name,
     previewUrl: isImageViewtype(viewtype) ? (fileUrl(path) ?? null) : null,
   });
-}
-
-/** Upload `file` and send it straight away as its own message. deltachat is
- *  one-file-per-message, so a multi-file pick fans out into N messages —
- *  there's no caption step, unlike the single-file `stageAttachment`. */
-export async function sendAttachment(file: File): Promise<void> {
-  if (chat.active == null) return;
-  const { path, viewtype } = await uploadAttachment(file);
-  await sendMessage({ viewtype, file: path, filename: file.name });
-}
-
-/** Send an OS-path file (Tauri multi-file drop) straight away as its own
- *  message — the no-upload-round-trip counterpart of `sendAttachment`. */
-export async function sendAttachmentFromPath(localPath: string): Promise<void> {
-  if (chat.active == null) return;
-  const name = basename(localPath);
-  await sendMessage({ viewtype: viewtypeForName(name), file: localPath, filename: name });
 }
 
 /** Stage an OS-path source (Tauri drag-drop) without an upload round-trip —
@@ -690,7 +673,7 @@ export async function stageAttachmentFromPath(localPath: string): Promise<void> 
   if (chat.active == null) return;
   const name = basename(localPath);
   const viewtype = viewtypeForName(name);
-  setPendingAttachment({
+  addPendingAttachment({
     viewtype,
     file: localPath,
     filename: name,
@@ -698,7 +681,7 @@ export async function stageAttachmentFromPath(localPath: string): Promise<void> 
   });
 }
 
-export function basename(p: string): string {
+function basename(p: string): string {
   const trimmed = p.replace(/[\\/]+$/, '');
   const idx = Math.max(trimmed.lastIndexOf('/'), trimmed.lastIndexOf('\\'));
   return idx >= 0 ? trimmed.slice(idx + 1) : trimmed;
@@ -732,7 +715,7 @@ export async function stageContact(contactId: number): Promise<void> {
   } catch {
     /* keep the generic name */
   }
-  setPendingAttachment({
+  addPendingAttachment({
     viewtype: 'Vcard',
     file: path,
     filename,
