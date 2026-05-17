@@ -27,9 +27,11 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Fetch submodules
-        # .gitmodules pins deltachat-core-rust over ssh://git@codeberg.org;
-        # CI has no SSH key, so rewrite to https before init.
+        # Submodules pin SSH URLs (deltachat-core-rust over git@github.com,
+        # nested submodules over ssh://git@codeberg.org); CI has no SSH key,
+        # so rewrite both to https before init.
         run: |
+          git config --global url."https://github.com/".insteadOf "git@github.com:"
           git config --global url."https://codeberg.org/".insteadOf "ssh://git@codeberg.org/"
           git submodule update --init --recursive
 
