@@ -1,28 +1,46 @@
 ---
 name: changelog
-description: Generate short, friendly release notes for the commits between the two most recent git tags. Plain text with emojis, no markdown. Trigger when the user says "generate release notes", "changelog", "what changed since last release", or invokes /changelog. Note: do NOT use the built-in /release-notes command — that shows Claude Code's own changelog.
+description: Tag HEAD with the current app version, then generate short, friendly release notes for the commits since the previous tag. Plain text with emojis, no markdown. Trigger when the user says "generate release notes", "changelog", "what changed since last release", or invokes /changelog. Note: do NOT use the built-in /release-notes command — that shows Claude Code's own changelog.
 ---
 
 # Release notes generator
 
-Produce concise, pleasant release notes covering everything between the two
-most recent version tags of this repo.
+Tag the current HEAD with the app version, then produce concise, pleasant
+release notes covering everything since the previous tag.
 
 ## Steps
 
-1. Find the two most recent tags (version-sorted, newest first):
+1. Read the current app version (single source of truth for all version sites):
    ```
-   git tag -l --sort=-v:refname | head -2
+   scripts/sync-versions.sh
    ```
-   Call them NEW (first line) and PREV (second line).
-   - If fewer than 2 tags exist, tell the user and stop.
+   The printed value is NEW (e.g. `0.11.0`). If the script reports drift
+   (exit 1), tell the user to fix versions first and stop.
 
-2. Collect the commits in the range:
+2. Create the tag on HEAD if it does not already exist:
+   ```
+   git tag -l NEW
+   ```
+   - If that prints NEW, the tag already exists — skip to step 3.
+   - Otherwise create it:
+     ```
+     git tag NEW
+     ```
+     Tag names match existing tags: bare version, no `v` prefix.
+
+3. Find the previous tag — the newest version tag strictly older than NEW:
+   ```
+   git tag -l --sort=-v:refname
+   ```
+   PREV is the first line that is not NEW.
+   - If no tag older than NEW exists, tell the user and stop.
+
+4. Collect the commits in the range:
    ```
    git log PREV..NEW --no-merges --pretty=format:'%s'
    ```
 
-3. Write the release notes from those commit subjects.
+5. Write the release notes from those commit subjects.
 
 ## Output rules
 
