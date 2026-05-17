@@ -1,12 +1,13 @@
 ---
-name: changelog
-description: Tag HEAD with the current app version, then generate short, friendly release notes for the commits since the previous tag. Plain text with emojis, no markdown. Trigger when the user says "generate release notes", "changelog", "what changed since last release", or invokes /changelog. Note: do NOT use the built-in /release-notes command — that shows Claude Code's own changelog.
+name: releaser
+description: Tag HEAD with the current app version, generate short, friendly release notes for the commits since the previous tag, then push the branch and tags to GitHub. Plain text with emojis, no markdown. Trigger when the user says "release", "cut a release", "generate release notes", "changelog", "what changed since last release", or invokes /releaser. Note: do NOT use the built-in /release-notes command — that shows Claude Code's own changelog.
 ---
 
-# Release notes generator
+# Releaser
 
-Tag the current HEAD with the app version, then produce concise, pleasant
-release notes covering everything since the previous tag.
+Tag the current HEAD with the app version, produce concise release notes
+covering everything since the previous tag, then push the branch and tags
+to GitHub.
 
 ## Steps
 
@@ -41,6 +42,13 @@ release notes covering everything since the previous tag.
    ```
 
 5. Write the release notes from those commit subjects.
+
+6. Push the branch and all tags to GitHub:
+   ```
+   make push-github
+   ```
+   This is an outward-facing, hard-to-reverse action. Confirm with the user
+   before running it, then run it and report the result.
 
 ## Output rules
 
