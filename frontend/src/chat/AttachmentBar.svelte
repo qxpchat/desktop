@@ -71,7 +71,7 @@
   {/if}
   <div class="content">
     <span class="label">{label}</span>
-    <span class="filename">{attachment.filename}</span>
+    <span class="filename">{attachment.displayName ?? attachment.filename}</span>
   </div>
   <IconButton
     variant="subtle"

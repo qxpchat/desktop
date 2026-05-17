@@ -146,6 +146,10 @@ export type PendingAttachment = {
    *  path (Tauri drag-drop) — core copies into the blobdir either way. */
   file: string;
   filename: string;
+  /** Human-readable name for the composer preview when `filename` is
+   *  unfriendly — a vcard's filename is a sanitised `name.vcf`, but the
+   *  preview should show the contact's plain display name. */
+  displayName?: string;
   /** URL for an image thumbnail in the composer preview, or null for a type
    *  icon. Uploads use a daemon `/file` URL; Tauri drag-drop uses an `asset:`
    *  URL (`convertFileSrc`) — scoped to `$HOME` in tauri.conf.json. */
@@ -685,15 +689,20 @@ export async function stageContact(contactId: number): Promise<void> {
   const vcard = await rpc.call<string>('make_vcard', [active.accountId, [contactId]]);
   const blob = new Blob([vcard], { type: 'text/vcard' });
   const path = await uploadBlob(blob, 'vcf');
-  // Name the staged file after the contact so the composer preview is
-  // legible; fall back to a generic name if the lookup fails.
+  // Name the staged file after the contact, and carry the contact's plain
+  // display name for the composer preview. Fall back to generics if the
+  // lookup fails.
   let filename = 'contact.vcf';
+  let displayName: string | undefined;
   try {
     const c = await rpc.call<{ displayName?: string; address?: string }>('get_contact', [
       active.accountId,
       contactId,
     ]);
-    const base = (c.displayName || c.address || 'contact').replace(/[^\w.-]+/g, '_');
+    displayName = c.displayName || c.address || undefined;
+    // Only strip filesystem-unsafe characters — keep Unicode letters so a
+    // non-ASCII name doesn't collapse to `_.vcf`.
+    const base = (displayName ?? 'contact').replace(/[/\\:*?"<>|]+/g, '_').trim() || 'contact';
     filename = `${base}.vcf`;
   } catch {
     /* keep the generic name */
@@ -702,6 +711,7 @@ export async function stageContact(contactId: number): Promise<void> {
     viewtype: 'Vcard',
     file: path,
     filename,
+    displayName,
     previewUrl: null,
   });
 }
