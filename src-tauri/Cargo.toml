@@ -9,7 +9,7 @@ license = "MPL-2.0"
 tauri-build = { version = "2", features = [] }
 
 [dependencies]
-tauri = { version = "2", features = ["protocol-asset"] }
+tauri = { version = "2", features = ["protocol-asset", "devtools"] }
 tauri-plugin-notification = "2"
 tauri-plugin-opener = "2"
 # OS URL-scheme handler. Registers qxp for openpgp4fpr:/dcaccount:/dclogin:/
@@ -25,6 +25,15 @@ serde_json = "1"
 anyhow = "1"
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+
+[features]
+# Tauri prod-mode gate. With `custom-protocol` on, `generate_context!` embeds
+# `build.frontendDist` and the webview serves it over the custom protocol;
+# without it the app runs in dev mode and loads `build.devUrl` instead.
+# `cargo tauri build` sets this automatically — a plain `cargo build` (the Nix
+# flake) must pass `--features custom-protocol`, else the window only shows
+# "could not connect to localhost".
+custom-protocol = ["tauri/custom-protocol"]
 
 # macOS native bits — dock-tile badge + clipboard file-URL reads. objc2 and
 # its framework crates are already pulled in transitively by tauri/wry;

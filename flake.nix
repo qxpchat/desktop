@@ -66,11 +66,25 @@
           buildAndTestSubdir = "src-tauri";
           cargoLock.lockFile = ./src-tauri/Cargo.lock;
 
+          # Enable Tauri's `custom-protocol`: `cargo tauri build` sets it,
+          # a bare `cargo build` does not — and without it Tauri runs in dev
+          # mode, loading `build.devUrl` instead of the embedded SPA (a blank
+          # window that just says "could not connect to localhost").
+          #
+          # Passed via `cargoBuildFlags`, not `buildFeatures` — the latter is
+          # silently dropped by buildRustPackage here (never reaches cargo).
+          cargoBuildFlags = [ "--features" "custom-protocol" ];
+
           # Drop the two trees the build needs but `src` lacks: the submodule
           # (never part of a flake source) and the prebuilt frontend (Tauri's
           # build.rs reads frontendDist = ../frontend/dist).
+          #
+          # `mkdir -p libs`: a GitHub tarball keeps an empty placeholder dir
+          # for the submodule, but a local-flake source export drops it (git
+          # stores no empty dirs) — so `libs/` may not exist at all.
           postPatch = ''
             rm -rf libs/deltachat-core-rust
+            mkdir -p libs
             cp -r ${deltachat-core} libs/deltachat-core-rust
             chmod -R u+w libs/deltachat-core-rust
             cp -r ${frontend} frontend/dist
