@@ -1,6 +1,7 @@
 <script lang="ts">
   import type { Message } from '../../lib/state/chat.svelte';
   import { fileUrl } from '../../lib/files';
+  import { exclusiveMedia } from '../../lib/audio/exclusive';
 
   type Props = {
     message: Message;
@@ -11,7 +12,7 @@
 </script>
 
 {#if url}
-  <audio controls preload="metadata" src={url} class="audio"></audio>
+  <audio controls preload="metadata" src={url} class="audio" use:exclusiveMedia></audio>
 {/if}
 {#if message.text}
   <div class="caption">{message.text}</div>

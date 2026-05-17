@@ -2,6 +2,7 @@
   import { onDestroy } from 'svelte';
   import type { Message } from '../../lib/state/chat.svelte';
   import { fileUrl } from '../../lib/files';
+  import { exclusiveMedia } from '../../lib/audio/exclusive';
   import { t } from '../../lib/i18n/i18n.svelte';
   import Button from '../../lib/Button.svelte';
   import Icon from '../../lib/Icon.svelte';
@@ -211,6 +212,7 @@
   {#if url}
     <audio
       bind:this={audio}
+      use:exclusiveMedia
       src={url}
       preload="metadata"
       onplay={() => (playing = true)}
