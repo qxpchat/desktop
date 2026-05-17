@@ -134,6 +134,18 @@ export async function importBackup(filePath: string): Promise<void> {
 
 export async function receiveBackup(qrText: string): Promise<void> {
   await runOnboardingFlow({ kind: 'receiving', progress: 0 }, async (accountId) => {
+    // `check_qr` is the daemon's authoritative QR parser — it tells a usable
+    // pair code (`backup2`) apart from one written by a too-new core
+    // (`backupTooNew`) and from anything that isn't a pairing code at all.
+    const qr = await rpc.call<{ kind: string }>('check_qr', [accountId, qrText]);
+    if (qr.kind === 'backupTooNew') {
+      throw new Error(
+        'This backup was made by a newer app version. Update this device, then try again.',
+      );
+    }
+    if (qr.kind !== 'backup2') {
+      throw new Error('That code is not a device-pairing code.');
+    }
     await rpc.call('get_backup', [accountId, qrText]);
   });
 }

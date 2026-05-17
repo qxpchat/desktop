@@ -8,7 +8,7 @@
 // `provide_backup` is fired without `await` (it blocks until B connects);
 // `get_backup_qr` returns the DCBACKUP… code synchronously once the
 // provider state is up. B then drives:
-//   Welcome → Add as Second Device → Paste from clipboard → confirm
+//   Welcome → Add as Second Device → Paste from clipboard
 // and expects the chat shell.
 //
 // The pool slot stays leased so A's mailbox state is coherent throughout.
@@ -91,10 +91,9 @@ test('Add as Second Device pairs and lands in the chat shell', async ({ page }) 
   await page.evaluate((code) => navigator.clipboard.writeText(code), pairQr);
   await page.locator(TID.onboardingBackupReceivePasteClipboard).click();
 
-  // 3. The "Pair this device?" confirmation dialog opens. Confirm → the
-  // receiver-side get_backup RPC fires; the chat shell mounts once
-  // import + start_io complete.
-  await page.locator(TID.onboardingBackupReceiveConfirm).click();
+  // 3. Pasting the code starts the transfer straight away — `check_qr`
+  // validates it, then the receiver-side get_backup RPC fires; the chat
+  // shell mounts once import + start_io complete.
   await expect(page.locator(TID.appShell)).toBeVisible({ timeout: 120_000 });
   await expect(page.locator(TID.chatList)).toBeVisible();
 });

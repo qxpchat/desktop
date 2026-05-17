@@ -193,6 +193,7 @@ export const TID = {
   settingsAddDeviceCode: '[data-testid="settings-add-device__code"]',
   settingsAddDeviceCopy: '[data-testid="settings-add-device__copy"]',
   settingsAddDeviceCancel: '[data-testid="settings-add-device__cancel"]',
+  settingsAddDeviceCancelConfirm: '[data-testid="settings-add-device__cancel-confirm"]',
   settingsAddDeviceError: '[data-testid="settings-add-device__error"]',
 
   // -- Settings: Connectivity --
@@ -369,5 +370,4 @@ export const TID = {
   onboardingBackupImportPicker: '[data-testid="onboarding-backup-import__picker"]',
   onboardingBackupReceive: '[data-testid="onboarding-backup-receive"]',
   onboardingBackupReceivePasteClipboard: '[data-testid="onboarding-backup-receive__paste-clipboard"]',
-  onboardingBackupReceiveConfirm: '[data-testid="onboarding-backup-receive__confirm"]',
 } as const;

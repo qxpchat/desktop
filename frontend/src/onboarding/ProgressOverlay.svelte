@@ -13,12 +13,27 @@
       case 'importing':
         return t('Importing backup…');
       case 'receiving':
-        return t('Transferring…');
+        // No progress yet means the two devices haven't linked up — the
+        // transfer proper only starts once `progress` moves off zero.
+        return phase.progress === 0 ? t('Connecting…') : t('Transferring…');
       case 'failed':
         return t('Could not connect');
       default:
         return '';
     }
+  });
+
+  // A device-pairing transfer stuck at 0% is almost always a network-reach
+  // problem. Surface a hint after a few seconds so the user isn't left
+  // staring at a frozen bar.
+  let slowHint = $state(false);
+  $effect(() => {
+    if (phase.kind !== 'receiving' || phase.progress !== 0) {
+      slowHint = false;
+      return;
+    }
+    const timer = setTimeout(() => (slowHint = true), 4000);
+    return () => clearTimeout(timer);
   });
 
   let progress = $derived(
@@ -50,6 +65,11 @@
         <span class="permille">{Math.round((progress / 1000) * 100)}%</span>
       </div>
       <p class="hint">{t('Keep this tab open until configuration completes.')}</p>
+      {#if slowHint}
+        <p class="hint slow">
+          {t('Still connecting. Make sure both devices are on the same network, then try again.')}
+        </p>
+      {/if}
       <div class="actions">
         <Button variant="secondary" onclick={cancelOnboarding}>{t('Cancel')}</Button>
       </div>
@@ -105,6 +125,9 @@
     margin: var(--space-3) 0 0;
     color: var(--color-fg-tertiary);
     font-size: var(--text-sm);
+  }
+  .hint.slow {
+    color: var(--color-fg-secondary);
   }
   .error {
     color: var(--color-danger);

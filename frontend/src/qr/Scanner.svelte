@@ -4,22 +4,47 @@
   //
   // Reused by Phase 2 step 4 (backup pair) and Phase 11 (general QR scan).
 
-  import { onMount, onDestroy } from 'svelte';
+  import { onMount, onDestroy, untrack } from 'svelte';
   import jsQR from 'jsqr';
 
   type Props = {
     onResult: (qr: string) => void;
     onError?: (msg: string) => void;
+    /** Scan only while true. Toggling false→true re-arms the scanner in
+     *  place — no camera teardown/re-init. The scanner stops itself after a
+     *  hit (so `onResult` fires once); flip `scanning` off then on to retry. */
+    scanning?: boolean;
   };
 
-  let { onResult, onError }: Props = $props();
+  let { onResult, onError, scanning = true }: Props = $props();
 
   let video: HTMLVideoElement | undefined = $state();
   let canvas: HTMLCanvasElement | undefined = $state();
   let stream: MediaStream | null = null;
   let raf: number | null = null;
   let active = false;
+  let cameraReady = false;
   let permError = $state<string | null>(null);
+
+  // Re-arm / suspend the scan loop on a `scanning` edge. The camera stream
+  // stays live across toggles — only the per-frame detection loop pauses.
+  let prevScanning = untrack(() => scanning);
+  $effect(() => {
+    const s = scanning;
+    if (s === prevScanning) return;
+    prevScanning = s;
+    if (s) {
+      if (active || !cameraReady || permError) return;
+      active = true;
+      raf = requestAnimationFrame(scan);
+    } else {
+      active = false;
+      if (raf != null) {
+        cancelAnimationFrame(raf);
+        raf = null;
+      }
+    }
+  });
 
   // BarcodeDetector is not in lib.dom yet; cast through `unknown`.
   let nativeDetector: { detect: (src: CanvasImageSource) => Promise<{ rawValue: string }[]> } | null = null;
@@ -56,8 +81,11 @@
         }
       }
 
-      active = true;
-      raf = requestAnimationFrame(scan);
+      cameraReady = true;
+      if (scanning) {
+        active = true;
+        raf = requestAnimationFrame(scan);
+      }
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       permError = msg;

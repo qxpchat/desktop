@@ -7,9 +7,10 @@
 // is `get_backup` (driven headlessly here).
 //
 // Coverage:
-//  1. provider starts, QR + code render, Cancel tears it back to idle.
+//  1. provider starts, QR + code render, Cancel (confirmed) tears it
+//     back to idle.
 //  2. round-trip — a fresh account on the peer daemon runs `get_backup`
-//     against the code, the page reaches stage 'done'.
+//     against the code, the page returns to stage 'idle'.
 //  3. regression — the old, broken "pair QR" row is gone from Backup.
 
 import { test, expect } from '../../fixtures/app-paired.js';
@@ -40,9 +41,10 @@ test('Add Second Device: provider starts, renders pairing QR + code, cancels to 
   const code = (await page.locator(TID.settingsAddDeviceCode).textContent())?.trim();
   expect(code).toMatch(/^DCBACKUP\d*:/i);
 
-  // Cancel calls `stop_ongoing_process`; `provide_backup` then resolves
-  // and the section returns to idle.
+  // Cancel pops a confirmation; confirming calls `stop_ongoing_process`,
+  // `provide_backup` then resolves and the section returns to idle.
   await page.locator(TID.settingsAddDeviceCancel).click();
+  await page.locator(TID.settingsAddDeviceCancelConfirm).click();
   await expect(container).toHaveAttribute('data-stage', 'idle', {
     timeout: 30_000,
   });
@@ -69,10 +71,10 @@ test('Add Second Device: round-trip — a fresh peer account receives the backup
   await peer.rpc.call('get_backup', [recvId, code]);
 
   // `provide_backup` on the page side resolves once the peer finishes,
-  // flipping the stage to 'done'.
+  // returning the section to idle.
   await expect(page.locator(TID.settingsAddDevice)).toHaveAttribute(
     'data-stage',
-    'done',
+    'idle',
     { timeout: 120_000 },
   );
 });

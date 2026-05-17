@@ -5,6 +5,7 @@
   import { onEvent } from '../lib/events';
   import SettingsSection from '../lib/SettingsSection.svelte';
   import Button from '../lib/Button.svelte';
+  import Modal from '../lib/Modal.svelte';
   import { t } from '../lib/i18n/i18n.svelte';
 
   // Multi-device / send-backup flow. `provide_backup` starts a local-network
@@ -13,7 +14,7 @@
   // account's IO. `get_backup_qr` returns the DCBACKUP pair code the other
   // device scans, `create_qr_svg` renders it. The receiving half lives in
   // onboarding (BackupReceive.svelte → `get_backup`).
-  type Stage = 'idle' | 'preparing' | 'awaiting' | 'transferring' | 'done' | 'error';
+  type Stage = 'idle' | 'preparing' | 'awaiting' | 'transferring' | 'error';
 
   let stage = $state<Stage>('idle');
   let svg = $state<string | null>(null);
@@ -21,6 +22,7 @@
   let progress = $state(0);
   let message = $state<string | null>(null);
   let copied = $state(false);
+  let confirmCancelOpen = $state(false);
 
   // Account the in-flight provider belongs to. Guards the ImexProgress
   // handler and `stop_ongoing_process` against a mid-flow account switch.
@@ -105,13 +107,24 @@
     qrText = null;
     activeId = null;
     if (currentStage() === 'error') return;
-    if (canceled) reset();
-    else stage = 'done';
+    // Success and cancel both land back on the idle section — the transfer
+    // completing is confirmation enough on the receiving device's side.
+    reset();
   }
 
+  // Bare teardown — used by `onDestroy`, which must not pop a dialog.
   async function cancel() {
     canceled = true;
     await stopProvider();
+  }
+
+  function requestCancel() {
+    confirmCancelOpen = true;
+  }
+
+  async function confirmCancel() {
+    confirmCancelOpen = false;
+    await cancel();
   }
 
   async function copyCode() {
@@ -137,21 +150,16 @@
 <h2>{t('Add Second Device')}</h2>
 
 <div data-testid="settings-add-device" data-stage={stage}>
-  {#if stage === 'idle' || stage === 'done'}
+  {#if stage === 'idle'}
     <SettingsSection
       title={t('Pair another device')}
       footer={t('This device keeps a copy. The new device receives the same account and stays in sync over email.')}
     >
-      {#if stage === 'done'}
-        <p class="ok" data-testid="settings-add-device__done">{t('The other device received your account.')}</p>
-      {/if}
-      <ol class="steps">
-        <li>{t('Install a chatmail client on the other device.')}</li>
-        <li>{t('Keep both devices on the same Wi-Fi network.')}</li>
-        <li>{t('On the other device choose “Add as Second Device” and scan the QR.')}</li>
-      </ol>
+      <p class="intro">
+        {t('This creates a QR code. Scan it from a chatmail client on your other device to copy this account there.')}
+      </p>
       <Button variant="primary" onclick={start} data-testid="settings-add-device__start">
-        {t('Start pairing')}
+        {t('Continue')}
       </Button>
     </SettingsSection>
   {:else if stage === 'preparing'}
@@ -164,11 +172,16 @@
       {#if qrText}
         <p class="code" data-testid="settings-add-device__code" title={qrText}>{qrText}</p>
       {/if}
+      <ol class="steps">
+        <li>{t('Install a chatmail client on the other device.')}</li>
+        <li>{t('Keep both devices on the same Wi-Fi network.')}</li>
+        <li>{t('On the other device choose “Add as Second Device” and scan the QR.')}</li>
+      </ol>
       <div class="actions">
         <Button variant="secondary" size="sm" onclick={copyCode} data-testid="settings-add-device__copy">
           {copied ? t('Copied!') : t('Copy code')}
         </Button>
-        <Button variant="danger-text" size="sm" onclick={cancel} data-testid="settings-add-device__cancel">
+        <Button variant="danger-text" size="sm" onclick={requestCancel} data-testid="settings-add-device__cancel">
           {t('Cancel')}
         </Button>
       </div>
@@ -185,14 +198,44 @@
   {/if}
 </div>
 
+<Modal
+  open={confirmCancelOpen}
+  onClose={() => (confirmCancelOpen = false)}
+  size="md"
+  role="alertdialog"
+>
+  <div class="dialog-body">
+    <h2>{t('Stop pairing?')}</h2>
+    <p>
+      {copied
+        ? t('The transfer will be canceled and the code you copied will stop working.')
+        : t('The transfer will be canceled.')}
+    </p>
+    <div class="dialog-actions">
+      <Button variant="secondary" onclick={() => (confirmCancelOpen = false)}>
+        {t('Keep pairing')}
+      </Button>
+      <Button variant="danger" onclick={confirmCancel} data-testid="settings-add-device__cancel-confirm">
+        {t('Stop')}
+      </Button>
+    </div>
+  </div>
+</Modal>
+
 <style>
   h2 {
     margin: 0 0 var(--space-5) 0;
     font-size: var(--text-xl);
     font-weight: 600;
   }
-  .steps {
+  .intro {
     margin: 0 0 var(--space-4) 0;
+    color: var(--color-fg-secondary);
+    font-size: var(--text-sm);
+  }
+  .steps {
+    margin: 0;
+    width: 100%;
     padding-left: var(--space-5);
     color: var(--color-fg-secondary);
     font-size: var(--text-sm);
@@ -273,13 +316,24 @@
   .hint {
     color: var(--color-fg-secondary);
   }
-  .ok {
-    margin: 0 0 var(--space-4) 0;
-    color: var(--color-accent);
-    font-size: var(--text-sm);
-  }
   .error {
     color: var(--color-danger);
     margin: 0 0 var(--space-3) 0;
+  }
+  .dialog-body {
+    padding: var(--space-5);
+  }
+  .dialog-body h2 {
+    margin: 0 0 var(--space-3) 0;
+    font-size: var(--text-lg);
+  }
+  .dialog-body p {
+    margin: 0 0 var(--space-4) 0;
+    color: var(--color-fg-secondary);
+  }
+  .dialog-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: var(--space-3);
   }
 </style>
