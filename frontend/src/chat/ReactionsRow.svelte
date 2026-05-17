@@ -1,9 +1,12 @@
 <script lang="ts">
-  import { toggleReaction, type Message } from '../lib/state/chat.svelte';
+  import { toggleReaction, type ReactionEntry } from '../lib/state/chat.svelte';
   import { t } from '../lib/i18n/i18n.svelte';
 
   type Props = {
-    message: Message;
+    /** Per-emoji tallies to render. */
+    reactions: ReactionEntry[];
+    /** Message the chips act on — target of the toggle / reactor sheet. */
+    messageId: number;
     /** When false the per-emoji count is hidden — useful in 1:1 chats where
      *  the count is always 1 and adds noise. */
     showCount?: boolean;
@@ -14,31 +17,33 @@
     /** Open the reactor detail sheet for this message — only fires in
      *  groups, for chips the user didn't react with themselves. */
     onShowReactors: (messageId: number) => void;
+    /** Read-only summary (gallery aggregate): every chip is inert. */
+    readonly?: boolean;
   };
 
-  let { message, showCount = true, isGroup, onShowReactors }: Props = $props();
-
-  type ReactionEntry = { emoji: string; count: number; isFromSelf: boolean };
-  let reactions = $derived.by(() => {
-    const r = message.reactions as
-      | { reactions?: ReactionEntry[] }
-      | undefined;
-    return r?.reactions ?? [];
-  });
+  let {
+    reactions,
+    messageId,
+    showCount = true,
+    isGroup,
+    onShowReactors,
+    readonly = false,
+  }: Props = $props();
 
   function onChipClick(r: ReactionEntry) {
     // Own chips always toggle (tap-the-same-emoji-to-unreact, matching
     // mobile). Foreign chips open the reactor sheet in groups; in 1:1
     // they're inert — the chip is purely informational.
-    if (r.isFromSelf) void toggleReaction(message.id, r.emoji);
-    else if (isGroup) onShowReactors(message.id);
+    if (readonly) return;
+    if (r.isFromSelf) void toggleReaction(messageId, r.emoji);
+    else if (isGroup) onShowReactors(messageId);
   }
 </script>
 
 {#if reactions.length > 0}
-  <div class="row" role="group" aria-label={t('Reactions')} data-testid="reactions-row" data-msg-id={message.id}>
+  <div class="row" role="group" aria-label={t('Reactions')} data-testid="reactions-row" data-msg-id={messageId}>
     {#each reactions as r (r.emoji)}
-      {@const actionable = r.isFromSelf || isGroup}
+      {@const actionable = !readonly && (r.isFromSelf || isGroup)}
       <button
         class="chip"
         class:mine={r.isFromSelf}

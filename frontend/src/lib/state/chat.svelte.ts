@@ -130,6 +130,89 @@ export type Message = {
   showPadlock: boolean;
 };
 
+/** A single emoji's reaction tally on a message. The daemon's reaction
+ *  blob is `unknown`-typed on `Message`; this is the shape of its
+ *  `reactions[]` array. */
+export type ReactionEntry = { emoji: string; count: number; isFromSelf: boolean };
+
+/** Pull the per-emoji reaction tallies off a message, unwrapping the
+ *  daemon's `unknown`-typed reaction blob at the state-module boundary. */
+export function messageReactions(m: Message): ReactionEntry[] {
+  const r = m.reactions as { reactions?: ReactionEntry[] } | undefined;
+  return r?.reactions ?? [];
+}
+
+/** Max gap (seconds) between two consecutive media messages for them to
+ *  still collapse into the same gallery. */
+export const GALLERY_GAP_S = 60;
+
+/** One rendered row of the chat timeline: a standalone message, or a
+ *  collapsed run of consecutive media messages (a gallery). */
+export type TimelineItem =
+  | { kind: 'single'; key: string; message: Message }
+  | { kind: 'gallery'; key: string; messages: Message[] };
+
+function isGalleryViewtype(m: Message): boolean {
+  return !m.isInfo && (m.viewType === 'Image' || m.viewType === 'Video');
+}
+
+function hasCaption(m: Message): boolean {
+  return (m.text ?? '').trim().length > 0;
+}
+
+/** Collapse the flat message-id list into timeline rows. Consecutive
+ *  image/video messages from the same sender, each sent within
+ *  `GALLERY_GAP_S` of the previous, group into a gallery. A captioned
+ *  media message opens a new gallery (it becomes that gallery's first
+ *  member); any non-media message or a >`GALLERY_GAP_S` gap fully breaks
+ *  the run. A gallery left with a single member renders as a normal
+ *  bubble. `collapse=false` (selection mode) skips grouping entirely. */
+export function buildTimeline(
+  ids: number[],
+  messages: Map<number, Message>,
+  collapse: boolean,
+): TimelineItem[] {
+  const items: TimelineItem[] = [];
+  let run: Message[] = [];
+
+  const flushRun = () => {
+    if (run.length === 0) return;
+    let sub: Message[] = [];
+    const flushSub = () => {
+      if (sub.length === 0) return;
+      if (sub.length >= 2) {
+        items.push({ kind: 'gallery', key: `gal-${sub[0].id}`, messages: sub });
+      } else {
+        items.push({ kind: 'single', key: `msg-${sub[0].id}`, message: sub[0] });
+      }
+      sub = [];
+    };
+    for (const m of run) {
+      if (sub.length > 0 && hasCaption(m)) flushSub();
+      sub.push(m);
+    }
+    flushSub();
+    run = [];
+  };
+
+  for (const id of ids) {
+    const m = messages.get(id);
+    if (!m) continue;
+    if (!collapse || !isGalleryViewtype(m)) {
+      flushRun();
+      items.push({ kind: 'single', key: `msg-${m.id}`, message: m });
+      continue;
+    }
+    const last = run[run.length - 1];
+    if (last && (last.fromId !== m.fromId || m.timestamp - last.timestamp > GALLERY_GAP_S)) {
+      flushRun();
+    }
+    run.push(m);
+  }
+  flushRun();
+  return items;
+}
+
 type MessageLoadResult =
   | { kind: 'message'; [k: string]: unknown }
   | { kind: 'loadingError'; error: string };

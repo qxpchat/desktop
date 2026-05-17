@@ -15,9 +15,11 @@
     setReplyTo,
     setEditing,
     loadOlder,
+    buildTimeline,
     CONTACT_ID_SELF,
     canRecallMessage,
     type Message,
+    type TimelineItem,
   } from '../lib/state/chat.svelte';
   import { dropZone } from '../lib/dragdrop.svelte';
   import { jumpToMessage } from '../lib/state/jump';
@@ -25,6 +27,7 @@
   import { t } from '../lib/i18n/i18n.svelte';
   import { chatlist } from '../lib/state/chatlist.svelte';
   import MessageBubble from './MessageBubble.svelte';
+  import MessageGallery from './MessageGallery.svelte';
   import InfoMessage from './InfoMessage.svelte';
   import Composer from './Composer.svelte';
   import ContactRequestBar from './ContactRequestBar.svelte';
@@ -149,7 +152,12 @@
           chat.jumpTargetId = null;
           return;
         }
-        const el = document.getElementById(`msg-${target}`);
+        // The target may be collapsed inside a gallery — its own `msg-`
+        // element then doesn't exist, so fall back to the gallery wrapper
+        // that lists it among `data-gallery-members`.
+        const el =
+          document.getElementById(`msg-${target}`) ??
+          scroller.querySelector<HTMLElement>(`[data-gallery-members~="${target}"]`);
         if (!el) {
           chat.jumpTargetId = null;
           return;
@@ -285,6 +293,27 @@
   let selectedIds = $state(new Set<number>());
   let selectedCount = $derived(selectedIds.size);
   let orderedSelected = $derived(chat.ids.filter((id) => selectedIds.has(id)));
+
+  // -------- gallery collapsing --------
+  // `buildTimeline` collapses runs of consecutive media into galleries.
+  // Selection mode opts out so every message stays individually selectable.
+  let timeline = $derived(buildTimeline(chat.ids, chat.messages, !isSelecting));
+  // Galleries the user has unrolled into individual bubbles, keyed by the
+  // gallery's stable key. Reset on chat switch — the unroll is a one-shot
+  // peek, not a persistent preference.
+  let expandedGalleries = $state(new Set<string>());
+  function expandGallery(key: string) {
+    if (expandedGalleries.has(key)) return;
+    const next = new Set(expandedGalleries);
+    next.add(key);
+    expandedGalleries = next;
+  }
+  function itemFirstMsg(it: TimelineItem): Message {
+    return it.kind === 'gallery' ? it.messages[0] : it.message;
+  }
+  function itemLastMsg(it: TimelineItem): Message {
+    return it.kind === 'gallery' ? it.messages[it.messages.length - 1] : it.message;
+  }
   // Saved Messages is a self-chat — a "recall" there just syncs the deletion
   // across the user's own devices, so "Delete for Everyone" is always a valid
   // (and useful) choice regardless of per-message ownership / delivery state.
@@ -330,6 +359,7 @@
     void chat.active;
     untrack(() => {
       if (isSelecting) exitSelection();
+      if (expandedGalleries.size > 0) expandedGalleries = new Set();
     });
   });
 
@@ -582,16 +612,50 @@
         <p class="muted">{t('No messages yet — say hi!')}</p>
       </div>
     {:else}
-      {#each chat.ids as id, i (id)}
-        {@const m = chat.messages.get(id)}
-        {#if m}
-          {@const prev = i > 0 ? chat.messages.get(chat.ids[i - 1]) : undefined}
-          {@const marker = dayMarker(prev, m)}
-          {#if marker}
-            <div class="daymarker"><span>{marker}</span></div>
-          {/if}
+      {#each timeline as item, i (item.key)}
+        {@const prevItem = i > 0 ? timeline[i - 1] : undefined}
+        {@const marker = dayMarker(
+          prevItem ? itemLastMsg(prevItem) : undefined,
+          itemFirstMsg(item),
+        )}
+        {#if marker}
+          <div class="daymarker"><span>{marker}</span></div>
+        {/if}
+        {#if item.kind === 'gallery' && !expandedGalleries.has(item.key)}
           <div
-            id="msg-{id}"
+            id="msg-{item.messages[0].id}"
+            data-gallery-members={item.messages.map((m) => m.id).join(' ')}
+            in:fly={{ y: 12, duration: firstPaint ? 0 : 220, easing: cubicOut }}
+          >
+            <MessageGallery
+              messages={item.messages}
+              showSender={isGroupOrBroadcast}
+              showReactionCount={isGroupOrBroadcast}
+              onContextMenu={openContext}
+              onExpand={() => expandGallery(item.key)}
+            />
+          </div>
+        {:else if item.kind === 'gallery'}
+          {#each item.messages as gm (gm.id)}
+            <div
+              id="msg-{gm.id}"
+              in:fly={{ y: 12, duration: firstPaint ? 0 : 220, easing: cubicOut }}
+            >
+              <MessageBubble
+                message={gm}
+                showSender={isGroupOrBroadcast}
+                showReactionCount={isGroupOrBroadcast}
+                onContextMenu={openContext}
+                onJumpToMessage={jumpTo}
+                onShowReactors={(id) => (reactorsTarget = id)}
+                selection={null}
+              />
+            </div>
+          {/each}
+        {:else}
+          {@const m = item.message}
+          <div
+            id="msg-{m.id}"
             in:fly={{ y: 12, duration: firstPaint ? 0 : 220, easing: cubicOut }}
           >
             {#if m.isInfo}

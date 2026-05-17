@@ -290,6 +290,12 @@ export const TID = {
   messageBubbleMeta: '[data-testid="message-bubble__meta"]',
   messageBubbleState: '[data-testid="message-bubble__state"]',
 
+  // -- Message gallery (collapsed run of consecutive media) --
+  messageGallery: '[data-testid="message-gallery"]',
+  messageGalleryTile: '[data-testid="message-gallery__tile"]',
+  messageGalleryCaption: '[data-testid="message-gallery__caption"]',
+  messageGalleryUnroll: '[data-testid="message-gallery__unroll"]',
+
   // -- Context menu (message) --
   contextMenu: '[data-testid="context-menu"]',
   contextMenuItem: (action: string) =>
