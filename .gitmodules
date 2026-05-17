@@ -1,4 +1,4 @@
 [submodule "libs/deltachat-core-rust"]
 	path = libs/deltachat-core-rust
-	url = ssh://git@codeberg.org/qxp/deltachat-core-rust.git
-	branch = qxp
+	url = git@github.com:qxpchat/chatmail-core.git
+	branch = main
