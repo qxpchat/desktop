@@ -108,8 +108,9 @@
             for size in 48 64 96 128 256; do
               dir=$out/share/icons/hicolor/''${size}x''${size}/apps
               mkdir -p "$dir"
-              magick -background none -density 600 -resize "''${size}x''${size}" \
-                assets/generated/icon.svg "$dir/chat.qxp.desktop.png"
+              magick -background none -density 600 \
+                assets/generated/icon.svg -resize "''${size}x''${size}" \
+                "$dir/chat.qxp.desktop.png"
             done
 
             mkdir -p $out/share/applications
