@@ -41,7 +41,11 @@ to GitHub.
    git log PREV..NEW --no-merges --pretty=format:'%s'
    ```
 
-5. Write the release notes from those commit subjects.
+5. Write the release notes from those commit subjects. End the notes with a
+   blank line followed by:
+   ```
+   Download here: https://github.com/qxpchat/qxp/releases/latest
+   ```
 
 6. Push the branch and all tags to GitHub:
    ```
@@ -53,7 +57,8 @@ to GitHub.
 ## Output rules
 
 - Plain text only. NO markdown: no `#`, no `*`/`-` bullets, no `**bold**`, no
-  backticks, no links.
+  backticks. The only URL is the download link on the final line (bare, not a
+  markdown link).
 - Lead each change line with a single relevant emoji used as the bullet.
 - Keep it short: group/merge related commits, drop noise (version bumps,
   "test fixes", typo-only commits, merge chatter). Aim for 3-8 lines.
@@ -74,6 +79,8 @@ A few fixes for channels.
 🐛 Channels created with the right members now keep them.
 🔇 Joined channels are correctly read-only — no stray input bar.
 🔗 Cleaner invite links.
+
+Download here: https://github.com/qxpchat/qxp/releases/latest
 ```
 
 Output the notes directly to the user — do not write a file unless asked.
