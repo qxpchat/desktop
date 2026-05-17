@@ -51,6 +51,18 @@ test('opening a chat from a vCard creates an encrypted chat', async ({ qxpTrio, 
   await page.locator(TID.composerTextarea).waitFor({ state: 'visible' });
   await vcardBubble.locator('[data-testid="vcard__open"]').click();
 
+  // "Open chat" runs import_vcard + create_chat_by_contact_id, then
+  // selectChat() switches the active chat from peer1's to peer2's. Wait
+  // for that switch to land — the topbar flips to peer2's name — before
+  // touching the composer. Otherwise we race: fill the still-mounted
+  // peer1 composer, which then unmounts mid-flow, leaving the freshly
+  // mounted (empty → disabled) peer2 send button un-clickable.
+  await page
+    .locator(TID.chatTopbarTitle)
+    .filter({ hasText: peer2.displayName })
+    .first()
+    .waitFor({ state: 'visible', timeout: 10_000 });
+
   // The composer of the freshly opened chat — send a message into it.
   await page.locator(TID.composerTextarea).waitFor({ state: 'visible' });
   const text = `vcard-encrypted ${Date.now()}`;
