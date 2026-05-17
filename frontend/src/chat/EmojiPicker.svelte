@@ -23,6 +23,10 @@
 
   let categories: Category[] = ['smileys', 'people', 'nature', 'food', 'activity', 'travel', 'objects', 'symbols'];
 
+  // Recents is a single 8-wide row — the grid has 8 columns, so cap the
+  // strip at 8 to keep it exactly one row.
+  let recents = $derived(emojiRecents.list.slice(0, 8));
+
   let visible = $derived.by(() => {
     const q = search.trim().toLowerCase();
     if (q) return EMOJI.filter((e) => e.k.includes(q));
@@ -48,10 +52,10 @@
   <div class="picker" role="dialog" aria-label={t('Emoji picker')}>
     <SearchField placeholder={t('Search emoji…')} bind:value={search} />
 
-    {#if !search && emojiRecents.list.length > 0}
+    {#if !search && recents.length > 0}
       <div class="section-label">{t('Recents')}</div>
-      <div class="grid">
-        {#each emojiRecents.list as e (e)}
+      <div class="grid recents-grid">
+        {#each recents as e (e)}
           <button class="emoji" onclick={() => pickEmoji(e)} aria-label={e}>{e}</button>
         {/each}
       </div>
@@ -126,21 +130,28 @@
   }
   .cats {
     display: flex;
-    gap: 2px;
+    gap: 0;
+    border-bottom: 1px solid var(--color-border);
   }
   .cats button {
     flex: 1;
-    height: 28px;
-    border-radius: var(--radius-sm);
+    height: 32px;
+    border-radius: 0;
+    border-bottom: 2px solid transparent;
+    /* Overlap the nav's divider so the active underline sits on it. */
+    margin-bottom: -1px;
     background: transparent;
     font-size: 16px;
+    opacity: 0.55;
+    transition: opacity 0.1s ease, border-color 0.1s ease;
   }
   .cats button:hover {
+    opacity: 1;
     background: var(--color-bg-hover);
   }
   .cats button.active {
-    background: var(--color-bg-hover);
-    box-shadow: inset 0 -2px 0 var(--color-accent);
+    opacity: 1;
+    border-bottom-color: var(--color-accent);
   }
   .section-label {
     font-size: var(--text-xs);
@@ -149,10 +160,17 @@
   }
   .grid {
     display: grid;
-    grid-template-columns: repeat(8, 1fr);
+    grid-template-columns: repeat(8, minmax(0, 1fr));
     gap: 2px;
     overflow-y: auto;
     flex: 1;
+  }
+  /* Recents is a fixed MRU strip, not a scroll region — size it to its
+     rows so it never sprouts its own scrollbar (and the aspect-ratio /
+     overflow:auto reflow oscillation that comes with one). */
+  .recents-grid {
+    flex: 0 0 auto;
+    overflow: visible;
   }
   .emoji {
     aspect-ratio: 1;
