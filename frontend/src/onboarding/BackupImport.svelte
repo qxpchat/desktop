@@ -1,5 +1,6 @@
 <script lang="ts">
   import { importBackup } from '../lib/state/onboarding.svelte';
+  import { uploadBlob } from '../lib/files';
   import { dropZone } from '../lib/dragdrop.svelte';
   import ProgressOverlay from './ProgressOverlay.svelte';
   import Button from '../lib/Button.svelte';
@@ -29,17 +30,10 @@
     if (rejectNonTar(file.name)) return;
     try {
       uploading = true;
-      const res = await fetch('/upload?ext=tar', {
-        method: 'POST',
-        body: file,
-        headers: { 'content-type': 'application/octet-stream' },
-      });
+      // Must go through the daemon's HTTP origin — a relative `/upload` would
+      // hit the Tauri asset server (returns index.html), not the daemon.
+      const path = await uploadBlob(file, 'tar');
       uploading = false;
-      if (!res.ok) {
-        errorMsg = `Upload failed: ${res.status} ${res.statusText}`;
-        return;
-      }
-      const { path } = (await res.json()) as { path: string };
       await importBackup(path);
     } catch (err) {
       uploading = false;
