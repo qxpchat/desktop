@@ -13,6 +13,7 @@
   import ReactionsRow from './ReactionsRow.svelte';
   import Icon from '../lib/Icon.svelte';
   import { linkify } from '../lib/format/linkify';
+  import { parseInlineMarkdown } from '../lib/format/markdown';
   import { openChatByEmail } from '../lib/chatActions';
   import { openFullMessage } from '../lib/state/fullMessage.svelte';
   import { detectYouTubeId } from '../lib/format/youtube';
@@ -269,7 +270,12 @@
                 title={t('Start chat with {addr}', { addr: seg.address })}
               >{seg.text}</button>
             {:else}
-              {seg.text}
+              {#each parseInlineMarkdown(seg.text) as run, j (j)}
+                {#if run.style === 'bold'}<strong>{run.text}</strong>
+                {:else if run.style === 'italic'}<em>{run.text}</em>
+                {:else if run.style === 'code'}<code>{run.text}</code>
+                {:else}{run.text}{/if}
+              {/each}
             {/if}
           {/each}
         </div>
@@ -500,6 +506,15 @@
     color: inherit;
     text-decoration: underline;
     text-underline-offset: 2px;
+    word-break: break-word;
+  }
+  /* Translucent overlay so the chip reads on any bubble background. */
+  .text code {
+    font-family: var(--font-mono);
+    font-size: 0.9em;
+    background: rgba(0, 0, 0, 0.06);
+    padding: 1px 4px;
+    border-radius: var(--radius-sm);
     word-break: break-word;
   }
   /* Bare email addresses get the same underlined-in-flow treatment as
