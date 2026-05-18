@@ -40,10 +40,39 @@ fn main() {
                 .join("accounts");
 
             spawn_daemon(accounts_dir);
+
+            // macOS: closing the window (red traffic-light button) hides it
+            // instead of quitting — the process keeps running in the dock,
+            // matching native macOS app behaviour. The dock-icon click that
+            // brings it back is handled by `RunEvent::Reopen` below. Other
+            // platforms keep the default "close quits the app" behaviour.
+            #[cfg(target_os = "macos")]
+            if let Some(window) = app.get_webview_window("main") {
+                let win = window.clone();
+                window.on_window_event(move |event| {
+                    if let tauri::WindowEvent::CloseRequested { api, .. } = event {
+                        api.prevent_close();
+                        let _ = win.hide();
+                    }
+                });
+            }
+
             Ok(())
         })
-        .run(tauri::generate_context!())
-        .expect("error while running tauri application");
+        .build(tauri::generate_context!())
+        .expect("error while running tauri application")
+        .run(|_app_handle, _event| {
+            // macOS dock-icon click on an app with no visible window — the
+            // window was hidden by the CloseRequested handler above, so
+            // re-show and focus it.
+            #[cfg(target_os = "macos")]
+            if let tauri::RunEvent::Reopen { .. } = _event {
+                if let Some(window) = _app_handle.get_webview_window("main") {
+                    let _ = window.show();
+                    let _ = window.set_focus();
+                }
+            }
+        });
 }
 
 /// Set the OS taskbar/dock unread badge to `count` (0 clears it). The
