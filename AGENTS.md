@@ -4,10 +4,6 @@ qxp = desktop client for delta chat protocol. Tauri 2 app: Rust daemon (`server/
 
 User instructions **always** override this file.
 
-## Active platform
-
-- User now run + test only on **macOS** (WKWebView). Linux/Windows desktop paths not exercised — prioritize macOS-correct fixes, call out cross-platform implications, no silent parity assume.
-
 ## Versioning
 
 Bump version on every change that ships behavior. **Always use script.**
@@ -26,7 +22,8 @@ Each bump meaning:
 - **Feature → minor** (middle), patch resets to 0: `0.1.3` → `0.2.0`.
 - **Breaking change → major** (leftmost), rest reset: `0.2.5` → `1.0.0`.
 
-Script keeps four version sites in lock-step (`frontend/package.json`, `src-tauri/Cargo.toml`, `src-tauri/tauri.conf.json`, `server/Cargo.toml`). Plain run (no args) verifies they agree — use before PR.
+Script keeps four version sites in lock-step (`frontend/package.json`, `src-tauri/Cargo.toml`, `src-tauri/tauri.conf.json`, `server/Cargo.toml`). 
+Plain run (no args) verifies they agree — use before PR.
 
 Pure refactors, doc-only edits, internal cleanup shipping no user-visible behavior do not bump.
 
@@ -55,12 +52,6 @@ See `README.md` for run / build / account-data layout.
 - `lib/format/linkify.ts`, `lib/format/youtube.ts` — text helpers.
 - `lib/state/*.svelte.ts` — only surface for daemon mutations. Components doing `rpc.call(...)` directly = boundary leak. PascalCase wire-tag unions unwrap at state-module boundary, never in components.
 
-## Refuse
-
-- **Mixed timing fences** — `tick()` / `setTimeout` / `requestAnimationFrame` / event waits interleaved in one flow. Pick one.
-- **Per-chat / per-account client-side flags duplicating daemon's mirror** — mute, pin, archive, freshness, proxy-enabled.
-- **`{#key}` for teardown** — discards scroll/animation state; usually means reactivity not wired up.
-- **Inline RPC wire-shape checks in components** — `r.kind === 'message'`, `item.kind === 'ChatListItem'`. Unwrap at state-module boundary.
 - **macOS-only code without alternatives** — `objc2` / AppKit / Mach-O linker tricks need either working Linux/Windows equivalent or explicit `#[cfg]`-gated no-op + comment justifying why "do nothing" correct.
 
 ## Approach
