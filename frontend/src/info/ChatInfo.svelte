@@ -12,6 +12,7 @@
     chatInfo,
     loadChatInfo,
     renameChat,
+    changeContactName,
     setEphemeralTimer,
     leaveGroupChat,
     deleteChatLocally,
@@ -97,8 +98,16 @@
   async function rename() {
     if (!chat || accounts.selectedId == null) return;
     const name = nameInput.trim();
-    if (!name) return;
-    await renameChat(accounts.selectedId, chat.id, name);
+    // A 1:1 chat's name follows its contact, so rename the contact;
+    // groups/broadcasts carry their own chat name. An empty name on a
+    // contact clears the override → reverts to the contact's own profile
+    // name; a group must keep a name.
+    if (isSingle && other) {
+      await changeContactName(accounts.selectedId, other.id, name);
+    } else {
+      if (!name) return;
+      await renameChat(accounts.selectedId, chat.id, name);
+    }
     editingName = false;
   }
 
@@ -322,7 +331,19 @@
       {/if}
       {#if editingName}
         <div class="name-edit">
-          <TextInput bind:value={nameInput} align="center" placeholder={t('Name')} data-testid="chat-info__name-input" />
+          <TextInput
+            bind:value={nameInput}
+            align="center"
+            placeholder={isSingle && other ? (other.authName || other.address) : t('Name')}
+            data-testid="chat-info__name-input"
+          />
+          {#if isSingle && other}
+            <p class="name-edit-hint">
+              {t('This name is only shown to you. Clear it to use “{name}”.', {
+                name: other.authName || other.address,
+              })}
+            </p>
+          {/if}
         </div>
         <div class="actions">
           <Button variant="secondary" onclick={() => (editingName = false)} data-testid="chat-info__name-cancel">{t('Cancel')}</Button>
@@ -330,7 +351,7 @@
         </div>
       {:else}
         <h2 data-testid="chat-info__name">{chat.name || t('(no name)')}</h2>
-        {#if isGroup || isBroadcast}
+        {#if isGroup || isBroadcast || (isSingle && other)}
           <Button
             variant="accent-text"
             size="sm"
@@ -562,6 +583,12 @@
   .name-edit {
     margin-top: 8px;
     width: 220px;
+  }
+  .name-edit-hint {
+    margin: 6px 0 0;
+    font-size: var(--text-xs);
+    color: var(--color-fg-tertiary);
+    text-align: center;
   }
   .header .actions {
     display: flex;

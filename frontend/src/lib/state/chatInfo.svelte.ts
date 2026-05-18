@@ -34,6 +34,10 @@ export type Contact = {
   color: string;
   displayName: string;
   name: string;
+  /** The contact's own self-reported profile name. `name` falls back to
+   *  this when no local override is set; clearing the override reverts to
+   *  it. Empty for contacts that never sent a display name. */
+  authName: string;
   profileImage: string | null;
   isVerified: boolean;
   isBlocked: boolean;
@@ -136,6 +140,20 @@ async function fetchSharedChats(accountId: number, full: FullChat): Promise<Shar
 export async function renameChat(accountId: number, chatId: number, name: string): Promise<void> {
   await rpc.call('set_chat_name', [accountId, chatId, name]);
   await loadChatInfo(accountId, chatId);
+}
+
+/** Set the display name for a contact — the 1:1 equivalent of `renameChat`.
+ *  A 1:1 chat's name is derived from its contact, so `set_chat_name` doesn't
+ *  apply; this overrides the name locally, like Delta Chat's "Edit Name".
+ *  Reloads the open chat info so the new name is reflected. */
+export async function changeContactName(
+  accountId: number,
+  contactId: number,
+  name: string,
+): Promise<void> {
+  await rpc.call('change_contact_name', [accountId, contactId, name]);
+  const chatId = chatInfo.full?.id;
+  if (chatId != null) await loadChatInfo(accountId, chatId);
 }
 
 export async function setEphemeralTimer(
