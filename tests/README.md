@@ -34,11 +34,11 @@ make test-e2e-clean       # nuke /tmp/qxp-* leftover account dirs and the pool l
 
 ## Pool lifecycle
 
-`tests/.env` holds 10 chatmail accounts registered against `nine.testrun.org`. The file is **gitignored** — never commit it.
+`tests/pool.json` holds 10 chatmail accounts registered against `nine.testrun.org`. The file is **gitignored** — never commit it. Same format the iOS suite consumes (`qxp-ios/qxpUITests`), so one pool serves both.
 
-- Cold start (no `.env`): `make test-accounts` registers 10 fresh accounts, ~30-60 s of network.
+- Cold start (no `pool.json`): `make test-accounts` registers 10 fresh accounts, ~30-60 s of network.
 - Warm start (pool healthy): probes each slot via `configure`, ~3 s total.
-- Stale slots: any slot whose existing creds fail `configure` is silently re-registered and `.env` is rewritten.
+- Stale slots: any slot whose existing creds fail `configure` is silently re-registered and `pool.json` is rewritten.
 
 All of this goes through the qxp-web daemon's own JSON-RPC chain (`add_account` → `set_config_from_qr` → `configure` → `get_config`); no direct relay HTTP. If the relay changes its protocol, the daemon absorbs it.
 
@@ -55,8 +55,8 @@ If you need Tauri-shell-level tests later, the path is a separate Linux-only `ta
 
 ```
 tests/
-  .env.example         Pool config template (committed).
-  .env                 Real creds (gitignored).
+  pool.example.json    Pool config template (committed).
+  pool.json            Real creds (gitignored).
   package.json         Playwright + ws + dotenv.
   playwright.config.ts Vite webServer + Chromium project.
   tsconfig.json

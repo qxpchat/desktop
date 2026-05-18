@@ -1,0 +1,7 @@
+{
+  "_comment": "E2E pool config + credentials. `make test-accounts` populates pool.json (gitignored) by spawning qxp-web and driving its RPC chain (add_account -> set_config_from_qr -> configure -> get_config) -- the daemon handles the chatmail protocol, not the script. This file is the committed template. The iOS suite (qxp-ios/qxpUITests) reads the same pool.json format.",
+  "relayQr": "dcaccount:nine.testrun.org",
+  "poolSize": 10,
+  "displayNamePrefix": "qxp e2e",
+  "accounts": []
+}

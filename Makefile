@@ -19,7 +19,7 @@ help:
 	@echo
 	@echo "  make push-github        Push current branch + all tags to the GitHub remote."
 	@echo
-	@echo "  make test-accounts      Idempotent E2E pool maintenance. Reads tests/.env;"
+	@echo "  make test-accounts      Idempotent E2E pool maintenance. Reads tests/pool.json;"
 	@echo "                          re-registers any slot whose creds no longer authenticate."
 	@echo "  make test-e2e           Full E2E suite (Playwright + Chromium against the Vite"
 	@echo "                          dev server; daemon spawned per-test)."

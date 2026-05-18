@@ -1,4 +1,4 @@
-// Pool fixture — leases test accounts from the `.env`-backed pool.
+// Pool fixture — leases test accounts from the `pool.json`-backed pool.
 //
 // One pool instance per worker. Tests declare how many accounts they need;
 // the fixture hands out the first N slots not already in use. State reset is
@@ -12,7 +12,7 @@ import { fileURLToPath } from 'node:url';
 
 const __filename = fileURLToPath(import.meta.url);
 const TESTS_DIR = path.resolve(path.dirname(__filename), '..');
-const ENV_PATH = path.join(TESTS_DIR, '.env');
+const POOL_PATH = path.join(TESTS_DIR, 'pool.json');
 const TEMPLATES_DIR = path.join(TESTS_DIR, 'fixtures', 'account-templates');
 const MANIFEST_PATH = path.join(TEMPLATES_DIR, 'manifest.json');
 
@@ -26,42 +26,45 @@ export type PoolAccount = {
 let cached: PoolAccount[] | null = null;
 let prefix = 'qxp e2e';
 
+type PoolFile = {
+  displayNamePrefix?: string;
+  accounts?: { email?: string; password?: string }[];
+};
+
 async function loadPool(): Promise<PoolAccount[]> {
   if (cached) return cached;
   let text: string;
   try {
-    text = await readFile(ENV_PATH, 'utf8');
+    text = await readFile(POOL_PATH, 'utf8');
   } catch (err) {
     throw new Error(
-      `No pool found at ${ENV_PATH}.\n  Run \`make test-accounts\` first.\n  (${(err as Error).message})`,
+      `No pool found at ${POOL_PATH}.\n  Run \`make test-accounts\` first.\n  (${(err as Error).message})`,
     );
   }
-  const env = new Map<string, string>();
-  for (const line of text.split('\n')) {
-    const trimmed = line.trim();
-    if (!trimmed || trimmed.startsWith('#')) continue;
-    const eq = trimmed.indexOf('=');
-    if (eq < 0) continue;
-    const k = trimmed.slice(0, eq).trim();
-    let v = trimmed.slice(eq + 1).trim();
-    if ((v.startsWith('"') && v.endsWith('"')) || (v.startsWith("'") && v.endsWith("'"))) {
-      v = v.slice(1, -1);
-    }
-    env.set(k, v);
+  let parsed: PoolFile;
+  try {
+    parsed = JSON.parse(text) as PoolFile;
+  } catch (err) {
+    throw new Error(`Pool at ${POOL_PATH} is not valid JSON: ${(err as Error).message}`);
   }
-  prefix = env.get('QXP_TEST_DISPLAY_NAME_PREFIX') ?? 'qxp e2e';
+  prefix = parsed.displayNamePrefix ?? 'qxp e2e';
 
+  // `accounts[i]` is slot i+1. Skip any unregistered (empty) entry but
+  // keep `slot` aligned to position — the template manifest references
+  // slots by number.
   const accounts: PoolAccount[] = [];
-  let n = 1;
-  while (true) {
-    const email = env.get(`QXP_TEST_ACCT_${n}_EMAIL`);
-    const password = env.get(`QXP_TEST_ACCT_${n}_PASSWORD`);
-    if (!email || !password) break;
-    accounts.push({ slot: n, email, password, displayName: `${prefix} ${n}` });
-    n++;
-  }
+  (parsed.accounts ?? []).forEach((a, i) => {
+    if (a?.email && a?.password) {
+      accounts.push({
+        slot: i + 1,
+        email: a.email,
+        password: a.password,
+        displayName: `${prefix} ${i + 1}`,
+      });
+    }
+  });
   if (accounts.length === 0) {
-    throw new Error(`Pool at ${ENV_PATH} is empty. Run \`make test-accounts\`.`);
+    throw new Error(`Pool at ${POOL_PATH} is empty. Run \`make test-accounts\`.`);
   }
   cached = accounts;
   return cached;
@@ -81,7 +84,7 @@ export async function leaseAccounts(count: number): Promise<PoolAccount[]> {
   // Roll back partial lease if we couldn't satisfy the count.
   for (const a of leased) inUse.delete(a.slot);
   throw new Error(
-    `Pool has ${pool.length} accounts; ${pool.length - inUse.size + leased.length} free, ${count} requested.\n  Increase QXP_TEST_POOL_SIZE in .env and rerun \`make test-accounts\`.`,
+    `Pool has ${pool.length} accounts; ${pool.length - inUse.size + leased.length} free, ${count} requested.\n  Add more accounts to pool.json and rerun \`make test-accounts\`.`,
   );
 }
 

@@ -19,7 +19,7 @@ references
 TODOs.md
 
 # E2E test pool — real chatmail creds, regenerable via `make test-accounts`.
-tests/.env
+tests/pool.json
 tests/node_modules/
 tests/.pool-lock.json
 # Leftover per-test accounts dirs land in /tmp by default but list the
