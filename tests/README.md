@@ -1,6 +1,6 @@
 # qxp desktop — E2E tests
 
-Playwright + Chromium against the Vite dev server, real `qxp-web` daemon spawned per-test, real chatmail relay (`nine.testrun.org`). See `plans/e2e-tests.md` for the full coverage matrix.
+Playwright + Chromium against the Vite dev server, real `qxp-web` daemon spawned per-test, real chatmail relay (`nine.testrun.org`). See `../../spec/plans/e2e-tests-desktop.md` for the full coverage matrix.
 
 ## One-time setup
 
