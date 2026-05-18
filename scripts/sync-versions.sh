@@ -1,6 +1,10 @@
 #!/bin/sh
 # Sync qxp's four version sites (see AGENTS.md "Versioning").
 #
+# The four manifests are the source of truth for `check`/`bump`; a bump
+# also propagates into the two lockfiles (frontend/package-lock.json,
+# src-tauri/Cargo.lock) so they don't show up as stray diffs.
+#
 # POSIX sh — no python/node needed, so it runs in any dev shell, CI, or
 # sandbox where only a shell is available.
 #
@@ -55,6 +59,29 @@ write_all() {
   done <<EOF
 $files
 EOF
+  write_lockfiles "$1"
+}
+
+# Propagate <new> into the lockfiles. Each lockfile carries the project's
+# own version inside its package entry — a `name` line immediately
+# followed by a `version` line. We bump only the version line that trails
+# a qxp `name`, so dependency versions are never touched. Multiple `-e`
+# fragments keep the `{ }` block portable across BSD and GNU sed.
+write_lockfiles() {
+  pl="$repo_root/frontend/package-lock.json"
+  if [ -f "$pl" ]; then
+    sed -E -e '/"name": "qxp-web-frontend",/{' -e 'n' \
+      -e "s/(\"version\": \")$semver(\")/\1$1\2/" -e '}' \
+      "$pl" > "$pl.qxptmp"
+    mv "$pl.qxptmp" "$pl"
+  fi
+  cl="$repo_root/src-tauri/Cargo.lock"
+  if [ -f "$cl" ]; then
+    sed -E -e '/^name = "qxp-(desktop|web)"$/{' -e 'n' \
+      -e "s/^version = \"$semver\"/version = \"$1\"/" -e '}' \
+      "$cl" > "$cl.qxptmp"
+    mv "$cl.qxptmp" "$cl"
+  fi
 }
 
 # Collect the four current versions. The heredoc keeps the loop in this
