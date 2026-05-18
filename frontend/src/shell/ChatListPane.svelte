@@ -296,9 +296,10 @@
     onToggleArchive={() => void toggleArchive(menu!.chat)}
     onMarkUnread={() => {
       // If the chat is currently open, ChatView's `markNoticed` would
-      // immediately undo the markfresh as soon as the window re-focuses.
-      // Drop the selection first — same approach as
-      // references/deltachat-desktop/.../ChatContextMenu.tsx.
+      // immediately undo the markfresh on the next window focus. Drop the
+      // selection first — that unmounts ChatView, whose cleanup clears
+      // `chat.active`, so no later event can re-notice the chat. Same
+      // approach as references/deltachat-desktop/.../ChatContextMenu.tsx.
       if (selectedChatId === menu!.chat.id) selectChat(null);
       void markChatUnread(menu!.chat.id);
     }}

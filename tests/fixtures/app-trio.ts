@@ -264,6 +264,15 @@ export const test = base.extend<{ qxpTrio: QxpTrioFixture }>({
       peer2AccountsDir,
     });
 
+    // Surface the daemon log if it exited on its own before teardown —
+    // a mid-test crash otherwise shows only as a `ECONNREFUSED` Vite
+    // proxy error and a misleading UI-timeout failure.
+    if (mainProc.exitCode != null) {
+      console.error(
+        `[qxp-trio] main daemon exited mid-test (code ${mainProc.exitCode}):\n${mainLog()}`,
+      );
+    }
+
     mainRpc.close();
     peer1!.rpc.close();
     peer2!.rpc.close();

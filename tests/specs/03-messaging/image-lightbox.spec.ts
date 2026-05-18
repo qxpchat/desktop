@@ -27,14 +27,18 @@ test('image lightbox: arrows step through the chat gallery', async ({ qxpPaired,
   await peer.sendAttachment({ viewtype: 'Image', file: img, filename: 'one.png' });
   await peer.sendAttachment({ viewtype: 'Image', file: img, filename: 'two.png' });
 
-  const imageBubbles = page.locator(
-    `[data-testid="message-bubble"][data-direction="incoming"][data-view-type="Image"]`,
+  // Two consecutive incoming images collapse into a single MessageGallery —
+  // one `message-gallery` bubble with a `message-gallery__tile` per image.
+  // They do NOT render as separate `message-bubble` / `image-cell` nodes;
+  // those only exist for a lone, non-galleried image.
+  const tiles = page.locator(
+    `${TID.messageGallery}[data-direction="incoming"] ${TID.messageGalleryTile}`,
   );
-  // Wait until at least two image bubbles have arrived.
-  await expect(imageBubbles.nth(1)).toBeVisible({ timeout: ARRIVAL_TIMEOUT_MS });
+  // Wait until both images have arrived as gallery tiles.
+  await expect(tiles.nth(1)).toBeVisible({ timeout: ARRIVAL_TIMEOUT_MS });
 
   // Open the lightbox on the first image.
-  await page.locator(TID.imageCell).first().click();
+  await tiles.first().click();
   const media = page.locator(TID.imageLightboxMedia);
   await expect(media).toBeVisible();
 

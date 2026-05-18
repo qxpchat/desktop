@@ -100,6 +100,15 @@
   $effect(() => {
     setActiveChat({ accountId, chatId });
   });
+  // Clear the active chat when this view unmounts (chat closed, settings
+  // opened, marked unread from the list). Without this `chat.active` keeps
+  // pointing at the closed chat, so a later `IncomingMsg` for it still
+  // fires `markNoticed` — silently undoing a `markfresh_chat` done from the
+  // chatlist context menu. This lives in `onDestroy`, not the effect's
+  // cleanup: `setActiveChat` reads `chat.active`, so clearing it from
+  // inside the same effect makes the effect depend on a value it writes —
+  // an infinite re-run loop.
+  onDestroy(() => setActiveChat(null));
 
   let lastSeenIds: number[] = [];
   $effect(() => {

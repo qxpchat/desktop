@@ -15,20 +15,32 @@ test.setTimeout(90_000);
 test('chat list shows incoming chats sorted newest-first', async ({ qxpTrio, page }) => {
   const { peer1, peer2 } = qxpTrio;
 
-  await peer1.sendTo('hello from peer1');
+  // The trio template pre-pairs both peers via secure-join, so peer1's and
+  // peer2's chat rows already exist in main's list before any message is
+  // sent. Waiting on row *visibility* is therefore a no-op — it'd let the
+  // sort assertion race relay delivery. Wait on the unread badge instead:
+  // it only appears once the message has actually arrived, and it's set by
+  // the same chatlist reload that re-sorts the rows.
   const peer1Row = page.locator(
     `[data-testid="chat-list-row"][data-name="${peer1.displayName}"]`,
   );
-  await expect(peer1Row).toBeVisible({ timeout: ARRIVAL_TIMEOUT_MS });
+  const peer2Row = page.locator(
+    `[data-testid="chat-list-row"][data-name="${peer2.displayName}"]`,
+  );
+
+  await peer1.sendTo('hello from peer1');
+  await expect(peer1Row.locator(TID.chatListRowUnread)).toBeVisible({
+    timeout: ARRIVAL_TIMEOUT_MS,
+  });
 
   // Wallclock gap so peer2's last-message timestamp is strictly newer.
   await new Promise((r) => setTimeout(r, 3_000));
   await peer2.sendTo('hello from peer2');
-  const peer2Row = page.locator(
-    `[data-testid="chat-list-row"][data-name="${peer2.displayName}"]`,
-  );
-  await expect(peer2Row).toBeVisible({ timeout: ARRIVAL_TIMEOUT_MS });
+  await expect(peer2Row.locator(TID.chatListRowUnread)).toBeVisible({
+    timeout: ARRIVAL_TIMEOUT_MS,
+  });
 
+  // Both messages have landed and the chatlist re-sorted on arrival.
   // Built-in Saved/Device chats may also live in the list but always with
   // older timestamps — we just assert peer2 sorts above peer1.
   const rows = page.locator(`${TID.chatList} [data-testid="chat-list-row"]`);

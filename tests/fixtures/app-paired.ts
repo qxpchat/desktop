@@ -313,6 +313,16 @@ export const test = base.extend<{ qxpPaired: QxpPairedFixture }>({
       peerAccountsDir,
     });
 
+    // If the main daemon exited on its own *before* teardown, the test
+    // saw `ECONNREFUSED` on the Vite `/ws` proxy and failed with a
+    // misleading UI-timeout. Surface the daemon log so the real crash
+    // cause is visible — it's otherwise buffered and discarded.
+    if (mainProc.exitCode != null) {
+      console.error(
+        `[qxp-paired] main daemon exited mid-test (code ${mainProc.exitCode}):\n${mainLog()}`,
+      );
+    }
+
     // Teardown.
     mainRpc.close();
     peer.rpc.close();
