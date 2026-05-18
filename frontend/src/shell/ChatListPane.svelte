@@ -232,14 +232,6 @@
     </header>
 
     <ul class="list">
-      {#if !archive && chatlist.hasArchive && !narrow}
-        <li>
-          <button class="archive-row" onclick={openArchive} data-testid="chat-list-archive-link">
-            <span class="archive-icon" aria-hidden="true"><Icon name="archive" size={20} /></span>
-            <span>{t('Archived chats')}</span>
-          </button>
-        </li>
-      {/if}
       {#each chatlist.ids as id (id)}
         {@const item = chatlist.items.get(id)}
         {#if item}
@@ -258,6 +250,15 @@
       {#if !hasResults && !chatlist.loading}
         <li class="empty">
           {isFiltered ? t('No conversations match.') : t('No conversations yet.')}
+        </li>
+      {/if}
+
+      {#if !archive && chatlist.hasArchive && !narrow}
+        <li>
+          <button class="archive-row" onclick={openArchive} data-testid="chat-list-archive-link">
+            <span class="archive-icon" aria-hidden="true"><Icon name="archive" size={20} /></span>
+            <span>{t('Archived chats')}</span>
+          </button>
         </li>
       {/if}
 
