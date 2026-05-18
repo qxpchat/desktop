@@ -53,6 +53,10 @@ let loadGen = 0;
 /** DC_GCL_ADD_SELF — `get_contacts` flag to include SELF in the list. */
 export const GCL_ADD_SELF = 0x02;
 
+/** Daemon contact id reserved for the logged-in user — `delete_contact`
+ *  rejects it ("Can not delete special contact"). */
+export const CONTACT_ID_SELF = 1;
+
 export function setContactsScope(accountId: number | null, flags: number = 0): void {
   if (contacts.accountId === accountId && contacts.flags === flags) return;
   contacts.accountId = accountId;
@@ -91,6 +95,16 @@ async function load(): Promise<void> {
   } finally {
     if (gen === loadGen) contacts.loading = false;
   }
+}
+
+/** Delete a contact. The daemon hard-removes a contact that has no chat
+ *  history and merely hides (origin=Hidden) one still referenced by a chat —
+ *  either way it drops out of the list. The `ContactsChanged` event the
+ *  daemon emits drives the reload. */
+export async function deleteContact(contactId: number): Promise<void> {
+  const accountId = contacts.accountId;
+  if (accountId == null) return;
+  await rpc.call('delete_contact', [accountId, contactId]);
 }
 
 onEvent('ContactsChanged', (ev) => {

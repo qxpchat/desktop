@@ -15,16 +15,33 @@
     /** When true, render a leading checkbox for multi-select (group/channel members). */
     selectable?: boolean;
     selected?: boolean;
+    /** Right-click handler — page-coordinate anchor for a row context menu.
+     *  Omitted by picker UIs that don't offer per-row actions. */
+    onContextMenu?: (contact: Contact, x: number, y: number) => void;
   };
 
-  let { contact, onSelect, selectable = false, selected = false }: Props = $props();
+  let { contact, onSelect, selectable = false, selected = false, onContextMenu }: Props =
+    $props();
 
   let displayName = $derived(
     contact.displayName || contact.name || contact.address || t('(no name)'),
   );
 </script>
 
-<button class="row" class:selected onclick={() => onSelect(contact.id)} aria-pressed={selected} data-testid="contact-row" data-contact-id={contact.id} data-name={displayName}>
+<button
+  class="row"
+  class:selected
+  onclick={() => onSelect(contact.id)}
+  oncontextmenu={(e) => {
+    if (!onContextMenu) return;
+    e.preventDefault();
+    onContextMenu(contact, e.clientX, e.clientY);
+  }}
+  aria-pressed={selected}
+  data-testid="contact-row"
+  data-contact-id={contact.id}
+  data-name={displayName}
+>
   {#if selectable}
     <span class="check" class:on={selected} aria-hidden="true">
       {#if selected}✓{/if}

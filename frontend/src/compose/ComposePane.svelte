@@ -4,13 +4,17 @@
     contacts,
     setContactsScope,
     setContactsQuery,
+    deleteContact,
     GCL_ADD_SELF,
+    CONTACT_ID_SELF,
+    type Contact,
   } from '../lib/state/contacts.svelte';
   import { backToInbox, setPaneMode } from '../lib/state/paneMode.svelte';
   import { setMainRoute } from '../lib/state/mainRoute.svelte';
   import { accounts } from '../lib/state/accounts.svelte';
   import { rpc } from '../lib/rpc';
   import ContactRow from './ContactRow.svelte';
+  import ContactRowMenu from './ContactRowMenu.svelte';
   import Icon from '../lib/Icon.svelte';
   import BackButton from '../lib/BackButton.svelte';
   import SearchField from '../lib/SearchField.svelte';
@@ -25,6 +29,8 @@
 
   let search = $state('');
   let errorMsg = $state<string | null>(null);
+  let menu = $state<{ contact: Contact; x: number; y: number } | null>(null);
+  let pendingDelete = $state<Contact | null>(null);
 
   // Initialise contact scope on mount; refresh when account switches.
   $effect(() => {
@@ -49,6 +55,19 @@
       backToInbox();
     } catch (err) {
       errorMsg = err instanceof Error ? err.message : String(err);
+    }
+  }
+
+  async function confirmDelete() {
+    const c = pendingDelete;
+    pendingDelete = null;
+    if (!c) return;
+    try {
+      await deleteContact(c.id);
+    } catch (err) {
+      // `delete_contact` on a non-self contact effectively never fails;
+      // log rather than pop a dialog if the daemon does reject.
+      console.warn('delete contact failed:', err);
     }
   }
 
@@ -106,7 +125,14 @@
   <ul class="list">
     {#each contacts.contacts as contact (contact.id)}
       <li>
-        <ContactRow {contact} onSelect={selectContact} />
+        <ContactRow
+          {contact}
+          onSelect={selectContact}
+          onContextMenu={(c, x, y) => {
+            // SELF can't be deleted; no point opening a delete-only menu.
+            if (c.id !== CONTACT_ID_SELF) menu = { contact: c, x, y };
+          }}
+        />
       </li>
     {/each}
     {#if !contacts.loading && contacts.contacts.length === 0}
@@ -114,6 +140,31 @@
     {/if}
   </ul>
 </aside>
+
+{#if menu}
+  <ContactRowMenu
+    x={menu.x}
+    y={menu.y}
+    onClose={() => (menu = null)}
+    onDelete={() => (pendingDelete = menu!.contact)}
+  />
+{/if}
+
+<ConfirmDialog
+  open={pendingDelete != null}
+  mode="confirm"
+  danger
+  title={t('Delete contact?')}
+  message={pendingDelete
+    ? t('{name} will be removed from your contacts.', {
+        name: pendingDelete.displayName || pendingDelete.name || pendingDelete.address,
+      })
+    : ''}
+  confirmLabel={t('Delete contact')}
+  onConfirm={confirmDelete}
+  onClose={() => (pendingDelete = null)}
+  data-testid="compose-pane__delete-contact"
+/>
 
 <ConfirmDialog
   open={errorMsg != null}

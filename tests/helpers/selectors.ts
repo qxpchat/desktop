@@ -281,6 +281,9 @@ export const TID = {
   contactRow: '[data-testid="contact-row"]',
   contactRowByName: (name: string) =>
     `[data-testid="contact-row"][data-name="${name}"]`,
+  contactRowMenu: '[data-testid="contact-row-menu"]',
+  contactRowMenuDelete: '[data-testid="contact-row-menu-item"][data-action="delete"]',
+  composePaneDeleteContact: '[data-testid="compose-pane__delete-contact"]',
 
   // -- Message bubble --
   messageBubble: (msgId: number) =>
