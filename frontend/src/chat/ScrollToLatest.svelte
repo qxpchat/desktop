@@ -2,6 +2,7 @@
   import { scale } from 'svelte/transition';
   import { cubicOut } from 'svelte/easing';
   import Icon from '../lib/Icon.svelte';
+  import Badge from '../lib/Badge.svelte';
   import { t } from '../lib/i18n/i18n.svelte';
 
   type Props = {
@@ -22,7 +23,7 @@
   >
     <span class="arrow" aria-hidden="true"><Icon name="chevron-down" size={20} /></span>
     {#if count > 0}
-      <span class="badge">{count > 99 ? '99+' : count}</span>
+      <Badge {count} corner ring="var(--color-bg-elevated)" />
     {/if}
   </button>
 {/if}
@@ -51,22 +52,5 @@
   .arrow {
     display: inline-flex;
     line-height: 1;
-  }
-  .badge {
-    position: absolute;
-    top: -6px;
-    right: -6px;
-    min-width: 20px;
-    height: 20px;
-    padding: 0 6px;
-    border-radius: 10px;
-    background: var(--color-accent);
-    color: var(--color-accent-fg);
-    font-size: var(--text-xs);
-    font-weight: 700;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border: 2px solid var(--color-bg-elevated);
   }
 </style>

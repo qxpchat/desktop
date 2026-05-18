@@ -24,6 +24,7 @@
   import type { ChatListItem } from '../lib/state/chatlist.svelte';
   import { canLeaveBeforeDelete } from '../lib/chatActions';
   import Icon from '../lib/Icon.svelte';
+  import Badge from '../lib/Badge.svelte';
   import SearchField from '../lib/SearchField.svelte';
   import { t } from '../lib/i18n/i18n.svelte';
   import { onShortcut } from '../lib/shortcuts';
@@ -72,8 +73,6 @@
       0,
     ),
   );
-  let otherUnreadLabel = $derived(otherUnread > 99 ? '99+' : String(otherUnread));
-
   let search = $state('');
   let searchField: { focus: () => void } | undefined = $state();
 
@@ -206,7 +205,12 @@
         >
           <Icon name="menu" size={18} />
           {#if !railOpen && otherUnread > 0}
-            <span class="burger-badge" aria-label={t('Unread in other profiles')}>{otherUnreadLabel}</span>
+            <Badge
+              count={otherUnread}
+              corner
+              ring="var(--color-bg-pane)"
+              aria-label={t('Unread in other profiles')}
+            />
           {/if}
         </button>
         {#if !narrow}
@@ -373,28 +377,6 @@
   .burger:disabled {
     opacity: 0.35;
     cursor: default;
-  }
-  /* Roll-up unread badge: only mounted when the profile rail is collapsed
-     and at least one inactive profile has fresh messages. Mirrors the
-     per-tile `.badge` in NavTabs but pinned to the burger corner. */
-  .burger-badge {
-    position: absolute;
-    top: -6px;
-    right: -6px;
-    min-width: 16px;
-    height: 16px;
-    padding: 0 4px;
-    border-radius: 8px;
-    background: var(--color-accent);
-    color: var(--color-accent-fg);
-    font-size: 10px;
-    font-weight: 700;
-    line-height: 1;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border: 2px solid var(--color-bg-pane);
-    pointer-events: none;
   }
   .header :global(.search) {
     flex: 1;

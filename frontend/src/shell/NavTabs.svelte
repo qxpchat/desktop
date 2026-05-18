@@ -5,6 +5,7 @@
   import { rpc } from '../lib/rpc';
   import { onEvent } from '../lib/events';
   import Avatar from '../lib/Avatar.svelte';
+  import Badge from '../lib/Badge.svelte';
   import ConnectionIndicator from './ConnectionIndicator.svelte';
   import Icon from '../lib/Icon.svelte';
   import MenuItem from '../lib/MenuItem.svelte';
@@ -117,7 +118,7 @@
             size={40}
           />
           {#if profile.id !== selectedAccountId && profile.freshCount > 0}
-            <span class="badge">{profile.freshCount > 99 ? '99+' : profile.freshCount}</span>
+            <Badge count={profile.freshCount} corner ring="var(--color-bg)" />
           {/if}
         </button>
         {#if menuFor === profile.id}
@@ -250,23 +251,6 @@
   .add:hover .add-avatar {
     color: var(--color-accent);
     border-color: var(--color-accent);
-  }
-  .badge {
-    position: absolute;
-    top: -2px;
-    right: -2px;
-    min-width: 18px;
-    height: 18px;
-    padding: 0 5px;
-    border-radius: 9px;
-    background: var(--color-accent);
-    color: var(--color-accent-fg);
-    font-size: var(--text-xs);
-    font-weight: 700;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border: 2px solid var(--color-bg);
   }
   .footer {
     display: flex;

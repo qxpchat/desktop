@@ -4,6 +4,7 @@
   import { messageStateGlyph } from '../lib/state/chat.svelte';
   import Avatar from '../lib/Avatar.svelte';
   import Icon from '../lib/Icon.svelte';
+  import Badge from '../lib/Badge.svelte';
   import InlineMarkdown from '../lib/InlineMarkdown.svelte';
   import { liveLocations } from '../lib/state/liveLocations.svelte';
   import { windowFocus } from '../lib/state/windowFocus.svelte';
@@ -63,13 +64,24 @@
   data-chat-id={chat.id}
   data-name={displayName}
 >
-  <Avatar
-    name={displayName}
-    color={chat.color}
-    imagePath={chat.avatarPath}
-    size={40}
-    seenRecently={chat.wasSeenRecently}
-  />
+  <div class="avatar-wrap">
+    <Avatar
+      name={displayName}
+      color={chat.color}
+      imagePath={chat.avatarPath}
+      size={40}
+      seenRecently={chat.wasSeenRecently}
+    />
+    {#if narrow && showUnread}
+      <Badge
+        count={chat.freshMessageCounter}
+        corner
+        ring="var(--color-bg-pane)"
+        aria-label={t('{n} unread', { n: chat.freshMessageCounter })}
+        data-testid="chat-list-row__unread"
+      />
+    {/if}
+  </div>
 
   {#if !narrow}
     <span class="meta">
@@ -97,11 +109,11 @@
           </span>
         {/if}
         {#if showUnread}
-          <span
-            class="unread"
+          <Badge
+            count={chat.freshMessageCounter}
             aria-label={t('{n} unread', { n: chat.freshMessageCounter })}
             data-testid="chat-list-row__unread"
-          >{chat.freshMessageCounter > 99 ? '99+' : chat.freshMessageCounter}</span>
+          />
         {:else if chat.isPinned}
           <span class="pin" aria-label={t('pinned')} title={t('Pinned')} data-testid="chat-list-row__pin"><Icon name="pin" size={12} /></span>
         {/if}
@@ -203,22 +215,6 @@
     overflow: hidden;
     overflow-wrap: anywhere;
   }
-  .unread {
-    flex: 0 0 auto;
-    min-width: 18px;
-    height: 18px;
-    padding: 0 6px;
-    border-radius: 9px;
-    background: var(--color-accent);
-    color: var(--color-accent-fg);
-    font-size: var(--text-xs);
-    font-weight: 700;
-    line-height: 1;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    font-variant-numeric: tabular-nums;
-  }
   .pin {
     font-size: 12px;
     opacity: 0.7;
@@ -243,14 +239,9 @@
       transform: rotate(360deg);
     }
   }
-  .unread-dot {
-    position: absolute;
-    top: 6px;
-    right: 6px;
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-    background: var(--color-accent);
-    border: 2px solid var(--color-bg-pane);
+  .avatar-wrap {
+    position: relative;
+    flex: 0 0 auto;
+    display: flex;
   }
 </style>
