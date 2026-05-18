@@ -31,6 +31,14 @@
     onJumpToMessage: (msgId: number) => void;
     /** Open the reactor detail sheet for the tapped message. */
     onShowReactors: (messageId: number) => void;
+    /** Run-grouping flags. A run is a sequence of consecutive messages
+     *  from the same sender. The first bubble of a run keeps its top
+     *  screen-edge corner rounded + the tail cue; the last keeps the
+     *  bottom one. Corners abutting a same-sender neighbour go flat so
+     *  the run reads as one merged column. A standalone message is both
+     *  start and end. */
+    groupStart?: boolean;
+    groupEnd?: boolean;
     /** When non-null, the row is in selection mode: a circle is shown on
      *  the leading edge and clicking anywhere on the row toggles. */
     selection?: { selected: boolean; onToggle: () => void } | null;
@@ -43,6 +51,8 @@
     onContextMenu,
     onJumpToMessage,
     onShowReactors,
+    groupStart = true,
+    groupEnd = true,
     selection = null,
   }: Props = $props();
 
@@ -181,6 +191,8 @@
   class="row"
   class:outgoing
   class:incoming={!outgoing}
+  class:group-start={groupStart}
+  class:group-end={groupEnd}
   class:selecting={selection != null}
   class:selected={selection?.selected}
   onclick={handleRowClick}
@@ -321,10 +333,15 @@
   .row {
     display: flex;
     flex-direction: column;
-    padding: 2px var(--space-4);
+    /* Tight gap by default so consecutive same-sender bubbles read as one
+     * merged run; `.group-start` reopens the gap above a new run. */
+    padding: 1px var(--space-4);
     max-width: 100%;
     position: relative;
     transition: padding-left 180ms ease, background-color 180ms ease;
+  }
+  .row.group-start {
+    padding-top: 8px;
   }
   .row.outgoing {
     align-items: flex-end;
@@ -471,12 +488,33 @@
   .row.outgoing .bubble {
     background: var(--color-accent);
     color: var(--color-accent-fg);
-    border-bottom-right-radius: 2px;
   }
   .row.incoming .bubble {
     background: var(--color-bg-elevated);
     color: var(--color-fg);
-    border-bottom-left-radius: 2px;
+  }
+  /* Run grouping — the tail cue sits on the run's outer (screen-edge)
+     corner: bottom-right for the last outgoing bubble, top-left for the
+     first incoming one. Corners abutting a same-sender neighbour collapse
+     to 0 so the run reads as one merged column. Inner-side corners (away
+     from the screen edge) stay at the base 16px. */
+  .row.outgoing.group-end .bubble {
+    border-bottom-right-radius: 2px;
+  }
+  .row.outgoing:not(.group-end) .bubble {
+    border-bottom-right-radius: 0;
+  }
+  .row.outgoing:not(.group-start) .bubble {
+    border-top-right-radius: 0;
+  }
+  .row.incoming.group-start .bubble {
+    border-top-left-radius: 2px;
+  }
+  .row.incoming:not(.group-start) .bubble {
+    border-top-left-radius: 0;
+  }
+  .row.incoming:not(.group-end) .bubble {
+    border-bottom-left-radius: 0;
   }
   .bubble.failed {
     background: var(--color-danger-soft);

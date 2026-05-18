@@ -323,6 +323,51 @@
   function itemLastMsg(it: TimelineItem): Message {
     return it.kind === 'gallery' ? it.messages[it.messages.length - 1] : it.message;
   }
+
+  // -------- run grouping (bubble corner merging) --------
+  // Consecutive messages from the same sender — uninterrupted by a day
+  // marker, info message, or collapsed gallery — form a "run". The first
+  // and last bubble of a run keep their outer (screen-edge) corner rounded
+  // + the tail cue; corners abutting a same-sender neighbour go flat so the
+  // run reads as one merged column. Mirrors the iOS `MessageCell` rules.
+  function sameRun(a: Message, b: Message): boolean {
+    if (a.isInfo || b.isInfo) return false;
+    if (a.fromId !== b.fromId) return false;
+    return (a.overrideSenderName ?? '') === (b.overrideSenderName ?? '');
+  }
+  let groupFlags = $derived.by(() => {
+    const flags = new Map<number, { start: boolean; end: boolean }>();
+    // `prev` is the last message rendered as a bubble, or null when a day
+    // marker / info message / collapsed gallery broke the run.
+    let prev: Message | null = null;
+    for (let i = 0; i < timeline.length; i++) {
+      const item = timeline[i];
+      const prevItem = i > 0 ? timeline[i - 1] : undefined;
+      if (dayMarker(prevItem ? itemLastMsg(prevItem) : undefined, itemFirstMsg(item))) {
+        prev = null;
+      }
+      // A collapsed gallery renders as its own block — it breaks the run.
+      if (item.kind === 'gallery' && !expandedGalleries.has(item.key)) {
+        prev = null;
+        continue;
+      }
+      const msgs = item.kind === 'gallery' ? item.messages : [item.message];
+      for (const m of msgs) {
+        if (m.isInfo) {
+          prev = null;
+          continue;
+        }
+        const start = prev == null || !sameRun(prev, m);
+        flags.set(m.id, { start, end: true });
+        if (!start && prev) flags.get(prev.id)!.end = false;
+        prev = m;
+      }
+    }
+    return flags;
+  });
+  function groupOf(m: Message): { start: boolean; end: boolean } {
+    return groupFlags.get(m.id) ?? { start: true, end: true };
+  }
   // Saved Messages is a self-chat — a "recall" there just syncs the deletion
   // across the user's own devices, so "Delete for Everyone" is always a valid
   // (and useful) choice regardless of per-message ownership / delivery state.
@@ -646,12 +691,15 @@
           </div>
         {:else if item.kind === 'gallery'}
           {#each item.messages as gm (gm.id)}
+            {@const g = groupOf(gm)}
             <div
               id="msg-{gm.id}"
               in:fly={{ y: 12, duration: firstPaint ? 0 : 220, easing: cubicOut }}
             >
               <MessageBubble
                 message={gm}
+                groupStart={g.start}
+                groupEnd={g.end}
                 showSender={isGroupOrBroadcast}
                 showReactionCount={isGroupOrBroadcast}
                 onContextMenu={openContext}
@@ -663,6 +711,7 @@
           {/each}
         {:else}
           {@const m = item.message}
+          {@const g = groupOf(m)}
           <div
             id="msg-{m.id}"
             in:fly={{ y: 12, duration: firstPaint ? 0 : 220, easing: cubicOut }}
@@ -672,6 +721,8 @@
             {:else}
               <MessageBubble
                 message={m}
+                groupStart={g.start}
+                groupEnd={g.end}
                 showSender={isGroupOrBroadcast}
                 showReactionCount={isGroupOrBroadcast}
                 onContextMenu={openContext}
