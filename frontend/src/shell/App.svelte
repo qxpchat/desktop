@@ -21,6 +21,7 @@
   import { setPaneMode, backToInbox, paneMode } from '../lib/state/paneMode.svelte';
   import { backToChat } from '../lib/state/mainRoute.svelte';
   import { loadPreferredLocale, t } from '../lib/i18n/i18n.svelte';
+  import { syncWindowMinWidth } from '../lib/windowSize';
   import NavTabs from './NavTabs.svelte';
   import ChatListPane from './ChatListPane.svelte';
   import MainPane from './MainPane.svelte';
@@ -43,8 +44,21 @@
   // pane would get stuck once it collapsed to narrow.
   const NARROW_W = 72;
   const MIN_WIDE_W = 240;
-  const MAX_W = 520;
+  const MAX_W = 400;
+  // The OS window's minimum width is pinned to `pane1 + pane2 +
+  // MAIN_PANE_MIN`, so the window can never be resized small enough to
+  // squeeze the chat pane below MAIN_PANE_MIN. PANE1_W mirrors the
+  // `--pane1-width` token.
+  const PANE1_W = 80;
+  const MAIN_PANE_MIN = 400;
   let dragOriginWidth = 0;
+
+  // Pin the OS window min-width to the current pane layout. Called on
+  // mount and whenever pane1 / pane2 widths change.
+  function syncWinMin() {
+    const pane1 = prefs.pane1Collapsed ? 0 : PANE1_W;
+    void syncWindowMinWidth(pane1 + prefs.pane2Width + MAIN_PANE_MIN);
+  }
 
   let connectionStatus = $state<ConnectionStatus>('idle');
 
@@ -101,6 +115,7 @@
   let didInitialPurge = false;
 
   onMount(() => {
+    syncWinMin();
     const unsub = rpc.onStatus(async (s) => {
       connectionStatus = s;
       if (s === 'connected') {
@@ -173,6 +188,7 @@
   }
   function endSplitter() {
     dragOriginWidth = 0;
+    syncWinMin();
   }
 
   // Compose / chooseMembers / setGroupMetadata all need the wide pane to
@@ -189,6 +205,7 @@
   function togglePane1() {
     prefs.pane1Collapsed = !prefs.pane1Collapsed;
     savePrefs();
+    syncWinMin();
   }
 
   let showAddAccountOnboarding = $state(false);
@@ -283,6 +300,7 @@
         onUncollapse={() => {
           prefs.pane2Width = MIN_WIDE_W;
           savePrefs();
+          syncWinMin();
         }}
       />
 
