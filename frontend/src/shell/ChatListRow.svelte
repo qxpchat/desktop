@@ -4,6 +4,7 @@
   import { messageStateGlyph } from '../lib/state/chat.svelte';
   import Avatar from '../lib/Avatar.svelte';
   import Icon from '../lib/Icon.svelte';
+  import InlineMarkdown from '../lib/InlineMarkdown.svelte';
   import { liveLocations } from '../lib/state/liveLocations.svelte';
   import { windowFocus } from '../lib/state/windowFocus.svelte';
   import { t } from '../lib/i18n/i18n.svelte';
@@ -89,7 +90,7 @@
         {/if}
       </span>
       <span class="row-bottom">
-        <span class="preview">{preview}</span>
+        <span class="preview"><InlineMarkdown text={preview} /></span>
         {#if stateGlyph}
           <span class="state {stateGlyph.kind}" aria-label={stateGlyph.kind}>
             <Icon name={stateGlyph.icon} size={12} stroke={2} />
