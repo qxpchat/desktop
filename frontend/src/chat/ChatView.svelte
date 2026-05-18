@@ -126,10 +126,18 @@
     // and flipped `atBottom`. Result: `scrollToBottom` runs and clobbers
     // the jump. Reading without tracking severs that feedback loop.
     let jumpInFlight = false;
+    let sentByMe = false;
     untrack(() => {
       jumpInFlight = chat.jumpTargetId != null;
+      // A new outgoing message means the user just sent something — pull
+      // the view down to it even if they had scrolled up reading history.
+      if (newAppended && newCount > 0) {
+        sentByMe = ids
+          .slice(ids.length - newCount)
+          .some((id) => chat.messages.get(id)?.fromId === CONTACT_ID_SELF);
+      }
     });
-    if (atBottom && !jumpInFlight) {
+    if ((atBottom || sentByMe) && !jumpInFlight) {
       void scrollToBottom();
     } else if (newAppended && newCount > 0) {
       newSinceScroll += newCount;
