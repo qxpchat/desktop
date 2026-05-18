@@ -1,7 +1,7 @@
 <script lang="ts">
   // A settings section in the Signal Desktop pattern: optional bold title,
-  // children (rows) flush with page padding, and a border-bottom that
-  // separates from the next section. No card / rounded container —
+  // children (rows) flush with page padding, and a border-top divider
+  // separating consecutive sections. No card / rounded container —
   // dividers, not panels.
   import type { Snippet } from 'svelte';
 
@@ -15,29 +15,22 @@
   let { title, footer, children }: Props = $props();
 </script>
 
-<fieldset class="section">
-  {#if title}<legend class="title">{title}</legend>{/if}
+<section class="section">
+  {#if title}<h3 class="title">{title}</h3>{/if}
   <div class="body">
     {@render children()}
   </div>
   {#if footer}<p class="footer">{footer}</p>{/if}
-</fieldset>
+</section>
 
 <style>
+  /* Plain block <section> laid out as a flex column so the title / body /
+   * footer gaps come only from the explicit margins below and never
+   * collapse — spacing is fully deterministic. (This was a <fieldset> with
+   * a <legend> title; a fieldset with `display:flex` renders its legend
+   * with unreliable, browser-dependent spacing, which made section gaps
+   * look random.) */
   .section {
-    /* `<fieldset>` is a special form element whose contents render
-     * inside an anonymous "fieldset content" box that doesn't always
-     * honour normal width / stretch rules. Forcing it to act as a flex
-     * column (with `min-inline-size: 0` so it can shrink, and an
-     * explicit width) makes children — legend, body, footer — stretch
-     * across the full Settings content pane. Without this the section
-     * collapsed to its widest row's intrinsic width and looked centred. */
-    border: 0;
-    padding: 0;
-    margin: 0;
-    min-inline-size: 0;
-    width: 100%;
-    box-sizing: border-box;
     display: flex;
     flex-direction: column;
   }
@@ -47,7 +40,6 @@
     margin-top: var(--space-5);
   }
   .title {
-    display: block;
     font-weight: 600;
     font-size: var(--text-lg);
     margin: 0 0 var(--space-3);
