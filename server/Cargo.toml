@@ -1,6 +1,6 @@
 [package]
 name = "qxp-web"
-version = "0.17.14"
+version = "0.17.15"
 edition = "2021"
 description = "qxp web client daemon — axum + yerpc bridge to deltachat-jsonrpc"
 license = "MPL-2.0"
