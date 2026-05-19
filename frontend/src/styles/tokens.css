@@ -8,17 +8,20 @@
   --space-6: 32px;
 
   /* Layout */
-  /* pane1 must be ≥ the macOS traffic-light cluster so the system controls
-     don't spill across the right-border into pane2 (no app title bar — the
-     window is borderless on top). 80px ≈ 20px left margin + 3×12px buttons + 2×8px gaps + a few px buffer. */
+  /* The leftmost pane must clear the macOS traffic-light cluster so the
+     system controls don't crowd its right border (no app title bar — the
+     window is borderless on top). The cluster spans ~78px (20px left
+     margin + 3×14px buttons + 2×8px gaps); 80px leaves a small buffer. */
   --pane1-width: 80px;
   /* Empty strip above the leftmost-pane content that doubles as the window
      drag handle (macOS traffic-lights overlay it via `titleBarStyle: Overlay`). */
   --titlebar-gutter: 36px;
-  --pane2-min: 72px;
+  /* Narrow (pfp-only) chat-list width. When the profile rail is collapsed
+     this pane becomes the leftmost one, so it has the same traffic-light
+     clearance constraint as the rail — aliased to keep the two in sync. */
+  --pane2-min: var(--pane1-width);
   --pane2-max: 400px;
   --pane2-default: 320px;
-  --pane2-narrow-threshold: 80px;
 
   /* Type */
   --font-sans: system-ui, -apple-system, 'Segoe UI', sans-serif;

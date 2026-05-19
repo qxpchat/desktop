@@ -54,7 +54,10 @@
     onUncollapse,
   }: Props = $props();
 
-  let narrow = $derived(width < 80);
+  // Narrow (pfp-only) whenever below the wide-mode minimum — pane2 width
+  // only ever snaps to the narrow width or into the wide range, never
+  // between, so any threshold in (NARROW_W, MIN_WIDE_W) works.
+  let narrow = $derived(width < 240);
 
   // Burger is disabled when the user is in a full-screen route (Settings
   // / QR / etc.) — opening the rail there overlays nothing useful and

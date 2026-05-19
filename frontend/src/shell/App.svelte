@@ -42,7 +42,10 @@
   // current pointer position) so snap decisions can be made on the user's
   // INTENT, not on the residual width after clamping. Without this, the
   // pane would get stuck once it collapsed to narrow.
-  const NARROW_W = 72;
+  // Mirrors the `--pane2-min` token (which also pins it as the pane's CSS
+  // min-width). Equals PANE1_W: when the rail is collapsed this pane is
+  // the leftmost one, so it has the same traffic-light clearance.
+  const NARROW_W = 80;
   const MIN_WIDE_W = 240;
   const MAX_W = 400;
   // The OS window's minimum width is pinned to `pane1 + pane2 +
