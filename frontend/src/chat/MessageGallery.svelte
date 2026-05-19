@@ -3,6 +3,7 @@
     CONTACT_ID_SELF,
     chat,
     messageReactions,
+    messageStateGlyph,
     type Message,
     type ReactionEntry,
   } from '../lib/state/chat.svelte';
@@ -39,7 +40,11 @@
   // first member of a gallery can carry one (a later captioned message
   // would have opened its own gallery).
   let caption = $derived((first.text ?? '').trim());
-  let lastTime = $derived(formatShortTime(messages[messages.length - 1].timestamp));
+  // Timestamp + delivery state stand in for the whole run, taken from its
+  // last member. messageStateGlyph already returns null for incoming states.
+  let last = $derived(messages[messages.length - 1]);
+  let lastTime = $derived(formatShortTime(last.timestamp));
+  let lastGlyph = $derived(outgoing ? messageStateGlyph(last.state) : null);
 
   // Tiles beyond the 4th collapse into a "+N" overlay on the 4th tile.
   const MAX_TILES = 4;
@@ -132,7 +137,19 @@
           <Icon name="chevron-down" size={14} />
           <span>{t('Show all')}</span>
         </button>
-        <span class="time">{lastTime}</span>
+        <span class="meta">
+          <span class="time">{lastTime}</span>
+          {#if lastGlyph}
+            <span
+              class="state {lastGlyph.kind}"
+              aria-label={lastGlyph.kind}
+              data-testid="message-gallery__state"
+              data-state={lastGlyph.kind}
+            >
+              <Icon name={lastGlyph.icon} size={12} stroke={2} />
+            </span>
+          {/if}
+        </span>
       </div>
     </div>
     <ReactionsRow
@@ -280,10 +297,30 @@
   .unroll:hover {
     opacity: 1;
   }
-  .time {
+  .meta {
     margin-left: auto;
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+  }
+  .time {
     font-size: 10px;
     opacity: 0.75;
     font-variant-numeric: tabular-nums;
+  }
+  .state {
+    display: inline-flex;
+    align-items: center;
+  }
+  .state.failed {
+    color: var(--color-danger);
+  }
+  .state.pending :global(svg) {
+    animation: spin 1.2s linear infinite;
+  }
+  @keyframes spin {
+    to {
+      transform: rotate(360deg);
+    }
   }
 </style>

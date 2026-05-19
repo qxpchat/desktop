@@ -300,6 +300,7 @@ export const TID = {
   messageGalleryTile: '[data-testid="message-gallery__tile"]',
   messageGalleryCaption: '[data-testid="message-gallery__caption"]',
   messageGalleryUnroll: '[data-testid="message-gallery__unroll"]',
+  messageGalleryState: '[data-testid="message-gallery__state"]',
 
   // -- Context menu (message) --
   contextMenu: '[data-testid="context-menu"]',

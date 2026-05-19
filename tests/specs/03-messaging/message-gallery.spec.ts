@@ -7,7 +7,7 @@
 // tile opens the standard lightbox.
 
 import { test, expect } from '../../fixtures/app-paired.js';
-import { openChatByName } from '../../helpers/setup.js';
+import { openChatByName, attachAndSendFile } from '../../helpers/setup.js';
 import { TID } from '../../helpers/selectors.js';
 import { ensureFixtures, mediaPath } from '../../helpers/media.js';
 import { ARRIVAL_TIMEOUT_MS } from '../../helpers/timeouts.js';
@@ -53,6 +53,29 @@ test('gallery: consecutive images collapse, unroll, and open the lightbox', asyn
   await expect(
     page.locator('[data-testid="message-bubble"][data-view-type="Image"]'),
   ).toHaveCount(3);
+});
+
+test('gallery: an outgoing run carries a delivery-state indicator', async ({
+  qxpPaired,
+  page,
+}) => {
+  const { peer } = qxpPaired;
+  const img = mediaPath('test.png');
+
+  await openChatByName(page, peer.displayName);
+
+  // Two images sent from this device collapse into one outgoing gallery.
+  await attachAndSendFile(page, img);
+  await attachAndSendFile(page, img);
+
+  await expect(page.locator(TID.messageGalleryTile)).toHaveCount(2, {
+    timeout: ARRIVAL_TIMEOUT_MS,
+  });
+  const gallery = page.locator('[data-testid="message-gallery"][data-direction="outgoing"]');
+  await expect(gallery).toHaveCount(1);
+
+  // The footer shows a delivery-state glyph for the run's last image.
+  await expect(gallery.locator(TID.messageGalleryState)).toBeVisible();
 });
 
 test('gallery: a captioned image opens a new gallery', async ({ qxpPaired, page }) => {
