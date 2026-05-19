@@ -29,12 +29,25 @@ test('mark-as-unread restores the unread badge after a chat was read', async ({ 
   // sent above must yield exactly "1".
   await expect(row.locator(TID.chatListRowUnread)).toHaveText('1');
 
-  // Open the chat → markNoticed → badge clears.
+  // Open the chat. ChatView fires markNoticed on mount, but the chatlist's
+  // freshMessageCounter only reaches 0 once the daemon's ChatlistItemChanged
+  // event has round-tripped. The row badge is no signal for that — selection
+  // suppresses the badge regardless of the counter — so poll the context
+  // menu, whose entry is "Mark as Read" while the counter is non-zero and
+  // flips to "Mark as Unread" once markNoticed has propagated. The open menu
+  // snapshots the chat, so each poll iteration must re-open it for a fresh
+  // read; close any stale menu first or the right-click hits the backdrop.
   await row.click();
-  await expect(row.locator(TID.chatListRowUnread)).toHaveCount(0);
+  await expect(async () => {
+    const backdrop = page.getByRole('button', { name: 'Close popover' });
+    if (await backdrop.isVisible()) await backdrop.click();
+    await row.click({ button: 'right' });
+    await expect(
+      page.locator(TID.chatRowMenuItem('mark-unread')),
+    ).toBeVisible({ timeout: 500 });
+  }).toPass();
 
-  // Re-mark unread via context menu.
-  await row.click({ button: 'right' });
+  // Re-mark unread — the menu is already open from the final poll iteration.
   await page.locator(TID.chatRowMenuItem('mark-unread')).click();
   await expect(row.locator(TID.chatListRowUnread)).toBeVisible();
 
