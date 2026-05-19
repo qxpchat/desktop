@@ -139,8 +139,9 @@ export const TID = {
   imageLightboxCaption: '[data-testid="image-lightbox__caption"]',
   imageLightboxTimestamp: '[data-testid="image-lightbox__timestamp"]',
 
-  // -- Chat list header (toggles the NavTabs profile rail) --
-  chatListBurger: '[data-testid="chat-list__burger"]',
+  // -- Profile-rail toggle (hosted by the chat list when the rail is
+  //    collapsed, by the rail itself when it is open) --
+  chatListBurger: '[data-testid="rail-toggle"]',
 
   // -- Settings --
   navTabsSettings: '[data-testid="nav-tabs__settings"]',

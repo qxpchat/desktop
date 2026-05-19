@@ -16,6 +16,10 @@
   /* Empty strip above the leftmost-pane content that doubles as the window
      drag handle (macOS traffic-lights overlay it via `titleBarStyle: Overlay`). */
   --titlebar-gutter: 36px;
+  /* Min height of a pane's header row. Shared by the rail and the chat
+     list so the rail-toggle button lands at the same vertical position
+     in whichever pane currently hosts it. */
+  --pane-header-min-h: 56px;
   /* Narrow (pfp-only) chat-list width. When the profile rail is collapsed
      this pane becomes the leftmost one, so it has the same traffic-light
      clearance constraint as the rail — aliased to keep the two in sync. */

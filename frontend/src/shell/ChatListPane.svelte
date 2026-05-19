@@ -7,7 +7,6 @@
     markChatRead,
   } from '../lib/state/chatlist.svelte';
   import { paneMode, setPaneMode, backToInbox } from '../lib/state/paneMode.svelte';
-  import { mainRoute } from '../lib/state/mainRoute.svelte';
   import {
     messageSearch,
     setSearchAccount,
@@ -20,11 +19,11 @@
   import ChatListRow from './ChatListRow.svelte';
   import ChatRowMenu from './ChatRowMenu.svelte';
   import DeleteChatDialog from './DeleteChatDialog.svelte';
+  import RailToggle from './RailToggle.svelte';
   import { rpc } from '../lib/rpc';
   import type { ChatListItem } from '../lib/state/chatlist.svelte';
   import { canLeaveBeforeDelete } from '../lib/chatActions';
   import Icon from '../lib/Icon.svelte';
-  import Badge from '../lib/Badge.svelte';
   import SearchField from '../lib/SearchField.svelte';
   import { t } from '../lib/i18n/i18n.svelte';
   import { onShortcut } from '../lib/shortcuts';
@@ -58,14 +57,6 @@
   // only ever snaps to the narrow width or into the wide range, never
   // between, so any threshold in (NARROW_W, MIN_WIDE_W) works.
   let narrow = $derived(width < 240);
-
-  // Burger is disabled when the user is in a full-screen route (Settings
-  // / QR / etc.) — opening the rail there overlays nothing useful and
-  // the toggle is ambiguous with the route's own back-navigation.
-  let burgerDisabled = $derived.by(() => {
-    const k = mainRoute.route.kind;
-    return k === 'settings' || k === 'qrShow' || k === 'qrScan' || k === 'profileEditor';
-  });
 
   // Sum unread across all *inactive* profiles — used as a roll-up badge on
   // the burger when the profile rail is collapsed, so the user notices a
@@ -196,26 +187,11 @@
           <span class="title">{t('Archived')}</span>
         {/if}
       {:else}
-        <button
-          class="burger"
-          class:active={railOpen}
-          title={railOpen ? t('Hide profiles') : t('Show profiles')}
-          aria-label={t('Toggle profile rail')}
-          aria-pressed={railOpen}
-          disabled={burgerDisabled}
-          onclick={onToggleRail}
-          data-testid="chat-list__burger"
-        >
-          <Icon name="menu" size={18} />
-          {#if !railOpen && otherUnread > 0}
-            <Badge
-              count={otherUnread}
-              corner
-              ring="var(--color-bg-pane)"
-              aria-label={t('Unread in other profiles')}
-            />
-          {/if}
-        </button>
+        {#if !railOpen}
+          <div class="toggle-slot">
+            <RailToggle open={false} onToggle={onToggleRail} unread={otherUnread} />
+          </div>
+        {/if}
         {#if !narrow}
           <SearchField
             class="search"
@@ -344,7 +320,7 @@
     gap: var(--space-2);
     padding: var(--space-3);
     flex: 0 0 auto;
-    min-height: 56px;
+    min-height: var(--pane-header-min-h);
   }
   .header.narrow {
     flex-direction: column;
@@ -355,8 +331,23 @@
     /* Cancel the row-mode min-height so the column stack hugs the buttons. */
     min-height: 0;
   }
-  .expand,
-  .burger {
+  /* Wide header: the wrapper collapses away so the toggle sits inline in
+     the row. Narrow header: it becomes a full-height slot so the toggle
+     keeps the same Y as in the wide header and the rail. */
+  .toggle-slot {
+    display: contents;
+  }
+  .header.narrow .toggle-slot {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    min-height: var(--pane-header-min-h);
+    /* Cancel the column's top padding so the slot sits flush below the
+       title-bar gutter — puts the toggle's centre at the same Y again. */
+    margin-top: calc(-1 * var(--space-2));
+  }
+  .expand {
     position: relative;
     width: 28px;
     height: 28px;
@@ -368,18 +359,9 @@
     justify-content: center;
     transition: background 0.1s ease, color 0.1s ease;
   }
-  .expand:hover,
-  .burger:hover:not(:disabled) {
+  .expand:hover {
     background: var(--color-bg-hover);
     color: var(--color-fg);
-  }
-  .burger.active {
-    background: var(--color-bg-hover);
-    color: var(--color-accent);
-  }
-  .burger:disabled {
-    opacity: 0.35;
-    cursor: default;
   }
   .header :global(.search) {
     flex: 1;

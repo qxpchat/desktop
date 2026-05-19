@@ -290,6 +290,7 @@
         onSelect={selectAccount}
         onAddAccount={addAccount}
         onRemoveAccount={(id) => void removeAccount(id)}
+        onToggleRail={togglePane1}
       />
     {/if}
 

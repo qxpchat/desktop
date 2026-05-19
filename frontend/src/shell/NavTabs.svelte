@@ -10,6 +10,7 @@
   import Icon from '../lib/Icon.svelte';
   import MenuItem from '../lib/MenuItem.svelte';
   import ConfirmDialog from '../lib/ConfirmDialog.svelte';
+  import RailToggle from './RailToggle.svelte';
   import { t } from '../lib/i18n/i18n.svelte';
 
   type Props = {
@@ -17,6 +18,8 @@
     onSelect: (id: number) => void;
     onAddAccount: () => void;
     onRemoveAccount: (id: number) => void;
+    /** Collapse the rail — the toggle lives here while the rail is open. */
+    onToggleRail: () => void;
   };
 
   let {
@@ -24,6 +27,7 @@
     onSelect,
     onAddAccount,
     onRemoveAccount,
+    onToggleRail,
   }: Props = $props();
 
   let menuFor = $state<number | null>(null);
@@ -96,6 +100,11 @@
        in ChatListPane so the strip behind the rail is still a drag
        handle. -->
   <div class="titlebar-gutter" data-tauri-drag-region></div>
+  <!-- Header row — mirrors ChatListPane's so the rail toggle keeps the
+       same screen position when the rail opens/closes. -->
+  <div class="rail-header">
+    <RailToggle open onToggle={onToggleRail} />
+  </div>
   <div class="accounts">
     {#each profiles.list as profile (profile.id)}
       <div class="tile-wrap">
@@ -198,6 +207,14 @@
   .titlebar-gutter {
     flex: 0 0 auto;
     height: var(--titlebar-gutter);
+  }
+  .rail-header {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: var(--space-3);
+    min-height: var(--pane-header-min-h);
+    flex: 0 0 auto;
   }
   .accounts {
     display: flex;
