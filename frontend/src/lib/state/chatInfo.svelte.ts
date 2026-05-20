@@ -187,8 +187,10 @@ export async function removeChatMember(
 }
 
 /** Candidates for the add-member dialog: non-blocked contacts on this
- *  account minus self, minus anyone already in this chat (current OR past —
- *  kicked members must be re-added via the compose flow). */
+ *  account minus self, minus current members. Past (kicked / left)
+ *  members stay in the list — `add_contact_to_chat` re-adds them
+ *  cleanly, and excluding them surprised users who'd just removed
+ *  someone by mistake. */
 export async function findAddMemberCandidates(
   accountId: number,
   query: string,
@@ -200,10 +202,7 @@ export async function findAddMemberCandidates(
     0,
     query.trim() || null,
   ]);
-  const inGroup = new Set<number>([
-    ...(full.contactIds ?? []),
-    ...(full.pastContactIds ?? []),
-  ]);
+  const inGroup = new Set<number>(full.contactIds ?? []);
   return all.filter((c) => c.id !== 1 && !inGroup.has(c.id));
 }
 
