@@ -2,6 +2,7 @@ import type { ChatListItem } from './state/chatlist.svelte';
 import { rpc } from './rpc';
 import { accounts } from './state/accounts.svelte';
 import { selectChat } from './state/selection.svelte';
+import { backToChat } from './state/mainRoute.svelte';
 
 // Encrypted groups the user is still a member of (and inbound broadcasts
 // they've joined) need a `leave_group` before `delete_chat` — otherwise
@@ -32,5 +33,20 @@ export async function openChatByEmail(email: string): Promise<void> {
     selectChat(chatId);
   } catch (err) {
     console.warn('openChatByEmail failed', err);
+  }
+}
+
+// Open (or create) the 1:1 chat for a known contact id, then leave the
+// chat-info pane so the new chat is visible. Used by member rows in
+// group/broadcast info.
+export async function openChatByContactId(contactId: number): Promise<void> {
+  if (accounts.selectedId == null) return;
+  const accountId = accounts.selectedId;
+  try {
+    const chatId = await rpc.call<number>('create_chat_by_contact_id', [accountId, contactId]);
+    selectChat(chatId);
+    backToChat();
+  } catch (err) {
+    console.warn('openChatByContactId failed', err);
   }
 }
