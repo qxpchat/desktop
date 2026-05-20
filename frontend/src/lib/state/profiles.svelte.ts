@@ -98,9 +98,13 @@ async function patchFresh(accountId: number) {
   if (!profiles.list.some((p) => p.id === accountId)) return;
   try {
     const freshCount = await computeFreshCount(accountId);
-    const idx = profiles.list.findIndex((p) => p.id === accountId);
-    if (idx < 0) return;
-    profiles.list[idx] = { ...profiles.list[idx], freshCount };
+    // Reassign the whole list (rather than `list[idx] = …`) so the each
+    // block on `profiles.list` re-renders the affected tile. With
+    // index-assignment, the inactive-profile badge updated only on the next
+    // full refresh (account switch), not on the IncomingMsg-driven event.
+    profiles.list = profiles.list.map((p) =>
+      p.id === accountId ? { ...p, freshCount } : p,
+    );
   } catch {
     /* skip — keep prior count */
   }

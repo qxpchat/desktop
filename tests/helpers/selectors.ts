@@ -226,6 +226,9 @@ export const TID = {
     `[data-testid="nav-tabs__account"][data-account-id="${id}"]`,
   navTabsAccountByName: (name: string) =>
     `[data-testid="nav-tabs__account"][data-name="${name}"]`,
+  navTabsAccountBadge: '[data-testid="nav-tabs__account-badge"]',
+  navTabsAccountBadgeById: (id: number) =>
+    `[data-testid="nav-tabs__account"][data-account-id="${id}"] [data-testid="nav-tabs__account-badge"]`,
   navTabsAddAccount: '[data-testid="nav-tabs__add-account"]',
   navTabsAccountMenu: '[data-testid="nav-tabs__account-menu"]',
   navTabsAccountMenuEdit: '[data-testid="nav-tabs__account-menu-edit"]',
