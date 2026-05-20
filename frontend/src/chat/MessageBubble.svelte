@@ -25,8 +25,13 @@
     showSender: boolean;
     /** Show per-emoji counter on reaction chips (true in groups; false in 1:1). */
     showReactionCount: boolean;
-    /** Open the context menu anchored at the click coords. */
-    onContextMenu: (msg: Message, x: number, y: number) => void;
+    /** Open the context menu anchored at the click coords. `mode` selects
+     *  which sections of the menu to render — defaults to 'all' for the
+     *  right-click flow; the hover icons pass 'reactions' or 'actions'. */
+    onContextMenu: (msg: Message, x: number, y: number, mode?: 'all' | 'reactions' | 'actions') => void;
+    /** Start replying to this message (composer quote bar). Wired from the
+     *  hover reply icon next to each bubble. */
+    onReply: (msgId: number) => void;
     /** Jump to and highlight a quoted message. */
     onJumpToMessage: (msgId: number) => void;
     /** Open the reactor detail sheet for the tapped message. */
@@ -42,6 +47,13 @@
     /** When non-null, the row is in selection mode: a circle is shown on
      *  the leading edge and clicking anywhere on the row toggles. */
     selection?: { selected: boolean; onToggle: () => void } | null;
+    /** Message id currently under the cursor. ChatView tracks this with a
+     *  single mousemove + scroll-driven hit-test on the scroller and pushes
+     *  it down; we use it instead of per-row CSS `:hover`, which got pinned
+     *  by Popover backdrops and never updated on scroll under a stationary
+     *  cursor. The full row (`data-row-msg-id` on `.row`) is the hit zone,
+     *  so hovering anywhere in the row's vertical band reveals the trio. */
+    hoveredId?: number | null;
   };
 
   let {
@@ -49,12 +61,16 @@
     showSender,
     showReactionCount,
     onContextMenu,
+    onReply,
     onJumpToMessage,
     onShowReactors,
     groupStart = true,
     groupEnd = true,
     selection = null,
+    hoveredId = null,
   }: Props = $props();
+
+  let hovered = $derived(hoveredId === message.id);
 
   let outgoing = $derived(message.fromId === CONTACT_ID_SELF);
 
@@ -101,9 +117,36 @@
     onContextMenu(message, e.clientX, e.clientY);
   }
 
+  // Hover-icon handlers — Signal-style trio (react / reply / menu) sits
+  // beside each bubble and appears on row hover. Coords are taken from the
+  // button's bounding rect so the popover anchors to the button instead of
+  // the cursor, even when the click is keyboard-driven.
+  function openHoverPopover(e: MouseEvent | KeyboardEvent, mode: 'reactions' | 'actions') {
+    const r = (e.currentTarget as HTMLElement).getBoundingClientRect();
+    // For outgoing bubbles the buttons sit on the right edge of the bubble
+    // (visual left of the bubble itself when row-reverse is applied). The
+    // popover is wider than the button — anchor on the right edge so it
+    // doesn't immediately hit the viewport clamp.
+    const x = outgoing ? Math.max(0, r.right - 220) : r.left;
+    onContextMenu(message, x, r.bottom + 4, mode);
+  }
+  function onReactClick(e: MouseEvent) {
+    e.stopPropagation();
+    openHoverPopover(e, 'reactions');
+  }
+  function onReplyClick(e: MouseEvent) {
+    e.stopPropagation();
+    onReply(message.id);
+  }
+  function onMenuClick(e: MouseEvent) {
+    e.stopPropagation();
+    openHoverPopover(e, 'actions');
+  }
+
   function handleRowClick() {
     if (selection) selection.onToggle();
   }
+
 
   // `hasHtml` is set by core whenever the stored text is not the whole
   // message — either the body was truncated past 38 lines / 100 chars/line,
@@ -195,6 +238,8 @@
   class:group-end={groupEnd}
   class:selecting={selection != null}
   class:selected={selection?.selected}
+  class:hovered
+  data-row-msg-id={message.id}
   onclick={handleRowClick}
   onkeydown={handleRowKey}
   role={selection ? 'checkbox' : undefined}
@@ -206,7 +251,38 @@
       {#if selection.selected}<Icon name="check" size={14} stroke={3} />{/if}
     </span>
   {/if}
-  <div class="bubble-wrap">
+  <div class="bubble-row">
+    {#if !selection}
+      <div class="hover-buttons" data-testid="message-hover-actions" aria-hidden="true">
+        <button
+          type="button"
+          class="hover-btn"
+          aria-label={t('React')}
+          data-testid="message-hover-actions__react"
+          onclick={onReactClick}
+        >
+          <Icon name="smile-plus" size={16} />
+        </button>
+        <button
+          type="button"
+          class="hover-btn"
+          aria-label={t('Reply')}
+          data-testid="message-hover-actions__reply"
+          onclick={onReplyClick}
+        >
+          <Icon name="reply" size={16} />
+        </button>
+        <button
+          type="button"
+          class="hover-btn"
+          aria-label={t('More')}
+          data-testid="message-hover-actions__menu"
+          onclick={onMenuClick}
+        >
+          <Icon name="more-horizontal" size={16} />
+        </button>
+      </div>
+    {/if}
     <div
       class="bubble"
       class:edited={message.isEdited}
@@ -311,14 +387,14 @@
         {/if}
       </div>
     </div>
-    <ReactionsRow
-      reactions={messageReactions(message)}
-      messageId={message.id}
-      showCount={showReactionCount}
-      isGroup={showReactionCount}
-      {onShowReactors}
-    />
   </div>
+  <ReactionsRow
+    reactions={messageReactions(message)}
+    messageId={message.id}
+    showCount={showReactionCount}
+    isGroup={showReactionCount}
+    {onShowReactors}
+  />
   {#if message.error && message.state === MSG_STATE.OutFailed}
     <div class="error">{message.error}</div>
   {/if}
@@ -348,7 +424,7 @@
     padding-left: calc(var(--space-4) + 32px);
     cursor: pointer;
   }
-  .row.selecting .bubble-wrap {
+  .row.selecting .bubble-row {
     /* Let the row swallow the click — inner cells (images, links, etc.)
      * would otherwise eat it before the toggle handler runs. */
     pointer-events: none;
@@ -378,12 +454,70 @@
     background: var(--color-accent);
     border-color: var(--color-accent);
   }
-  .bubble-wrap {
-    /* Flex column with align-items: flex-{start,end} makes children
-     * shrink-to-content. Capping max-width here (the flex item itself)
-     * lets the bubble inside expand up to 80% of the row width before
-     * the text starts wrapping. */
-    max-width: min(560px, 80%);
+  /* Horizontal pairing of the hover trio with the bubble. Capped narrower
+   * than the bubble's own old max-width (80%) so the trio always fits on
+   * the inboard side without pushing the bubble past the chat pane edge.
+   * Incoming runs left→right (bubble, then buttons on the outboard side);
+   * outgoing flips so the buttons sit between bubble and pane interior. */
+  .bubble-row {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    max-width: min(520px, 75%);
+    min-width: 0;
+  }
+  /* DOM order: [hover-buttons, bubble]. For outgoing (row right-aligned)
+   * that puts buttons on the bubble's left = inboard. For incoming
+   * (left-aligned) we need the reverse so buttons end up on the bubble's
+   * right = inboard. */
+  .row.incoming .bubble-row {
+    flex-direction: row-reverse;
+  }
+  /* `.bubble` is a flex item now; `min-width: 0` lets it shrink past its
+   * intrinsic content width so long lines wrap inside the bubble instead
+   * of forcing the row past `.bubble-row`'s max-width. */
+  .bubble-row > .bubble {
+    min-width: 0;
+  }
+  .hover-buttons {
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+    flex: none;
+    opacity: 0;
+    pointer-events: none;
+  }
+  /* Reveal driven by `hoveredMsgId` in ChatView (single mousemove tracker
+   * on the scroller, re-hit-tested on scroll). The whole `.row` is the
+   * hit zone — hovering anywhere in the row's vertical band lights up
+   * the trio. CSS `:hover` was unreliable here: Popover backdrops left
+   * the row pinned-hovered until the user moved the cursor, and scrolling
+   * under a stationary cursor never updated `:hover` at all. */
+  .row.hovered .hover-buttons {
+    opacity: 1;
+    pointer-events: auto;
+  }
+  .hover-btn {
+    width: 26px;
+    height: 26px;
+    padding: 0;
+    border: 0;
+    border-radius: 50%;
+    background: transparent;
+    color: var(--color-fg-tertiary);
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 120ms ease, color 120ms ease;
+  }
+  .hover-btn:hover {
+    background: var(--color-bg-hover);
+    color: var(--color-fg);
+  }
+  .hover-btn:focus-visible {
+    outline: 2px solid var(--color-accent);
+    outline-offset: 2px;
   }
   .bubble {
     padding: 8px 12px;
