@@ -5,6 +5,7 @@
   import { rpc } from '../lib/rpc';
   import { accounts } from '../lib/state/accounts.svelte';
   import { canRecallMessage, loadMessages, type Message } from '../lib/state/chat.svelte';
+  import { chatlist } from '../lib/state/chatlist.svelte';
   import { jumpToMessage } from '../lib/state/jump';
   import { backToChat } from '../lib/state/mainRoute.svelte';
   import { fileUrl, formatBytes } from '../lib/files';
@@ -80,7 +81,8 @@
 
   function deleteItem(msgId: number) {
     const m = items.find((it) => it.id === msgId);
-    deleteTarget = { id: msgId, canDeleteForAll: m != null && canRecallMessage(m) };
+    const isSelfTalk = chatlist.items.get(chatId)?.isSelfTalk ?? false;
+    deleteTarget = { id: msgId, canDeleteForAll: !isSelfTalk && m != null && canRecallMessage(m) };
   }
 
   async function performDelete(forAll: boolean) {
