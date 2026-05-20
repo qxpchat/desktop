@@ -377,11 +377,19 @@ export async function sendComposerText(page: Page, text: string): Promise<void> 
 }
 
 /** Pick `filePath` via the composer's hidden file input, wait for the
- *  attachment-preview row to appear, then click send. Mirrors the
- *  production flow: the file picker stages the attachment in the
- *  composer rather than sending it directly. */
+ *  attachment-preview row to appear, click send, then wait for the bar
+ *  to clear. Mirrors the production flow: the file picker stages the
+ *  attachment in the composer rather than sending it directly.
+ *
+ *  Waiting for the bar to clear matters when callers chain
+ *  `attachAndSendFile` calls back-to-back: `Composer.send()` only calls
+ *  `clearPendingAttachments` after its per-attachment RPC loop resolves,
+ *  so without this wait the second file picker fires while the first
+ *  attachment is still pending — two bars then sit in the DOM and any
+ *  next `expect(...).toBeVisible()` on the bar trips strict mode. */
 export async function attachAndSendFile(page: Page, filePath: string): Promise<void> {
   await page.locator(TID.composerFileInput).setInputFiles(filePath);
   await expect(page.locator(TID.composerAttachmentBar)).toBeVisible();
   await page.locator(TID.composerSend).click();
+  await expect(page.locator(TID.composerAttachmentBar)).toHaveCount(0);
 }
