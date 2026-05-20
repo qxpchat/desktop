@@ -44,7 +44,7 @@
           # Pin of frontend/package-lock.json's npm dep closure. Re-run
           # `nix build` after any lockfile change and update to the printed
           # "got: sha256-…" hash.
-          npmDepsHash = "sha256-WhPGam/wsnGUjE39WRE5UoHBWNl09izeuACKnPrp6zY=";
+          npmDepsHash = "sha256-1ZGB35sair/Ks28ESX/tQOfAHw6OVkW1/96s9pjH/PU=";
 
           installPhase = ''
             runHook preInstall
