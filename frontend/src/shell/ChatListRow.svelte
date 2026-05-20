@@ -119,8 +119,6 @@
         {/if}
       </span>
     </span>
-  {:else if showUnread}
-    <span class="unread-dot"></span>
   {/if}
 </button>
 
