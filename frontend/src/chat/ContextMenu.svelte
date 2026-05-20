@@ -29,9 +29,23 @@
     onMoreEmoji: () => void;
     actions: Action[];
     onClose: () => void;
+    /** Which sections to render. `'all'` (default) shows the quick-reaction
+     *  row + the action list, matching the right-click menu. `'reactions'`
+     *  and `'actions'` render just one half — used by the hover icons next
+     *  to each bubble (emoji icon → reactions, menu icon → actions). */
+    mode?: 'all' | 'reactions' | 'actions';
   };
 
-  let { message, x, y, onPickEmoji, onMoreEmoji, actions, onClose }: Props = $props();
+  let {
+    message,
+    x,
+    y,
+    onPickEmoji,
+    onMoreEmoji,
+    actions,
+    onClose,
+    mode = 'all',
+  }: Props = $props();
   // `message` is intentionally unread for now — reserved for a future
   // aria-label that names the target bubble. Wrapped in a closure so
   // svelte-check doesn't warn about initial-value capture.
@@ -59,17 +73,19 @@
 </script>
 
 <Popover {x} {y} {onClose} data-testid="message-context-menu">
-  <div class="body">
-    <div class="quick" role="group" aria-label={t('Quick reactions')}>
-      {#each quickEmojis as e (e)}
-        <button class="emoji" onclick={() => pick(e)} aria-label={e} data-testid="message-context-menu__quick-emoji" data-emoji={e}>{e}</button>
-      {/each}
-      <button class="emoji more" onclick={more} aria-label={t('More emoji')} data-testid="message-context-menu__more-emoji">
-        <Icon name="smile-plus" size={18} />
-      </button>
-    </div>
-    {#if actions.length > 0}
-      <div class="actions">
+  <div class="body" data-mode={mode}>
+    {#if mode !== 'actions'}
+      <div class="quick" role="group" aria-label={t('Quick reactions')}>
+        {#each quickEmojis as e (e)}
+          <button class="emoji" onclick={() => pick(e)} aria-label={e} data-testid="message-context-menu__quick-emoji" data-emoji={e}>{e}</button>
+        {/each}
+        <button class="emoji more" onclick={more} aria-label={t('More emoji')} data-testid="message-context-menu__more-emoji">
+          <Icon name="smile-plus" size={18} />
+        </button>
+      </div>
+    {/if}
+    {#if mode !== 'reactions' && actions.length > 0}
+      <div class="actions" class:standalone={mode === 'actions'}>
         {#each actions as a}
           <MenuItem
             icon={a.icon}
@@ -116,5 +132,11 @@
     flex-direction: column;
     border-top: 1px solid var(--color-border);
     padding-top: 4px;
+  }
+  /* When the actions list is rendered on its own (mode='actions' from the
+   * hover menu icon), the divider above is meaningless — drop it. */
+  .actions.standalone {
+    border-top: 0;
+    padding-top: 0;
   }
 </style>

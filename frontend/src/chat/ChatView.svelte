@@ -277,6 +277,47 @@
     scrolling = true;
     if (scrollIdleTimer != null) clearTimeout(scrollIdleTimer);
     scrollIdleTimer = setTimeout(() => (scrolling = false), 800);
+    // Scrolling moves a different row under a stationary cursor without
+    // firing any pointer events. Re-hit-test from the last known cursor
+    // position so `hoveredMsgId` follows the actual row underneath.
+    refreshHoverFromLastPoint();
+  }
+
+  // -------- bubble hover tracker --------
+  // We track hover at the scroller level instead of relying on per-row CSS
+  // `:hover` or per-row pointerenter/leave. Both proved unreliable: CSS
+  // `:hover` stayed pinned on a row after a transient overlay (Popover
+  // backdrop) was clicked away, and pointer events never fire at all when
+  // the scroller scrolls under a stationary cursor. A single mousemove +
+  // scroll-driven re-hit-test guarantees exactly one row is `.hovered` at
+  // any time, and that state clears the moment the cursor leaves the row's
+  // box — regardless of whether the cursor itself moved.
+  let hoveredMsgId = $state<number | null>(null);
+  let lastMouseX = -1;
+  let lastMouseY = -1;
+  function hitTestRow(x: number, y: number): number | null {
+    if (!scroller) return null;
+    const el = document.elementFromPoint(x, y);
+    if (!el || !scroller.contains(el)) return null;
+    const row = (el as Element).closest<HTMLElement>('[data-row-msg-id]');
+    if (!row) return null;
+    const id = Number(row.dataset.rowMsgId);
+    return Number.isFinite(id) ? id : null;
+  }
+  function refreshHoverFromLastPoint() {
+    if (lastMouseX < 0) return;
+    const next = hitTestRow(lastMouseX, lastMouseY);
+    if (next !== hoveredMsgId) hoveredMsgId = next;
+  }
+  function onScrollerMouseMove(e: MouseEvent) {
+    lastMouseX = e.clientX;
+    lastMouseY = e.clientY;
+    refreshHoverFromLastPoint();
+  }
+  function onScrollerMouseLeave() {
+    lastMouseX = -1;
+    lastMouseY = -1;
+    hoveredMsgId = null;
   }
 
   function dayMarker(prev: Message | undefined, curr: Message): string | null {
@@ -295,7 +336,12 @@
 
   // Context menu / emoji picker / forward picker -----------------------------
 
-  let contextOpen = $state<{ message: Message; x: number; y: number } | null>(null);
+  let contextOpen = $state<{
+    message: Message;
+    x: number;
+    y: number;
+    mode: 'all' | 'reactions' | 'actions';
+  } | null>(null);
   let pickerOpen = $state(false);
   let pickerTarget = $state<number | null>(null);
   let findOpen = $state(false);
@@ -478,8 +524,8 @@
     };
   });
 
-  function openContext(m: Message, x: number, y: number) {
-    contextOpen = { message: m, x, y };
+  function openContext(m: Message, x: number, y: number, mode: 'all' | 'reactions' | 'actions' = 'all') {
+    contextOpen = { message: m, x, y, mode };
   }
 
   function closeContext() {
@@ -664,6 +710,8 @@
     class:scrolling
     bind:this={scroller}
     onscroll={onScroll}
+    onmousemove={onScrollerMouseMove}
+    onmouseleave={onScrollerMouseLeave}
     role="log"
     aria-live="polite"
     aria-relevant="additions"
@@ -712,8 +760,10 @@
                 showSender={isGroupOrBroadcast}
                 showReactionCount={isGroupOrBroadcast}
                 onContextMenu={openContext}
+                onReply={setReplyTo}
                 onJumpToMessage={jumpTo}
                 onShowReactors={(id) => (reactorsTarget = id)}
+                hoveredId={hoveredMsgId}
                 selection={null}
               />
             </div>
@@ -735,8 +785,10 @@
                 showSender={isGroupOrBroadcast}
                 showReactionCount={isGroupOrBroadcast}
                 onContextMenu={openContext}
+                onReply={setReplyTo}
                 onJumpToMessage={jumpTo}
                 onShowReactors={(id) => (reactorsTarget = id)}
+                hoveredId={hoveredMsgId}
                 selection={isSelecting
                   ? { selected: selectedIds.has(m.id), onToggle: () => toggleSelection(m.id) }
                   : null}
@@ -808,6 +860,7 @@
     message={contextOpen.message}
     x={contextOpen.x}
     y={contextOpen.y}
+    mode={contextOpen.mode}
     onPickEmoji={onPickEmoji}
     onMoreEmoji={onMoreEmoji}
     actions={actionsFor(contextOpen.message)}
