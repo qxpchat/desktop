@@ -6,6 +6,7 @@
   import SettingsSection from '../lib/SettingsSection.svelte';
   import Button from '../lib/Button.svelte';
   import Modal from '../lib/Modal.svelte';
+  import { copyToClipboard } from '../lib/clipboard';
   import { t } from '../lib/i18n/i18n.svelte';
 
   // Multi-device / send-backup flow. `provide_backup` starts a local-network
@@ -21,7 +22,11 @@
   let qrText = $state<string | null>(null);
   let progress = $state(0);
   let message = $state<string | null>(null);
-  let copied = $state(false);
+  // Latched once the user copies the pair code — drives the cancel-dialog
+  // warning ("the code you copied will stop working"). Never resets while
+  // the modal is open, so the warning sticks even if cancellation comes
+  // minutes later.
+  let everCopied = $state(false);
   let confirmCancelOpen = $state(false);
 
   // Account the in-flight provider belongs to. Guards the ImexProgress
@@ -129,12 +134,8 @@
 
   async function copyCode() {
     if (!qrText) return;
-    try {
-      await navigator.clipboard.writeText(qrText);
-      copied = true;
-      setTimeout(() => (copied = false), 1500);
-    } catch {
-      /* clipboard denied */
+    if (await copyToClipboard(qrText, t('Setup code copied to clipboard'))) {
+      everCopied = true;
     }
   }
 
@@ -179,7 +180,7 @@
       </ol>
       <div class="actions">
         <Button variant="secondary" size="sm" onclick={copyCode} data-testid="settings-add-device__copy">
-          {copied ? t('Copied!') : t('Copy code')}
+          {t('Copy code')}
         </Button>
         <Button variant="danger-text" size="sm" onclick={requestCancel} data-testid="settings-add-device__cancel">
           {t('Cancel')}
@@ -207,7 +208,7 @@
   <div class="dialog-body">
     <h2>{t('Stop pairing?')}</h2>
     <p>
-      {copied
+      {everCopied
         ? t('The transfer will be canceled and the code you copied will stop working.')
         : t('The transfer will be canceled.')}
     </p>

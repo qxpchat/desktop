@@ -10,6 +10,7 @@
   import IconButton from '../lib/IconButton.svelte';
   import Modal from '../lib/Modal.svelte';
   import Button from '../lib/Button.svelte';
+  import { copyToClipboard } from '../lib/clipboard';
   import { t } from '../lib/i18n/i18n.svelte';
 
   type Props = {
@@ -21,7 +22,6 @@
 
   let svg = $state<string | null>(null);
   let error = $state<string | null>(null);
-  let copied = $state(false);
 
   onMount(async () => {
     try {
@@ -32,11 +32,7 @@
   });
 
   async function copyLink() {
-    try {
-      await navigator.clipboard.writeText(url);
-      copied = true;
-      setTimeout(() => (copied = false), 1500);
-    } catch {
+    if (!(await copyToClipboard(url, t('Link copied to clipboard')))) {
       error = t('Could not copy to clipboard.');
     }
   }
@@ -64,7 +60,7 @@
 
       <Button variant="primary" onclick={copyLink}>
         <Icon name="copy" size={14} />
-        {copied ? t('Copied') : t('Copy Link')}
+        {t('Copy Link')}
       </Button>
     </div>
   </div>

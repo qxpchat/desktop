@@ -13,6 +13,7 @@
   import Toggle from '../lib/Toggle.svelte';
   import Button from '../lib/Button.svelte';
   import SegmentedControl from '../lib/SegmentedControl.svelte';
+  import { copyToClipboard } from '../lib/clipboard';
   import { t } from '../lib/i18n/i18n.svelte';
 
   let header = $state<string>('');
@@ -92,11 +93,7 @@
   }
 
   async function copyAll() {
-    try {
-      await navigator.clipboard.writeText(displayed);
-    } catch {
-      /* clipboard denied — webview without permission */
-    }
+    await copyToClipboard(displayed, t('Logs copied to clipboard'));
   }
 
   function counts(): { info: number; warning: number; error: number } {

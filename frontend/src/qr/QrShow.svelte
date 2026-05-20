@@ -6,6 +6,7 @@
   import Button from '../lib/Button.svelte';
   import BackButton from '../lib/BackButton.svelte';
   import ConfirmDialog from '../lib/ConfirmDialog.svelte';
+  import { copyToClipboard } from '../lib/clipboard';
   import { t } from '../lib/i18n/i18n.svelte';
 
   type Props = {
@@ -22,7 +23,6 @@
   /** Raw QR string from the daemon — kept verbatim for set_config_from_qr. */
   let url = $state<string | null>(null);
   let error = $state<string | null>(null);
-  let copied = $state(false);
   let withdrawOpen = $state(false);
   let pasteResult = $state<string | null>(null);
 
@@ -89,13 +89,7 @@
 
   async function copy() {
     if (!shareUrl) return;
-    try {
-      await navigator.clipboard.writeText(shareUrl);
-      copied = true;
-      setTimeout(() => (copied = false), 1500);
-    } catch {
-      /* clipboard denied */
-    }
+    await copyToClipboard(shareUrl, t('Link copied to clipboard'));
   }
 
   async function paste() {
@@ -140,7 +134,7 @@
         {/if}
         <div class="actions">
           <Button variant="secondary" size="sm" onclick={copy} data-testid="qr-show__copy">
-            {copied ? t('Copied!') : t('Copy link')}
+            {t('Copy link')}
           </Button>
           <Button variant="secondary" size="sm" onclick={paste} data-testid="qr-show__paste">
             {t('Paste code')}
