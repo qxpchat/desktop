@@ -8,12 +8,11 @@
     open: boolean;
     onToggle: () => void;
     /** Unread roll-up across the profiles hidden while the rail is closed.
-     *  Rendered as a corner badge only in the closed state. */
+     *  When non-zero in the closed state, the badge replaces the chevron and
+     *  becomes the clickable affordance to re-open the rail. */
     unread?: number;
-    /** Badge ring color — set to the host pane's background. */
-    badgeRing?: string;
   };
-  let { open, onToggle, unread = 0, badgeRing = 'var(--color-bg-pane)' }: Props = $props();
+  let { open, onToggle, unread = 0 }: Props = $props();
 </script>
 
 <button
@@ -25,9 +24,10 @@
   onclick={onToggle}
   data-testid="rail-toggle"
 >
-  <Icon name={open ? 'chevron-left' : 'chevron-right'} size={18} />
   {#if !open && unread > 0}
-    <Badge count={unread} corner ring={badgeRing} aria-label={t('Unread in other profiles')} />
+    <Badge count={unread} aria-label={t('Unread in other profiles')} />
+  {:else}
+    <Icon name={open ? 'chevron-left' : 'chevron-right'} size={18} />
   {/if}
 </button>
 
