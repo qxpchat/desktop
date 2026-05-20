@@ -34,7 +34,17 @@
   import SearchField from '../lib/SearchField.svelte';
   import Select from '../lib/Select.svelte';
   import { osmEmbedUrl, osmShareUrl } from '../lib/format/openstreetmap';
+  import { showToast } from '../lib/state/toast.svelte';
   import { t } from '../lib/i18n/i18n.svelte';
+
+  async function copyAddress(addr: string): Promise<void> {
+    try {
+      await navigator.clipboard.writeText(addr);
+      showToast(t('Address copied to clipboard'));
+    } catch {
+      /* clipboard denied — silent, matches QrShow / AddSecondDevice */
+    }
+  }
 
   type Props = { chatId: number };
   let { chatId }: Props = $props();
@@ -360,7 +370,14 @@
           >{t('Rename')}</Button>
         {/if}
         {#if other?.address}
-          <p class="muted">{other.address}</p>
+          {@const addr = other.address}
+          <button
+            type="button"
+            class="address-copy"
+            onclick={() => void copyAddress(addr)}
+            title={t('Copy to clipboard')}
+            data-testid="chat-info__address-copy"
+          >{addr}</button>
         {/if}
       {/if}
     </div>
@@ -567,6 +584,20 @@
     color: var(--color-fg-tertiary);
     margin: 12px 0;
     text-align: center;
+  }
+  .address-copy {
+    margin: 12px 0;
+    padding: 4px 8px;
+    border: 0;
+    background: transparent;
+    color: var(--color-fg-tertiary);
+    font: inherit;
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    transition: background 0.1s ease;
+  }
+  .address-copy:hover {
+    background: var(--color-bg-hover);
   }
   .header {
     text-align: center;

@@ -34,6 +34,7 @@
   import ImageLightbox from '../chat/ImageLightbox.svelte';
   import FullMessageOverlay from '../chat/FullMessageOverlay.svelte';
   import ForwardFlow from './ForwardFlow.svelte';
+  import Toast from '../lib/Toast.svelte';
 
   // Pane-2 width has two valid modes:
   //   - Narrow (pfp-only) at exactly NARROW_W.
@@ -318,6 +319,7 @@
 <ImageLightbox />
 <FullMessageOverlay />
 <ForwardFlow />
+<Toast />
 
 <ConfirmDialog
   open={removeError != null}
