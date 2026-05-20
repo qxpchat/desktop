@@ -24,6 +24,7 @@
   import { dropZone } from '../lib/dragdrop.svelte';
   import { jumpToMessage } from '../lib/state/jump';
   import { formatDayLabel } from '../lib/format/timestamp';
+  import { copyToClipboard } from '../lib/clipboard';
   import { t } from '../lib/i18n/i18n.svelte';
   import { chatlist } from '../lib/state/chatlist.svelte';
   import MessageBubble from './MessageBubble.svelte';
@@ -457,7 +458,7 @@
       }
       text = lines.join('\n');
     }
-    void navigator.clipboard.writeText(text);
+    void copyToClipboard(text, t('Messages copied to clipboard'));
     exitSelection();
   }
   function onDeleteSelected() {
@@ -522,7 +523,7 @@
         label: t('Copy'),
         icon: 'copy',
         action: 'copy',
-        onSelect: () => void navigator.clipboard.writeText(m.text),
+        onSelect: () => void copyToClipboard(m.text, t('Message copied to clipboard')),
       });
     }
     actions.push({

@@ -34,17 +34,8 @@
   import SearchField from '../lib/SearchField.svelte';
   import Select from '../lib/Select.svelte';
   import { osmEmbedUrl, osmShareUrl } from '../lib/format/openstreetmap';
-  import { showToast } from '../lib/state/toast.svelte';
+  import { copyToClipboard } from '../lib/clipboard';
   import { t } from '../lib/i18n/i18n.svelte';
-
-  async function copyAddress(addr: string): Promise<void> {
-    try {
-      await navigator.clipboard.writeText(addr);
-      showToast(t('Address copied to clipboard'));
-    } catch {
-      /* clipboard denied — silent, matches QrShow / AddSecondDevice */
-    }
-  }
 
   type Props = { chatId: number };
   let { chatId }: Props = $props();
@@ -374,7 +365,7 @@
           <button
             type="button"
             class="address-copy"
-            onclick={() => void copyAddress(addr)}
+            onclick={() => void copyToClipboard(addr, t('Address copied to clipboard'))}
             title={t('Copy to clipboard')}
             data-testid="chat-info__address-copy"
           >{addr}</button>

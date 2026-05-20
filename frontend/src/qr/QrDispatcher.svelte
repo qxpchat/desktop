@@ -12,6 +12,7 @@
   import Button from '../lib/Button.svelte';
   import BackButton from '../lib/BackButton.svelte';
   import TextInput from '../lib/TextInput.svelte';
+  import { copyToClipboard } from '../lib/clipboard';
   import { t } from '../lib/i18n/i18n.svelte';
 
   type Props = {
@@ -116,7 +117,7 @@
           backToChat();
           return;
         case 'text':
-          await navigator.clipboard.writeText(qr.obj.text);
+          await copyToClipboard(qr.obj.text, t('Text copied to clipboard'));
           backToChat();
           return;
         case 'proxy':
