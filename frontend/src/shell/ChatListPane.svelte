@@ -331,17 +331,27 @@
     /* Cancel the row-mode min-height so the column stack hugs the buttons. */
     min-height: 0;
   }
-  /* Wide header: the wrapper collapses away so the toggle sits inline in
-     the row. Narrow header: it becomes a full-height slot so the toggle
-     keeps the same Y as in the wide header and the rail. */
+  /* Wide header: an 80px slot, flush to the pane edge, centring the toggle
+     exactly as NavTabs' .rail-header does — identical L/R padding around the
+     toggle on both panes, so it keeps its X across rail open/close. The
+     search field (flex: 1) absorbs whatever width is left. Narrow header: a
+     full-width slot keeping the same Y as the wide header. */
   .toggle-slot {
-    display: contents;
-  }
-  .header.narrow .toggle-slot {
     display: flex;
     align-items: center;
     justify-content: center;
+    width: var(--pane1-width);
+    margin-left: calc(-1 * var(--space-3));
+    /* The slot spans the full rail width only to centre the toggle. Pull
+       its dead right half back into the row so the search field starts
+       right after the toggle, not after the whole 80px slot. 28px = toggle
+       button width. */
+    margin-right: calc(-1 * (var(--pane1-width) - 28px) / 2);
+  }
+  .header.narrow .toggle-slot {
     width: 100%;
+    margin-left: 0;
+    margin-right: 0;
     min-height: var(--pane-header-min-h);
     /* Cancel the column's top padding so the slot sits flush below the
        title-bar gutter — puts the toggle's centre at the same Y again. */
