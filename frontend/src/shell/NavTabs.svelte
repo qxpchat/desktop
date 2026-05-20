@@ -223,7 +223,10 @@
     gap: var(--space-2);
     flex: 1;
     overflow-y: auto;
-    padding: 0 var(--space-2);
+    /* Corner badge on the avatar overhangs the tile by 4px (top: -4px in
+       Badge.svelte); the first tile sits flush at the top of this scroll
+       container, so the badge would clip without this padding. */
+    padding: var(--space-1) var(--space-2) 0;
   }
   .tile-wrap {
     position: relative;
