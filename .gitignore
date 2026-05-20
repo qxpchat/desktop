@@ -16,7 +16,7 @@ frontend/.vite/
 # Local accounts dir (created by `cargo run`)
 qxp-web-accounts/
 references
-TODOs.md
+TODOs*
 
 # E2E test pool — real chatmail creds, regenerable via `make test-accounts`.
 tests/pool.json
