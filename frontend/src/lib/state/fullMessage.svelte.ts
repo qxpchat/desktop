@@ -11,6 +11,7 @@
 // FullMessageOverlay (mounted once at the app shell, like ImageLightbox).
 
 import { rpc } from '../rpc';
+import { parseInlineMarkdown } from '../format/markdown';
 
 export type FullMessageState = {
   /** Whether the overlay is mounted. */
@@ -79,6 +80,54 @@ function styleHtml(raw: string): string {
   return style + raw;
 }
 
+/** Core's `PlainText::to_html` wrapper — emitted byte-for-byte whenever the
+ *  source was a plaintext chat message (the truncated long-message case).
+ *  Real HTML emails never carry this exact prefix, so it's a precise signal
+ *  for "this is a chat message wrapped in HTML, not an authored email". */
+const CHAT_PLAINTEXT_PREFIX =
+  '<!DOCTYPE html>\n<html><head>\n<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />\n<meta name="color-scheme" content="light dark" />\n</head><body>\n';
+
+/** Apply inline markdown (`**bold**`, `_italic_`, `` `code` ``) to text
+ *  inside the wrapped chat body. Core's plaintext-to-HTML wrapper only
+ *  linkifies — a chat message that renders as `**bold**` in the bubble
+ *  would otherwise lose its styling once expanded.
+ *
+ *  Skips subtrees where rewriting would corrupt content (links keep the
+ *  literal text; `<code>` / `<pre>` are already verbatim). Same predicate
+ *  the chat bubble uses, so the two views stay in sync. */
+function applyChatMarkdown(html: string): string {
+  const doc = new DOMParser().parseFromString(html, 'text/html');
+  const SKIP = new Set(['A', 'CODE', 'PRE', 'STYLE', 'SCRIPT', 'TEXTAREA']);
+  const walker = doc.createTreeWalker(doc.body, NodeFilter.SHOW_TEXT, {
+    acceptNode(node) {
+      for (let p: Node | null = node.parentNode; p && p !== doc.body; p = p.parentNode) {
+        if (p.nodeType === 1 && SKIP.has((p as Element).tagName)) return NodeFilter.FILTER_REJECT;
+      }
+      return NodeFilter.FILTER_ACCEPT;
+    },
+  });
+  const targets: Text[] = [];
+  let n: Node | null;
+  while ((n = walker.nextNode())) targets.push(n as Text);
+  for (const tn of targets) {
+    const runs = parseInlineMarkdown(tn.data);
+    if (runs.length === 1 && runs[0].style === null) continue;
+    const frag = doc.createDocumentFragment();
+    for (const run of runs) {
+      if (run.style === null) {
+        frag.appendChild(doc.createTextNode(run.text));
+      } else {
+        const tag = run.style === 'bold' ? 'strong' : run.style === 'italic' ? 'em' : 'code';
+        const el = doc.createElement(tag);
+        el.textContent = run.text;
+        frag.appendChild(el);
+      }
+    }
+    tn.replaceWith(frag);
+  }
+  return '<!DOCTYPE html>\n' + doc.documentElement.outerHTML;
+}
+
 /** Open the overlay for `messageId` and fetch its full HTML body. */
 export async function openFullMessage(
   accountId: number,
@@ -98,7 +147,8 @@ export async function openFullMessage(
       fullMessage.html = '';
       fullMessage.error = 'No full version available for this message.';
     } else {
-      fullMessage.html = styleHtml(html);
+      const prepared = html.startsWith(CHAT_PLAINTEXT_PREFIX) ? applyChatMarkdown(html) : html;
+      fullMessage.html = styleHtml(prepared);
     }
   } catch (err) {
     fullMessage.error = err instanceof Error ? err.message : String(err);
