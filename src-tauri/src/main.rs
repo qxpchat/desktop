@@ -3,9 +3,20 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 use std::path::PathBuf;
+use std::sync::atomic::{AtomicBool, Ordering};
 
-use tauri::Manager;
+use tauri::{AppHandle, Manager};
 use tracing_subscriber::EnvFilter;
+
+#[cfg(not(target_os = "macos"))]
+mod tray;
+
+/// Whether the close button hides the window into a system-tray icon instead
+/// of quitting the app. macOS hides unconditionally (native pattern); the
+/// flag only gates Linux + Windows. Toggled at runtime by the frontend via
+/// `set_minimize_to_tray`.
+#[derive(Default)]
+struct MinimizeToTrayFlag(AtomicBool);
 
 /// Loopback port the daemon binds. Hard-coded so the Vite proxy and the
 /// frontend's relative `/ws` URL resolve to the same place that the bundled
@@ -28,7 +39,12 @@ fn main() {
         // macOS routes registered schemes here from the bundle's
         // CFBundleURLTypes; the frontend drains them via the JS plugin.
         .plugin(tauri_plugin_deep_link::init())
-        .invoke_handler(tauri::generate_handler![set_badge, clipboard_file_paths])
+        .manage(MinimizeToTrayFlag::default())
+        .invoke_handler(tauri::generate_handler![
+            set_badge,
+            clipboard_file_paths,
+            set_minimize_to_tray,
+        ])
         .setup(|app| {
             // Per-OS app data dir — `~/.local/share/chat.qxp.desktop` on Linux,
             // `~/Library/Application Support/chat.qxp.desktop` on macOS,
@@ -41,18 +57,21 @@ fn main() {
 
             spawn_daemon(accounts_dir);
 
-            // macOS: closing the window (red traffic-light button) hides it
-            // instead of quitting — the process keeps running in the dock,
-            // matching native macOS app behaviour. The dock-icon click that
-            // brings it back is handled by `RunEvent::Reopen` below. Other
-            // platforms keep the default "close quits the app" behaviour.
-            #[cfg(target_os = "macos")]
+            // macOS hides on close unconditionally (native dock pattern); the
+            // dock-icon click that brings it back is handled by
+            // `RunEvent::Reopen` below. Linux + Windows only hide when the
+            // `minimizeToTray` setting is on — otherwise close quits the app
+            // (the default Tauri behaviour). The handler is installed
+            // unconditionally so the setting can flip at runtime.
             if let Some(window) = app.get_webview_window("main") {
                 let win = window.clone();
+                let handle = app.handle().clone();
                 window.on_window_event(move |event| {
                     if let tauri::WindowEvent::CloseRequested { api, .. } = event {
-                        api.prevent_close();
-                        let _ = win.hide();
+                        if should_hide_on_close(&handle) {
+                            api.prevent_close();
+                            let _ = win.hide();
+                        }
                     }
                 });
             }
@@ -73,6 +92,45 @@ fn main() {
                 }
             }
         });
+}
+
+/// True when a close-button click should hide the window instead of quitting
+/// the app. macOS always hides (native pattern). Other platforms hide only
+/// while the `minimizeToTray` setting is on.
+#[cfg(target_os = "macos")]
+fn should_hide_on_close(_app: &AppHandle) -> bool {
+    true
+}
+
+#[cfg(not(target_os = "macos"))]
+fn should_hide_on_close(app: &AppHandle) -> bool {
+    app.state::<MinimizeToTrayFlag>()
+        .0
+        .load(Ordering::Relaxed)
+}
+
+/// Frontend toggle for the `minimizeToTray` preference. Stores the flag for
+/// the close handler and, on Linux + Windows, builds or tears down the tray
+/// icon to match. macOS ignores `enabled` because the close button always
+/// hides there regardless.
+#[tauri::command]
+fn set_minimize_to_tray(app: AppHandle, enabled: bool) -> Result<(), String> {
+    app.state::<MinimizeToTrayFlag>()
+        .0
+        .store(enabled, Ordering::Relaxed);
+
+    #[cfg(not(target_os = "macos"))]
+    {
+        if enabled {
+            if app.tray_by_id(tray::TRAY_ID).is_none() {
+                tray::build(&app).map_err(|e| e.to_string())?;
+            }
+        } else {
+            tray::remove(&app);
+        }
+    }
+
+    Ok(())
 }
 
 /// Set the OS taskbar/dock unread badge to `count` (0 clears it). The
