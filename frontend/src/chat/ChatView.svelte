@@ -423,19 +423,18 @@
   function groupOf(m: Message): { start: boolean; end: boolean } {
     return groupFlags.get(m.id) ?? { start: true, end: true };
   }
-  // Saved Messages is a self-chat — a "recall" there just syncs the deletion
-  // across the user's own devices, so "Delete for Everyone" is always a valid
-  // (and useful) choice regardless of per-message ownership / delivery state.
+  // Saved Messages is a self-chat — there is no "everyone" to recall to, so
+  // the dialog must offer the local-only delete branch (mirrors
+  // deltachat-desktop's `!chat.isSelfTalk` gate in ConfirmDeleteMessage).
   let isSelfTalk = $derived(
     chat.active != null && (chatlist.items.get(chat.active.chatId)?.isSelfTalk ?? false),
   );
 
   // "Delete for everyone" is offered only when every selected message is the
   // user's own outgoing message that already left the outbox (matches the
-  // single-message path in `actionsFor`) — or, in Saved Messages, always.
+  // single-message path in `actionsFor`), and the chat is not Saved Messages.
   let canDeleteSelectedForAll = $derived.by(() => {
-    if (selectedIds.size === 0) return false;
-    if (isSelfTalk) return true;
+    if (selectedIds.size === 0 || isSelfTalk) return false;
     for (const id of selectedIds) {
       const m = chat.messages.get(id);
       if (!m || !canRecallMessage(m)) return false;
@@ -593,10 +592,10 @@
       action: 'delete',
       onSelect: () => {
         // Core only accepts a recall for own messages that already left the
-        // outbox; anything else (incoming, draft, pending, failed) gets the
-        // local-only delete branch. Saved Messages always offers the recall
-        // so a deletion can sync across the user's own devices.
-        deleteTarget = { ids: [m.id], canDeleteForAll: isSelfTalk || canRecallMessage(m) };
+        // outbox; anything else (incoming, draft, pending, failed) — and
+        // Saved Messages, which is a self-chat with no "everyone" — gets the
+        // local-only delete branch.
+        deleteTarget = { ids: [m.id], canDeleteForAll: !isSelfTalk && canRecallMessage(m) };
       },
     });
     actions.push({
