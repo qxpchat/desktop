@@ -93,6 +93,7 @@ export const TID = {
   chatInfoMember: '[data-testid="chat-info__member"]',
   chatInfoMemberByName: (name: string) =>
     `[data-testid="chat-info__member"][data-name="${name}"]`,
+  chatInfoMemberOpen: '[data-testid="chat-info__member-open"]',
   chatInfoMemberRemove: '[data-testid="chat-info__member-remove"]',
   chatInfoLeave: '[data-testid="chat-info__leave"]',
   chatInfoDelete: '[data-testid="chat-info__delete"]',

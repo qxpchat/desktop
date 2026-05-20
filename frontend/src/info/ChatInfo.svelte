@@ -34,6 +34,7 @@
   import SearchField from '../lib/SearchField.svelte';
   import Select from '../lib/Select.svelte';
   import { osmEmbedUrl, osmShareUrl } from '../lib/format/openstreetmap';
+  import { openChatByContactId } from '../lib/chatActions';
   import { copyToClipboard } from '../lib/clipboard';
   import { t } from '../lib/i18n/i18n.svelte';
 
@@ -438,18 +439,34 @@
       <ul class="members" data-testid="chat-info__members">
         {#each members as m (m.id)}
           <li data-testid="chat-info__member" data-contact-id={m.id} data-name={m.displayName}>
-            <Avatar name={m.displayName} color={m.color} imagePath={m.profileImage} size={32} />
-            <span class="m-meta">
-              <span class="m-name">{m.displayName}</span>
-              <span class="m-addr">{m.address}</span>
-            </span>
-            {#if m.id !== 1 && chat.selfInGroup}
-              <Button
-                variant="danger-text"
-                size="sm"
-                onclick={() => void removeMember(m.id)}
-                data-testid="chat-info__member-remove"
-              >{t('Remove')}</Button>
+            {#if m.id === 1}
+              <div class="m-row m-row--static">
+                <Avatar name={m.displayName} color={m.color} imagePath={m.profileImage} size={32} />
+                <span class="m-meta">
+                  <span class="m-name">{m.displayName}</span>
+                  <span class="m-addr">{m.address}</span>
+                </span>
+              </div>
+            {:else}
+              <button
+                class="m-row"
+                onclick={() => void openChatByContactId(m.id)}
+                data-testid="chat-info__member-open"
+              >
+                <Avatar name={m.displayName} color={m.color} imagePath={m.profileImage} size={32} />
+                <span class="m-meta">
+                  <span class="m-name">{m.displayName}</span>
+                  <span class="m-addr">{m.address}</span>
+                </span>
+              </button>
+              {#if chat.selfInGroup}
+                <Button
+                  variant="danger-text"
+                  size="sm"
+                  onclick={() => void removeMember(m.id)}
+                  data-testid="chat-info__member-remove"
+                >{t('Remove')}</Button>
+              {/if}
             {/if}
           </li>
         {/each}
@@ -719,8 +736,29 @@
     display: flex;
     align-items: center;
     gap: 10px;
-    padding: 8px 0;
     border-bottom: 1px solid var(--color-border);
+  }
+  .m-row {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px var(--space-2);
+    margin: 0 calc(var(--space-2) * -1);
+    border: 0;
+    background: transparent;
+    color: var(--color-fg);
+    text-align: left;
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    transition: background 0.1s ease;
+  }
+  .m-row--static {
+    cursor: default;
+  }
+  .m-row:not(.m-row--static):hover {
+    background: var(--color-bg-hover);
   }
   .m-meta {
     flex: 1;
