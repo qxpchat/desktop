@@ -127,7 +127,12 @@
             size={40}
           />
           {#if profile.id !== selectedAccountId && profile.freshCount > 0}
-            <Badge count={profile.freshCount} corner ring="var(--color-bg)" />
+            <Badge
+              count={profile.freshCount}
+              corner
+              ring="var(--color-bg)"
+              data-testid="nav-tabs__account-badge"
+            />
           {/if}
         </button>
         {#if menuFor === profile.id}
