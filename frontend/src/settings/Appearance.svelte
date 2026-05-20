@@ -1,9 +1,26 @@
 <script lang="ts">
-  import { prefs, savePrefs, getAccent, setAccent, type Theme } from '../lib/prefs.svelte';
+  import {
+    prefs,
+    savePrefs,
+    getAccent,
+    setAccent,
+    setMinimizeToTray,
+    type Theme,
+  } from '../lib/prefs.svelte';
   import { accounts } from '../lib/state/accounts.svelte';
   import SettingsSection from '../lib/SettingsSection.svelte';
+  import SettingsRow from '../lib/SettingsRow.svelte';
   import SegmentedControl from '../lib/SegmentedControl.svelte';
+  import Toggle from '../lib/Toggle.svelte';
   import { t } from '../lib/i18n/i18n.svelte';
+
+  // macOS always hides on close (native dock pattern, no tray needed), so the
+  // toggle would be a no-op there. Browser mode has no tray surface either.
+  const isTauri = typeof window !== 'undefined' && '__TAURI_INTERNALS__' in window;
+  const isMac =
+    typeof navigator !== 'undefined' &&
+    (/Mac|Darwin/i.test(navigator.userAgent) || navigator.platform.startsWith('Mac'));
+  const showTrayToggle = isTauri && !isMac;
 
   // Accent is a per-profile setting — the picker reads + writes the
   // override for the currently-active account. Theme / text-size remain
@@ -164,6 +181,31 @@
     ariaLabel={t('Text size')}
   />
 </SettingsSection>
+
+{#if showTrayToggle}
+  <SettingsSection
+    title={t('Window')}
+    footer={t(
+      'On GNOME the tray icon requires the AppIndicator extension; without it the hidden window can only be brought back from the taskbar.',
+    )}
+  >
+    <SettingsRow
+      label={t('Minimize to tray')}
+      description={t('Closing the window hides it to the system tray instead of quitting.')}
+      right={trayToggle}
+    />
+  </SettingsSection>
+
+  {#snippet trayToggle()}
+    <span data-testid="settings-appearance__minimize-to-tray" data-checked={prefs.minimizeToTray}>
+      <Toggle
+        checked={prefs.minimizeToTray}
+        onChange={setMinimizeToTray}
+        label={t('Minimize to tray')}
+      />
+    </span>
+  {/snippet}
+{/if}
 
 <style>
   h2 {

@@ -2,6 +2,8 @@
 // Phase 1 covers theme + pane-2 width + pane-1 collapsed flag; later phases
 // extend this file rather than scattering preference keys.
 
+import { invoke, isTauri } from '@tauri-apps/api/core';
+
 const STORAGE_KEY = 'qxp.web.prefs';
 
 export type Theme = 'system' | 'light' | 'dark';
@@ -23,9 +25,20 @@ export type Prefs = {
   textScale: number;
   /** Locale override; null = follow browser. */
   language: string | null;
+  /** Linux + Windows: hide the window into a system-tray icon instead of
+   *  quitting when the close button is clicked. macOS hides unconditionally
+   *  (native dock pattern) regardless of this value. */
+  minimizeToTray: boolean;
 };
 
 export const DEFAULT_ACCENT = '#22ccaa';
+
+// Windows users expect chat apps to minimize to tray on close (Signal,
+// Telegram, Discord, Slack, Teams all do). Linux defaults off because vanilla
+// GNOME hides tray icons without the AppIndicator extension, which would
+// strand the window. macOS ignores the value entirely.
+const DEFAULT_MINIMIZE_TO_TRAY =
+  typeof navigator !== 'undefined' && /Windows/i.test(navigator.userAgent);
 
 const DEFAULTS: Prefs = {
   pane2Width: 320,
@@ -38,6 +51,7 @@ const DEFAULTS: Prefs = {
   accentByAccount: {},
   textScale: 1,
   language: null,
+  minimizeToTray: DEFAULT_MINIMIZE_TO_TRAY,
 };
 
 function load(): Prefs {
@@ -82,6 +96,24 @@ export function savePrefs(): void {
   } catch {
     /* quota exceeded or storage disabled — silently ignore */
   }
+}
+
+/** Push the current `minimizeToTray` value to the Tauri shell so the close
+ *  handler and tray icon match. Safe to call in browser mode — `isTauri()`
+ *  short-circuits. */
+export function syncMinimizeToTray(): void {
+  if (!isTauri()) return;
+  void invoke('set_minimize_to_tray', { enabled: prefs.minimizeToTray }).catch(
+    () => undefined,
+  );
+}
+
+/** Setter for the Appearance toggle — flips the pref, persists, and tells
+ *  the Tauri shell to build/tear-down the tray + flip the close behaviour. */
+export function setMinimizeToTray(enabled: boolean): void {
+  prefs.minimizeToTray = enabled;
+  savePrefs();
+  syncMinimizeToTray();
 }
 
 /// Picks the readable text colour for content laid over the given accent

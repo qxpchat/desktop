@@ -2,6 +2,7 @@ import { mount } from 'svelte';
 import { openUrl } from '@tauri-apps/plugin-opener';
 import App from './shell/App.svelte';
 import { initDeepLinks } from './lib/state/deepLink.svelte';
+import { syncMinimizeToTray } from './lib/prefs.svelte';
 import './styles/reset.css';
 import './styles/tokens.css';
 import './styles/theme.css';
@@ -25,6 +26,11 @@ const target = document.getElementById('app');
 if (!target) throw new Error('#app not found');
 
 mount(App, { target });
+
+// Push the stored `minimizeToTray` pref to the Tauri shell so the close
+// handler + tray icon match the user's choice from the previous session.
+// No-op outside Tauri.
+syncMinimizeToTray();
 
 // Subscribe to OS deep links (openpgp4fpr:/dcaccount:/dclogin:/mailto:).
 // Queued internally; App.svelte drains them once an account is ready.
