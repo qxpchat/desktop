@@ -172,7 +172,7 @@
   // for full-screen views where the chat list is irrelevant.
   let fullscreenRoute = $derived.by(() => {
     const k = mainRoute.route.kind;
-    return k === 'settings' || k === 'profileEditor' || k === 'qrShow' || k === 'qrScan';
+    return k === 'settings' || k === 'qrShow' || k === 'qrScan';
   });
 
   function startSplitter() {

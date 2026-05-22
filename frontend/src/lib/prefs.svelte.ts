@@ -29,6 +29,11 @@ export type Prefs = {
    *  quitting when the close button is clicked. macOS hides unconditionally
    *  (native dock pattern) regardless of this value. */
   minimizeToTray: boolean;
+  /** Per-account mute. Local qxp pref — `deltachat-core` has no account-
+   *  level mute setting (only per-chat `set_chat_mute_duration`). When true,
+   *  notifications for that account are suppressed and `NavTabs` overlays a
+   *  mute glyph on the tile. The chat-list badge still counts fresh msgs. */
+  mutedAccounts: Record<number, boolean>;
 };
 
 export const DEFAULT_ACCENT = '#22ccaa';
@@ -52,6 +57,7 @@ const DEFAULTS: Prefs = {
   textScale: 1,
   language: null,
   minimizeToTray: DEFAULT_MINIMIZE_TO_TRAY,
+  mutedAccounts: {},
 };
 
 function load(): Prefs {
@@ -114,6 +120,17 @@ export function setMinimizeToTray(enabled: boolean): void {
   prefs.minimizeToTray = enabled;
   savePrefs();
   syncMinimizeToTray();
+}
+
+export function isAccountMuted(accountId: number | null): boolean {
+  if (accountId == null) return false;
+  return prefs.mutedAccounts[accountId] === true;
+}
+
+export function setAccountMuted(accountId: number, muted: boolean): void {
+  if (muted) prefs.mutedAccounts[accountId] = true;
+  else delete prefs.mutedAccounts[accountId];
+  savePrefs();
 }
 
 /// Picks the readable text colour for content laid over the given accent

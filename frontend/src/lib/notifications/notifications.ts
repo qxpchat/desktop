@@ -19,6 +19,7 @@ import { rpc } from '../rpc';
 import { onEvent } from '../events';
 import { selectChat, selection } from '../state/selection.svelte';
 import { accounts } from '../state/accounts.svelte';
+import { isAccountMuted } from '../prefs.svelte';
 import { QXP_LOGO_PATH_D, QXP_LOGO_VIEWBOX_SIZE } from '../qxpLogoPath';
 
 const PERM_ASKED_KEY = 'qxp.web.notifPermAsked';
@@ -167,6 +168,10 @@ export function startIncomingNotifications(): void {
     const chatId = Number(ev.event.chatId);
     const msgId = Number(ev.event.msgId);
     if (!Number.isFinite(chatId) || !Number.isFinite(msgId)) return;
+
+    // Account-level mute (qxp-local pref). Suppresses banner + pending-jump
+    // queue entry; chat-list badge still counts the msg.
+    if (isAccountMuted(accountId)) return;
 
     // Don't notify if the user is already looking at this chat.
     const isActive =

@@ -12,7 +12,6 @@ export type MainRoute =
   | { kind: 'settings'; section?: string; subView?: string }
   | { kind: 'chatInfo'; chatId: number }
   | { kind: 'mediaBrowser'; chatId: number }
-  | { kind: 'profileEditor' }
   | { kind: 'log' };
 
 export const mainRoute = $state<{ route: MainRoute }>({ route: { kind: 'chat' } });
