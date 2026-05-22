@@ -30,11 +30,29 @@ async function provisionSecondAccount(
   return id;
 }
 
+/** Mark every chat on `accountId` as noticed — drops freshCount to 0
+ *  across both real chats and the device-info chat (which `get_fresh_msgs`
+ *  silently skips, so `markseen_msgs` alone is not enough). The paired
+ *  templates ship with two unread onboarding entries in the device chat,
+ *  which would otherwise inflate the badge count this test asserts on. */
+async function clearFreshOn(
+  rpc: { call<T>(method: string, params?: unknown[]): Promise<T> },
+  accountId: number,
+): Promise<void> {
+  const chatIds = await rpc.call<number[]>('get_chatlist_entries', [accountId, null, null, null]);
+  for (const id of chatIds) await rpc.call('marknoticed_chat', [accountId, id]);
+}
+
 test('badge appears on inactive profile A when a message arrives for A while B is selected', async ({ qxpPaired, page }) => {
   const { peer, mainRpc } = qxpPaired;
 
   const firstId = await mainRpc.call<number>('get_selected_account_id') as number;
   const secondId = await provisionSecondAccount(mainRpc, 'Second');
+
+  // Clear leftover unread messages on A (template ships with unread device
+  // onboarding messages). Without this, freshCount baseline is non-zero and
+  // the post-send delta is unobservable.
+  await clearFreshOn(mainRpc, firstId);
 
   // Open the profile rail so the nav tiles are visible, then switch to B.
   await page.locator(TID.chatListBurger).click();
