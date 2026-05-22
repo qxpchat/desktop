@@ -232,9 +232,12 @@ export const TID = {
     `[data-testid="nav-tabs__account"][data-account-id="${id}"] [data-testid="nav-tabs__account-badge"]`,
   navTabsAddAccount: '[data-testid="nav-tabs__add-account"]',
   navTabsAccountMenu: '[data-testid="nav-tabs__account-menu"]',
-  navTabsAccountMenuEdit: '[data-testid="nav-tabs__account-menu-edit"]',
-  navTabsAccountMenuSwitch: '[data-testid="nav-tabs__account-menu-switch"]',
+  navTabsAccountMenuMute: '[data-testid="nav-tabs__account-menu-mute"]',
+  navTabsAccountMenuUnmute: '[data-testid="nav-tabs__account-menu-unmute"]',
   navTabsAccountMenuRemove: '[data-testid="nav-tabs__account-menu-remove"]',
+  navTabsAccountMute: '[data-testid="nav-tabs__account-mute"]',
+  navTabsAccountMuteById: (id: number) =>
+    `[data-testid="nav-tabs__account"][data-account-id="${id}"] [data-testid="nav-tabs__account-mute"]`,
   navTabsQrShow: '[data-testid="nav-tabs__qr-show"]',
   navTabsProxy: '[data-testid="nav-tabs__proxy"]',
 

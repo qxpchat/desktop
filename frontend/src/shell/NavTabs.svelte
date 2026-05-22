@@ -9,9 +9,11 @@
   import ConnectionIndicator from './ConnectionIndicator.svelte';
   import Icon from '../lib/Icon.svelte';
   import MenuItem from '../lib/MenuItem.svelte';
+  import Popover from '../lib/Popover.svelte';
   import ConfirmDialog from '../lib/ConfirmDialog.svelte';
   import RailToggle from './RailToggle.svelte';
   import { t } from '../lib/i18n/i18n.svelte';
+  import { isAccountMuted, setAccountMuted } from '../lib/prefs.svelte';
 
   type Props = {
     selectedAccountId: number;
@@ -30,7 +32,7 @@
     onToggleRail,
   }: Props = $props();
 
-  let menuFor = $state<number | null>(null);
+  let menuFor = $state<{ id: number; x: number; y: number } | null>(null);
   let removeTarget = $state<number | null>(null);
   let proxyEnabled = $state(false);
 
@@ -59,26 +61,9 @@
 
   function rightClick(e: MouseEvent, id: number) {
     e.preventDefault();
-    menuFor = id;
+    menuFor = { id, x: e.clientX, y: e.clientY };
   }
 
-  // Escape closes the account menu — listener bound to the open window.
-  $effect(() => {
-    if (menuFor == null) return;
-    function onKey(e: KeyboardEvent) {
-      if (e.key === 'Escape') {
-        e.preventDefault();
-        menuFor = null;
-      }
-    }
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  });
-
-  function openProfileEditor() {
-    menuFor = null;
-    setMainRoute({ kind: 'profileEditor' });
-  }
   function openSettings() {
     setMainRoute({ kind: 'settings' });
   }
@@ -92,6 +77,11 @@
   function remove(id: number) {
     menuFor = null;
     removeTarget = id;
+  }
+
+  function toggleMute(id: number) {
+    setAccountMuted(id, !isAccountMuted(id));
+    menuFor = null;
   }
 </script>
 
@@ -134,15 +124,17 @@
               data-testid="nav-tabs__account-badge"
             />
           {/if}
+          {#if isAccountMuted(profile.id)}
+            <span
+              class="mute-glyph"
+              aria-label={t('Muted')}
+              title={t('Muted')}
+              data-testid="nav-tabs__account-mute"
+            >
+              <Icon name="bell-off" size={11} />
+            </span>
+          {/if}
         </button>
-        {#if menuFor === profile.id}
-          <button class="menu-backdrop" onclick={() => (menuFor = null)} aria-label={t('Close menu')}></button>
-          <div class="menu" role="menu" data-testid="nav-tabs__account-menu">
-            <MenuItem label={t('Edit profile')} onclick={openProfileEditor} data-testid="nav-tabs__account-menu-edit" />
-            <MenuItem label={t('Switch to')} onclick={() => onSelect(profile.id)} data-testid="nav-tabs__account-menu-switch" />
-            <MenuItem label={t('Remove…')} danger onclick={() => remove(profile.id)} data-testid="nav-tabs__account-menu-remove" />
-          </div>
-        {/if}
       </div>
     {/each}
 
@@ -186,6 +178,18 @@
   </div>
 </aside>
 
+{#if menuFor != null}
+  {@const m = menuFor}
+  <Popover x={m.x} y={m.y} onClose={() => (menuFor = null)} ariaLabel={t('Account menu')} data-testid="nav-tabs__account-menu">
+    {#if isAccountMuted(m.id)}
+      <MenuItem label={t('Unmute')} onclick={() => toggleMute(m.id)} data-testid="nav-tabs__account-menu-unmute" />
+    {:else}
+      <MenuItem label={t('Mute')} onclick={() => toggleMute(m.id)} data-testid="nav-tabs__account-menu-mute" />
+    {/if}
+    <MenuItem label={t('Remove…')} danger onclick={() => remove(m.id)} data-testid="nav-tabs__account-menu-remove" />
+  </Popover>
+{/if}
+
 <ConfirmDialog
   open={removeTarget != null}
   title={t('Remove this account?')}
@@ -228,10 +232,20 @@
     gap: var(--space-2);
     flex: 1;
     overflow-y: auto;
+    /* Without `overflow-x: clip` the rail's badge / mute glyph corners
+       trigger a horizontal scrollbar in webkitgtk; `clip` suppresses h-axis
+       without forcing a scrollbar (unlike `hidden`, which can still reserve
+       a gutter in some engines). The native scrollbar on the y-axis is
+       hidden the same way ChatListPane's list does — scroll still works. */
+    overflow-x: clip;
+    scrollbar-width: none;
     /* Corner badge on the avatar overhangs the tile by 4px (top: -4px in
        Badge.svelte); the first tile sits flush at the top of this scroll
        container, so the badge would clip without this padding. */
     padding: var(--space-1) var(--space-2) 0;
+  }
+  .accounts::-webkit-scrollbar {
+    display: none;
   }
   .tile-wrap {
     position: relative;
@@ -261,6 +275,21 @@
     height: 26px;
     background: var(--color-accent);
     border-radius: 2px;
+  }
+  .mute-glyph {
+    position: absolute;
+    bottom: 0;
+    right: 0;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: var(--color-bg-elevated);
+    border: 2px solid var(--color-bg);
+    color: var(--color-fg-secondary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    pointer-events: none;
   }
   .add-avatar {
     width: 40px;
@@ -299,26 +328,5 @@
   }
   .footer-btn.active {
     color: var(--color-accent);
-  }
-  .menu-backdrop {
-    position: fixed;
-    inset: 0;
-    background: transparent;
-    z-index: 19;
-    border: 0;
-  }
-  .menu {
-    position: absolute;
-    z-index: 20;
-    left: 56px;
-    top: 0;
-    background: var(--color-bg-elevated);
-    border: 1px solid var(--color-border);
-    border-radius: var(--radius-md);
-    box-shadow: 0 12px 32px var(--color-shadow);
-    padding: 4px;
-    display: flex;
-    flex-direction: column;
-    min-width: 160px;
   }
 </style>

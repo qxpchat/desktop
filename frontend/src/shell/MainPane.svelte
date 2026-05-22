@@ -6,13 +6,11 @@
   import QrDispatcher from '../qr/QrDispatcher.svelte';
   import QrShow from '../qr/QrShow.svelte';
   import Settings from '../settings/Settings.svelte';
-  import Profile from '../settings/Profile.svelte';
   import ChatInfo from '../info/ChatInfo.svelte';
   import MediaBrowser from '../info/MediaBrowser.svelte';
   import { setMainRoute } from '../lib/state/mainRoute.svelte';
   import Avatar from '../lib/Avatar.svelte';
   import Icon from '../lib/Icon.svelte';
-  import BackButton from '../lib/BackButton.svelte';
   import { liveLocations } from '../lib/state/liveLocations.svelte';
   import { t } from '../lib/i18n/i18n.svelte';
 
@@ -85,16 +83,6 @@
       <MediaBrowser chatId={mainRoute.route.chatId} />
     {:else if mainRoute.route.kind === 'settings'}
       <Settings />
-    {:else if mainRoute.route.kind === 'profileEditor'}
-      <div class="profile-shell">
-        <header class="profile-header" data-tauri-drag-region>
-          <BackButton label={t('Back')} onclick={() => (mainRoute.route = { kind: 'chat' })} />
-          <h1>{t('Profile')}</h1>
-        </header>
-        <div class="profile-body">
-          <Profile />
-        </div>
-      </div>
     {:else if selectedChatId != null && accounts.selectedId != null}
       {#key `${accounts.selectedId}:${selectedChatId}`}
         <ChatView accountId={accounts.selectedId} chatId={selectedChatId} />
@@ -197,29 +185,5 @@
     color: var(--color-fg-tertiary);
     font-size: var(--text-sm);
     margin-top: var(--space-2);
-  }
-  .profile-shell {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    min-height: 0;
-  }
-  .profile-header {
-    display: flex;
-    align-items: center;
-    gap: var(--space-3);
-    padding: calc(var(--space-3) + var(--titlebar-gutter)) var(--space-4) var(--space-3);
-    border-bottom: 1px solid var(--color-border);
-    background: var(--color-bg-pane);
-  }
-  .profile-header h1 {
-    margin: 0;
-    font-size: var(--text-lg);
-    font-weight: 600;
-  }
-  .profile-body {
-    flex: 1;
-    overflow-y: auto;
-    padding: var(--space-5);
   }
 </style>
