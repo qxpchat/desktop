@@ -34,6 +34,8 @@
 
   let menuFor = $state<{ id: number; x: number; y: number } | null>(null);
   let removeTarget = $state<number | null>(null);
+  let hovered = $state<{ id: number; x: number; y: number } | null>(null);
+  let hoverTimer: ReturnType<typeof setTimeout> | null = null;
   let proxyEnabled = $state(false);
 
   async function refreshProxyState() {
@@ -77,6 +79,29 @@
   function remove(id: number) {
     menuFor = null;
     removeTarget = id;
+  }
+
+  // Hover tooltip — 300 ms delay before showing, immediate clear on leave.
+  // Anchored to the *right* of the tile (rail is the leftmost column, so
+  // there's always more room to the right) with viewport clamp inside the
+  // tooltip itself.
+  function startHover(e: MouseEvent, id: number) {
+    if (hoverTimer != null) clearTimeout(hoverTimer);
+    const target = e.currentTarget as HTMLElement;
+    const rect = target.getBoundingClientRect();
+    const x = rect.right + 8;
+    const y = rect.top + rect.height / 2;
+    hoverTimer = setTimeout(() => {
+      hoverTimer = null;
+      hovered = { id, x, y };
+    }, 300);
+  }
+  function endHover() {
+    if (hoverTimer != null) {
+      clearTimeout(hoverTimer);
+      hoverTimer = null;
+    }
+    hovered = null;
   }
 
   function toggleMute(id: number) {
@@ -132,11 +157,12 @@
         <button
           class="tile"
           class:selected={profile.id === selectedAccountId}
-          title={profile.displayName}
           aria-label={profile.displayName}
           aria-pressed={profile.id === selectedAccountId}
           onclick={() => onSelect(profile.id)}
           oncontextmenu={(e) => rightClick(e, profile.id)}
+          onmouseenter={(e) => startHover(e, profile.id)}
+          onmouseleave={endHover}
           data-testid="nav-tabs__account"
           data-account-id={profile.id}
           data-name={profile.displayName}
@@ -223,11 +249,11 @@
   {@const m = menuFor}
   <Popover x={m.x} y={m.y} onClose={() => (menuFor = null)} ariaLabel={t('Account menu')} data-testid="nav-tabs__account-menu">
     {#if isAccountMuted(m.id)}
-      <MenuItem label={t('Unmute')} onclick={() => toggleMute(m.id)} data-testid="nav-tabs__account-menu-unmute" />
+      <MenuItem icon="bell" label={t('Unmute')} onclick={() => toggleMute(m.id)} data-testid="nav-tabs__account-menu-unmute" />
     {:else}
-      <MenuItem label={t('Mute')} onclick={() => toggleMute(m.id)} data-testid="nav-tabs__account-menu-mute" />
+      <MenuItem icon="bell-off" label={t('Mute')} onclick={() => toggleMute(m.id)} data-testid="nav-tabs__account-menu-mute" />
     {/if}
-    <MenuItem label={t('Remove…')} danger onclick={() => remove(m.id)} data-testid="nav-tabs__account-menu-remove" />
+    <MenuItem icon="trash" label={t('Remove…')} danger onclick={() => remove(m.id)} data-testid="nav-tabs__account-menu-remove" />
   </Popover>
 {/if}
 
@@ -242,6 +268,24 @@
   }}
   onClose={() => (removeTarget = null)}
 />
+
+{#if hovered != null}
+  {@const h = hovered}
+  {@const p = profiles.list.find((pp) => pp.id === h.id)}
+  {#if p}
+    <div
+      class="hover-card"
+      role="tooltip"
+      style="left: {h.x}px; top: {h.y}px;"
+      data-testid="nav-tabs__hover-card"
+    >
+      <div class="hover-name">{p.displayName}</div>
+      {#if p.addr}<div class="hover-line">{p.addr}</div>{/if}
+      {#if p.privateTag}<div class="hover-tag">{p.privateTag}</div>{/if}
+      <div class="hover-line">{connectivityLabel(p.connectivity)}</div>
+    </div>
+  {/if}
+{/if}
 
 <style>
   .nav {
@@ -343,6 +387,39 @@
   .footer-btn.conn-offline,
   .footer-btn.conn-offline:hover {
     color: var(--color-danger);
+  }
+  .hover-card {
+    position: fixed;
+    transform: translateY(-50%);
+    z-index: var(--z-overlay);
+    background: var(--color-bg-elevated);
+    color: var(--color-fg);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    box-shadow: 0 8px 24px var(--color-shadow);
+    padding: var(--space-2) var(--space-3);
+    font-size: var(--text-xs);
+    min-width: 160px;
+    max-width: 280px;
+    pointer-events: none;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    /* Don't let the card fall off the right edge — small viewports collapse
+       it to the available room. Y-clamping is handled by translate above. */
+    max-inline-size: calc(100vw - 16px);
+  }
+  .hover-name {
+    font-weight: 600;
+    font-size: var(--text-sm);
+    color: var(--color-fg);
+  }
+  .hover-line {
+    color: var(--color-fg-secondary);
+  }
+  .hover-tag {
+    color: var(--color-accent);
+    font-weight: 500;
   }
   .add-avatar {
     width: 40px;

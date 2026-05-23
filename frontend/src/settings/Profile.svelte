@@ -13,6 +13,7 @@
 
   let displayName = $state('');
   let signature = $state('');
+  let privateTag = $state('');
   let avatarPath = $state<string | null>(null);
   let saving = $state(false);
   let savedAt = $state(0);
@@ -28,14 +29,16 @@
     if (accounts.selectedId == null) return;
     try {
       const id = accounts.selectedId;
-      const [name, sig, avatar] = await Promise.all([
+      const [name, sig, avatar, tag] = await Promise.all([
         rpc.call<string | null>('get_config', [id, 'displayname']),
         rpc.call<string | null>('get_config', [id, 'selfstatus']),
         rpc.call<string | null>('get_config', [id, 'selfavatar']),
+        rpc.call<string | null>('get_config', [id, 'private_tag']),
       ]);
       displayName = name ?? '';
       signature = sig ?? '';
       avatarPath = avatar ?? null;
+      privateTag = tag ?? '';
     } finally {
       loaded = true;
     }
@@ -48,6 +51,13 @@
     try {
       await rpc.call('set_config', [id, 'displayname', displayName]);
       await rpc.call('set_config', [id, 'selfstatus', signature]);
+      // Empty input clears the tag (dc-core treats `null` as "unset").
+      const tagTrimmed = privateTag.trim();
+      await rpc.call('set_config', [
+        id,
+        'private_tag',
+        tagTrimmed.length === 0 ? null : tagTrimmed,
+      ]);
       await refreshProfiles(accounts.configuredIds);
       savedAt = Date.now();
     } finally {
@@ -154,6 +164,16 @@
       />
     </div>
 
+    <div class="field">
+      <TextInput
+        label={t('Private tag')}
+        bind:value={privateTag}
+        placeholder={t('e.g. Work, Personal')}
+        data-testid="settings-profile__tag"
+      />
+      <p class="hint">{t('Local label to tell similar profiles apart. Not shared with peers.')}</p>
+    </div>
+
     <div class="actions">
       <Button variant="primary" onclick={save} disabled={saving} data-testid="settings-profile__save">
         {saving ? t('Saving…') : recentlySaved ? t('Saved') : t('Save')}
@@ -217,6 +237,11 @@
   .field {
     display: block;
     margin-bottom: var(--space-4);
+  }
+  .hint {
+    margin: var(--space-1) 0 0;
+    color: var(--color-fg-tertiary);
+    font-size: var(--text-xs);
   }
   .actions {
     margin-top: var(--space-4);
