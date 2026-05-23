@@ -22,6 +22,7 @@
   import { backToChat } from '../lib/state/mainRoute.svelte';
   import { loadPreferredLocale, t } from '../lib/i18n/i18n.svelte';
   import { syncWindowMinWidth } from '../lib/windowSize';
+  import { listen, type UnlistenFn } from '@tauri-apps/api/event';
   import NavTabs from './NavTabs.svelte';
   import ChatListPane from './ChatListPane.svelte';
   import MainPane from './MainPane.svelte';
@@ -160,11 +161,54 @@
       backToInbox();
       backToChat();
     });
+
+    // Nudge dc-core to re-evaluate connectivity when the OS-level network
+    // state changes. Without this, the IMAP IDLE socket can stay "alive"
+    // client-side after a network change and core keeps reporting the
+    // last-known state — `get_connectivity` then never transitions, so the
+    // footer indicator and any background sync stall. Mirrors the
+    // reference desktop's `ConnectivityToast` listeners.
+    //
+    // Debounced because focus-toggle on some platforms fires repeatedly
+    // (window manager focus stealing, alt-tab cycling), and we don't want
+    // to spam the daemon.
+    let nudgeTimer: ReturnType<typeof setTimeout> | null = null;
+    function nudgeNetwork() {
+      if (nudgeTimer != null) clearTimeout(nudgeTimer);
+      nudgeTimer = setTimeout(() => {
+        nudgeTimer = null;
+        void rpc.call('maybe_network').catch((err) => {
+          console.warn('maybe_network failed', err);
+        });
+      }, 140);
+    }
+    window.addEventListener('online', nudgeNetwork);
+    window.addEventListener('offline', nudgeNetwork);
+    window.addEventListener('focus', nudgeNetwork);
+
+    // Tauri-side resume-from-sleep detector. Webview `online`/`offline`
+    // events don't fire on sleep/wake (the socket appears alive); the
+    // Rust task in `src-tauri/src/resume_from_sleep.rs` watches for
+    // SystemTime jumps and emits this event when one is detected.
+    let unlistenResume: UnlistenFn | null = null;
+    void listen('qxp:resume-from-sleep', () => nudgeNetwork())
+      .then((fn) => {
+        unlistenResume = fn;
+      })
+      .catch(() => {
+        /* not running under Tauri (Vite dev server in plain browser) */
+      });
+
     return () => {
       unsub();
       unbindShortcuts();
       unsubNew();
       unsubEsc();
+      window.removeEventListener('online', nudgeNetwork);
+      window.removeEventListener('offline', nudgeNetwork);
+      window.removeEventListener('focus', nudgeNetwork);
+      unlistenResume?.();
+      if (nudgeTimer != null) clearTimeout(nudgeTimer);
     };
   });
 

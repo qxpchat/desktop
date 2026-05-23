@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { profiles } from '../lib/state/profiles.svelte';
+  import { profiles, CONNECTIVITY } from '../lib/state/profiles.svelte';
   import { setMainRoute, mainRoute } from '../lib/state/mainRoute.svelte';
   import { accounts } from '../lib/state/accounts.svelte';
   import { rpc } from '../lib/rpc';
@@ -83,6 +83,37 @@
     setAccountMuted(id, !isAccountMuted(id));
     menuFor = null;
   }
+
+  /** Three visual buckets for the selected-account connectivity icon in
+   *  the footer: green for any working/connected state, yellow while still
+   *  connecting, red when the account isn't reaching its server. Hover-
+   *  title shows the raw label. */
+  function connectivityClass(c: number): 'connected' | 'connecting' | 'offline' {
+    if (c >= CONNECTIVITY.Working) return 'connected';
+    if (c >= CONNECTIVITY.Connecting) return 'connecting';
+    return 'offline';
+  }
+  function connectivityLabel(c: number): string {
+    if (c >= CONNECTIVITY.Connected) return t('Connected');
+    if (c >= CONNECTIVITY.Working) return t('Updating…');
+    if (c >= CONNECTIVITY.Connecting) return t('Connecting…');
+    return t('Not connected');
+  }
+
+  // Connectivity of the *selected* profile (the rail shows one footer
+  // icon for whoever the user is currently looking at, not a dot on every
+  // tile). Falls through to NotConnected while the profile list is still
+  // loading, so the icon doesn't flash green before data lands.
+  let selectedConnectivity = $derived(
+    profiles.list.find((p) => p.id === selectedAccountId)?.connectivity ??
+      CONNECTIVITY.NotConnected,
+  );
+  let selectedConnClass = $derived(connectivityClass(selectedConnectivity));
+  let selectedConnLabel = $derived(connectivityLabel(selectedConnectivity));
+
+  function openConnectivity() {
+    setMainRoute({ kind: 'settings', section: 'connectivity' });
+  }
 </script>
 
 <aside class="nav" aria-label={t('Profiles')}>
@@ -145,6 +176,16 @@
 
   <div class="footer">
     <ConnectionIndicator />
+    <button
+      class="footer-btn conn-{selectedConnClass}"
+      title={selectedConnLabel}
+      aria-label={selectedConnLabel}
+      onclick={openConnectivity}
+      data-testid="nav-tabs__connectivity"
+      data-conn-state={selectedConnClass}
+    >
+      <Icon name="radio-tower" size={20} />
+    </button>
     <button
       class="footer-btn"
       title={proxyEnabled ? t('Proxy: On') : t('Proxy: Off')}
@@ -290,6 +331,18 @@
     align-items: center;
     justify-content: center;
     pointer-events: none;
+  }
+  .footer-btn.conn-connected,
+  .footer-btn.conn-connected:hover {
+    color: var(--color-success);
+  }
+  .footer-btn.conn-connecting,
+  .footer-btn.conn-connecting:hover {
+    color: var(--color-warning);
+  }
+  .footer-btn.conn-offline,
+  .footer-btn.conn-offline:hover {
+    color: var(--color-danger);
   }
   .add-avatar {
     width: 40px;

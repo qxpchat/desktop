@@ -11,6 +11,8 @@ use tracing_subscriber::EnvFilter;
 #[cfg(not(target_os = "macos"))]
 mod tray;
 
+mod resume_from_sleep;
+
 /// Whether the close button hides the window into a system-tray icon instead
 /// of quitting the app. macOS hides unconditionally (native pattern); the
 /// flag only gates Linux + Windows. Toggled at runtime by the frontend via
@@ -56,6 +58,11 @@ fn main() {
                 .join("accounts");
 
             spawn_daemon(accounts_dir);
+
+            // Wake-up nudge for IMAP IDLE — sleep / suspend breaks the
+            // socket invisibly to the webview, so the frontend's
+            // `online`/`offline` listeners aren't enough.
+            resume_from_sleep::start_resume_from_sleep_detector(app.handle());
 
             // macOS hides on close unconditionally (native dock pattern); the
             // dock-icon click that brings it back is handled by

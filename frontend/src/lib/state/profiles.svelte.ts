@@ -8,6 +8,16 @@
 import { rpc } from '../rpc';
 import { onEvent } from '../events';
 
+/** dc-core connectivity buckets — see `DC_CONNECTIVITY_*` in `deltachat.h`.
+ *  Returned by `get_connectivity`. Higher = healthier.
+ *  1000 NOT_CONNECTED · 2000 CONNECTING · 3000 WORKING · 4000 CONNECTED. */
+export const CONNECTIVITY = {
+  NotConnected: 1000,
+  Connecting: 2000,
+  Working: 3000,
+  Connected: 4000,
+} as const;
+
 export type Profile = {
   id: number;
   displayName: string;
@@ -16,6 +26,8 @@ export type Profile = {
   profileImage: string | null;
   privateTag: string | null;
   freshCount: number;
+  /** Latest dc-core connectivity bucket for this account. See `CONNECTIVITY`. */
+  connectivity: number;
 };
 
 export const profiles = $state<{ list: Profile[] }>({ list: [] });
@@ -78,6 +90,14 @@ export async function refreshProfiles(ids: number[]): Promise<void> {
         // hides legitimately unread messages from the profile rail.
         freshCount = profiles.list.find((p) => p.id === id)?.freshCount ?? 0;
       }
+      let connectivity: number;
+      try {
+        connectivity = await rpc.call<number>('get_connectivity', [id]);
+      } catch {
+        connectivity =
+          profiles.list.find((p) => p.id === id)?.connectivity ??
+          CONNECTIVITY.NotConnected;
+      }
       out.push({
         id: info.id,
         displayName: info.displayName ?? info.addr ?? `Account ${info.id}`,
@@ -86,6 +106,7 @@ export async function refreshProfiles(ids: number[]): Promise<void> {
         profileImage: info.profileImage,
         privateTag: info.privateTag,
         freshCount,
+        connectivity,
       });
     } catch {
       /* skip; account may have just been removed */
@@ -140,3 +161,17 @@ onEvent('MsgsNoticed', (ev) => markFreshDirty(ev.contextId));
 onEvent('MsgsChanged', (ev) => markFreshDirty(ev.contextId));
 onEvent('ChatlistChanged', (ev) => markFreshDirty(ev.contextId));
 onEvent('ChatlistItemChanged', (ev) => markFreshDirty(ev.contextId));
+
+async function patchConnectivity(accountId: number): Promise<void> {
+  if (!profiles.list.some((p) => p.id === accountId)) return;
+  try {
+    const connectivity = await rpc.call<number>('get_connectivity', [accountId]);
+    profiles.list = profiles.list.map((p) =>
+      p.id === accountId ? { ...p, connectivity } : p,
+    );
+  } catch {
+    /* skip — keep prior value */
+  }
+}
+
+onEvent('ConnectivityChanged', (ev) => void patchConnectivity(ev.contextId));
