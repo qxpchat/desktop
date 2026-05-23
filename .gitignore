@@ -32,3 +32,4 @@ tests/fixtures/account-templates/
 # (tiny base64-inlined files). Regenerable.
 tests/fixtures/media/
 tests/test-results
+test-results
