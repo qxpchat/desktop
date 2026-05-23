@@ -233,6 +233,7 @@ export const TID = {
   navTabsAddAccount: '[data-testid="nav-tabs__add-account"]',
   navTabsAccountMenu: '[data-testid="nav-tabs__account-menu"]',
   navTabsAccountMenuMute: '[data-testid="nav-tabs__account-menu-mute"]',
+  navTabsAccountMenuMarkRead: '[data-testid="nav-tabs__account-menu-mark-read"]',
   navTabsAccountMenuUnmute: '[data-testid="nav-tabs__account-menu-unmute"]',
   navTabsAccountMenuRemove: '[data-testid="nav-tabs__account-menu-remove"]',
   navTabsAccountMute: '[data-testid="nav-tabs__account-mute"]',
