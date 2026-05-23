@@ -34,6 +34,10 @@ export type Prefs = {
    *  notifications for that account are suppressed and `NavTabs` overlays a
    *  mute glyph on the tile. The chat-list badge still counts fresh msgs. */
   mutedAccounts: Record<number, boolean>;
+  /** User-defined order of profile tiles in the rail. Holds account IDs;
+   *  accounts not in the list fall through to the end in dc-core list
+   *  order. Local pref — dc-core has no order concept. */
+  accountOrder: number[];
 };
 
 export const DEFAULT_ACCENT = '#22ccaa';
@@ -58,6 +62,7 @@ const DEFAULTS: Prefs = {
   language: null,
   minimizeToTray: DEFAULT_MINIMIZE_TO_TRAY,
   mutedAccounts: {},
+  accountOrder: [],
 };
 
 function load(): Prefs {
@@ -130,6 +135,33 @@ export function isAccountMuted(accountId: number | null): boolean {
 export function setAccountMuted(accountId: number, muted: boolean): void {
   if (muted) prefs.mutedAccounts[accountId] = true;
   else delete prefs.mutedAccounts[accountId];
+  savePrefs();
+}
+
+/** Reorder `ids` by the user-defined rail order; ids not in the order
+ *  array append in their original sequence. Pure — does not touch prefs. */
+export function applyAccountOrder<T extends { id: number }>(items: T[]): T[] {
+  const order = prefs.accountOrder;
+  if (order.length === 0) return items;
+  const byId = new Map(items.map((p) => [p.id, p] as const));
+  const out: T[] = [];
+  for (const id of order) {
+    const it = byId.get(id);
+    if (it) {
+      out.push(it);
+      byId.delete(id);
+    }
+  }
+  // Any items that aren't in the saved order yet (new accounts, etc.)
+  // append in their original list order so they don't disappear.
+  for (const it of items) if (byId.has(it.id)) out.push(it);
+  return out;
+}
+
+/** Replace the rail order. Caller passes the full ID list in the desired
+ *  visual order; we persist it verbatim. */
+export function setAccountOrder(order: number[]): void {
+  prefs.accountOrder = [...order];
   savePrefs();
 }
 

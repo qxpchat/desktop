@@ -13,7 +13,7 @@
   import ConfirmDialog from '../lib/ConfirmDialog.svelte';
   import RailToggle from './RailToggle.svelte';
   import { t } from '../lib/i18n/i18n.svelte';
-  import { isAccountMuted, setAccountMuted } from '../lib/prefs.svelte';
+  import { isAccountMuted, setAccountMuted, setAccountOrder } from '../lib/prefs.svelte';
 
   type Props = {
     selectedAccountId: number;
@@ -37,6 +37,109 @@
   let hovered = $state<{ id: number; x: number; y: number } | null>(null);
   let hoverTimer: ReturnType<typeof setTimeout> | null = null;
   let proxyEnabled = $state(false);
+
+  // Pointer-event reorder. HTML5 `dragstart`/`dragover`/`drop` events are
+  // broken on macOS WKWebView (`dragstart` + `dragend` fire but
+  // `dragover` / `drop` never reach sibling DOM nodes — diagnosed in
+  // this session with console logs; `target` was always `null`). We
+  // hand-roll a drag using **window-level** pointer listeners attached
+  // on `pointerdown` and torn down on `pointerup`:
+  //
+  //   - No `setPointerCapture`: on a `<button>` it interacts oddly with
+  //     hover transforms and OS-level focus handling on macOS.
+  //   - Window listeners always fire, regardless of which element the
+  //     pointer is over, so we don't lose the drag when the cursor leaves
+  //     the source tile.
+  //   - `elementFromPoint` finds the destination tile each frame.
+  //
+  // `dragSourceId` only becomes non-null *after* the pointer moves past
+  // `DRAG_THRESHOLD_PX`. Below that the press is treated as a click and
+  // the tile's normal `onSelect` runs.
+  const DRAG_THRESHOLD_PX = 4;
+  let dragSourceId = $state<number | null>(null);
+  let dragOverId = $state<number | null>(null);
+  /** Live cursor position while dragging — drives the floating ghost
+   *  rendered next to the cursor so the user can see what they're moving. */
+  let dragCursor = $state<{ x: number; y: number } | null>(null);
+  let press: { id: number; x: number; y: number } | null = null;
+  let suppressNextClick = false;
+
+  let draggedProfile = $derived(
+    dragSourceId != null ? profiles.list.find((p) => p.id === dragSourceId) : null,
+  );
+
+  function onTilePointerDown(e: PointerEvent, id: number) {
+    if (e.button !== 0) return;
+    // Kill WebKit's implicit native drag on the avatar `<img>`. Without
+    // this `preventDefault`, mousedown on an image starts an OS-level
+    // drag-and-drop session that hijacks all subsequent pointer events —
+    // our window-level pointermove listener stops firing two frames in.
+    e.preventDefault();
+    press = { id, x: e.clientX, y: e.clientY };
+    window.addEventListener('pointermove', onWindowPointerMove);
+    window.addEventListener('pointerup', onWindowPointerUp);
+    window.addEventListener('pointercancel', onWindowPointerUp);
+  }
+  function onWindowPointerMove(e: PointerEvent) {
+    if (press == null) return;
+    if (dragSourceId == null) {
+      const dx = Math.abs(e.clientX - press.x);
+      const dy = Math.abs(e.clientY - press.y);
+      if (Math.max(dx, dy) < DRAG_THRESHOLD_PX) return;
+      dragSourceId = press.id;
+    }
+    dragCursor = { x: e.clientX, y: e.clientY };
+    const el = document.elementFromPoint(e.clientX, e.clientY);
+    const tile = el?.closest('[data-testid="nav-tabs__account"]') as HTMLElement | null;
+    const rawId = tile?.dataset.accountId ?? null;
+    const overId = rawId ? Number(rawId) : null;
+    const next = overId != null && overId !== dragSourceId ? overId : null;
+    if (next !== dragOverId) dragOverId = next;
+  }
+  function onWindowPointerUp() {
+    window.removeEventListener('pointermove', onWindowPointerMove);
+    window.removeEventListener('pointerup', onWindowPointerUp);
+    window.removeEventListener('pointercancel', onWindowPointerUp);
+    const source = dragSourceId;
+    const target = dragOverId;
+    const wasDragging = source != null;
+    press = null;
+    dragSourceId = null;
+    dragOverId = null;
+    dragCursor = null;
+    if (!wasDragging) return;
+    // Swallow the synthetic click that follows pointer-up — without this
+    // the dragged tile would also fire its `onclick` and switch accounts.
+    suppressNextClick = true;
+    if (source == null || target == null || source === target) return;
+    const ids = profiles.list.map((p) => p.id);
+    const fromIdx = ids.indexOf(source);
+    const targetIdx = ids.indexOf(target);
+    if (fromIdx < 0 || targetIdx < 0) return;
+    ids.splice(fromIdx, 1);
+    const adjustedTargetIdx = ids.indexOf(target);
+    // Direction-aware insertion: dragging *down* (source originally above
+    // target) means "place after target"; dragging *up* means "place
+    // before target". Without this, top→bottom drops insert-before the
+    // target tile, which on adjacent tiles is a no-op.
+    const insertAt = fromIdx < targetIdx ? adjustedTargetIdx + 1 : adjustedTargetIdx;
+    ids.splice(insertAt, 0, source);
+    setAccountOrder(ids);
+    // Reflect the new order immediately so the rail feels snappy; the
+    // next `refreshProfiles` will re-sort with the persisted pref and
+    // produce the same result.
+    const map = new Map(profiles.list.map((p) => [p.id, p] as const));
+    profiles.list = ids.map((nid) => map.get(nid)!).filter(Boolean);
+  }
+  function onTileClick(e: MouseEvent, id: number) {
+    if (suppressNextClick) {
+      suppressNextClick = false;
+      e.preventDefault();
+      e.stopPropagation();
+      return;
+    }
+    onSelect(id);
+  }
 
   async function refreshProxyState() {
     if (accounts.selectedId == null) {
@@ -153,16 +256,21 @@
   </div>
   <div class="accounts">
     {#each profiles.list as profile (profile.id)}
-      <div class="tile-wrap">
+      <div
+        class="tile-wrap"
+        class:drag-over={dragOverId === profile.id && dragSourceId !== profile.id}
+        class:dragging={dragSourceId === profile.id}
+      >
         <button
           class="tile"
           class:selected={profile.id === selectedAccountId}
           aria-label={profile.displayName}
           aria-pressed={profile.id === selectedAccountId}
-          onclick={() => onSelect(profile.id)}
+          onclick={(e) => onTileClick(e, profile.id)}
           oncontextmenu={(e) => rightClick(e, profile.id)}
           onmouseenter={(e) => startHover(e, profile.id)}
           onmouseleave={endHover}
+          onpointerdown={(e) => onTilePointerDown(e, profile.id)}
           data-testid="nav-tabs__account"
           data-account-id={profile.id}
           data-name={profile.displayName}
@@ -287,6 +395,24 @@
   {/if}
 {/if}
 
+{#if draggedProfile && dragCursor}
+  <!-- Floating avatar that follows the cursor during a reorder. Replaces
+       the native HTML5 drag preview (which we suppress in pointerdown to
+       avoid WebKit's drag-source from hijacking pointer events). -->
+  <div
+    class="drag-ghost"
+    style="left: {dragCursor.x}px; top: {dragCursor.y}px;"
+    data-testid="nav-tabs__drag-ghost"
+  >
+    <Avatar
+      name={draggedProfile.displayName}
+      color={draggedProfile.color}
+      imagePath={draggedProfile.profileImage}
+      size={40}
+    />
+  </div>
+{/if}
+
 <style>
   .nav {
     flex: 0 0 var(--pane1-width);
@@ -335,6 +461,30 @@
   .tile-wrap {
     position: relative;
   }
+  .tile-wrap.dragging {
+    opacity: 0.4;
+  }
+  .drag-ghost {
+    position: fixed;
+    /* Offset so the cursor sits at the bottom-right of the avatar, not
+       centred on it — easier to see what's under the pointer for hit
+       detection. */
+    transform: translate(-20%, -20%);
+    z-index: var(--z-overlay);
+    pointer-events: none;
+    opacity: 0.9;
+    filter: drop-shadow(0 6px 18px var(--color-shadow));
+  }
+  /* Drop-target indicator: a 2-px inset ring drawn inside the tile via
+     box-shadow. Outline + outline-offset don't work here because the
+     `.accounts` scroll container has `overflow-x: clip`, which clips any
+     stroke that extends outside the tile. Inset box-shadow stays inside
+     the box and renders crisply through the avatar / badge / glyph
+     overlays. */
+  .tile-wrap.drag-over .tile {
+    box-shadow: inset 0 0 0 2px var(--color-accent);
+    border-radius: var(--radius-md);
+  }
   .tile {
     position: relative;
     width: 44px;
@@ -346,6 +496,22 @@
     justify-content: center;
     transition: transform 0.1s ease;
     background: transparent;
+    /* Block native drag (image + button defaults) so our pointer-event
+       reorder doesn't fight WebKit's built-in drag source. Also turn off
+       text selection — a press-drag on a button can otherwise start a
+       text caret select on macOS. */
+    user-select: none;
+    -webkit-user-select: none;
+    -webkit-user-drag: none;
+    -webkit-touch-callout: none;
+    touch-action: none;
+  }
+  /* `<img>` elements default to draggable in WebKit; pointer-events:none
+     also makes `elementFromPoint` return the parent button instead of
+     the image, so our `tileIdAt` resolves to the tile's testid. */
+  .tile :global(img) {
+    -webkit-user-drag: none;
+    pointer-events: none;
   }
   .tile:hover {
     transform: scale(1.04);
