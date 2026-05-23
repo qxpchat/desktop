@@ -212,6 +212,15 @@
     menuFor = null;
   }
 
+  async function markAllRead(id: number) {
+    menuFor = null;
+    try {
+      await rpc.call('marknoticed_all_chats', [id]);
+    } catch (err) {
+      console.warn('marknoticed_all_chats failed', err);
+    }
+  }
+
   /** Three visual buckets for the selected-account connectivity icon in
    *  the footer: green for any working/connected state, yellow while still
    *  connecting, red when the account isn't reaching its server. Hover-
@@ -356,6 +365,7 @@
 {#if menuFor != null}
   {@const m = menuFor}
   <Popover x={m.x} y={m.y} onClose={() => (menuFor = null)} ariaLabel={t('Account menu')} data-testid="nav-tabs__account-menu">
+    <MenuItem icon="check-check" label={t('Mark all as read')} onclick={() => void markAllRead(m.id)} data-testid="nav-tabs__account-menu-mark-read" />
     {#if isAccountMuted(m.id)}
       <MenuItem icon="bell" label={t('Unmute')} onclick={() => toggleMute(m.id)} data-testid="nav-tabs__account-menu-unmute" />
     {:else}
