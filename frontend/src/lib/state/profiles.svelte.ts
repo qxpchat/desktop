@@ -7,6 +7,7 @@
 
 import { rpc } from '../rpc';
 import { onEvent } from '../events';
+import { applyAccountOrder } from '../prefs.svelte';
 
 /** dc-core connectivity buckets — see `DC_CONNECTIVITY_*` in `deltachat.h`.
  *  Returned by `get_connectivity`. Higher = healthier.
@@ -112,7 +113,7 @@ export async function refreshProfiles(ids: number[]): Promise<void> {
       /* skip; account may have just been removed */
     }
   }
-  profiles.list = out;
+  profiles.list = applyAccountOrder(out);
 }
 
 async function patchFresh(accountId: number) {
