@@ -239,6 +239,8 @@ export const TID = {
   navTabsAccountMuteById: (id: number) =>
     `[data-testid="nav-tabs__account"][data-account-id="${id}"] [data-testid="nav-tabs__account-mute"]`,
   navTabsConnectivity: '[data-testid="nav-tabs__connectivity"]',
+  navTabsHoverCard: '[data-testid="nav-tabs__hover-card"]',
+  settingsProfileTag: '[data-testid="settings-profile__tag"]',
   navTabsQrShow: '[data-testid="nav-tabs__qr-show"]',
   navTabsProxy: '[data-testid="nav-tabs__proxy"]',
 
