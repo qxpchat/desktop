@@ -71,7 +71,7 @@
         </p>
       {/if}
       <div class="actions">
-        <Button variant="secondary" onclick={cancelOnboarding}>{t('Cancel')}</Button>
+        <Button variant="secondary" onclick={cancelOnboarding} data-testid="onboarding-progress__cancel">{t('Cancel')}</Button>
       </div>
     {/if}
   </div>
