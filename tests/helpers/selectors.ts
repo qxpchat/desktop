@@ -388,6 +388,7 @@ export const TID = {
   onboardingInstantSubmit: '[data-testid="onboarding-instant__submit"]',
   onboardingInstantAvatar: '[data-testid="onboarding-instant__avatar"]',
   onboardingInstantAvatarInput: '[data-testid="onboarding-instant__avatar__file-input"]',
+  onboardingManualProviderHint: '[data-testid="onboarding-manual__provider-hint"]',
   onboardingInstantScan: '[data-testid="onboarding-instant__scan"]',
   onboardingWelcomeScan: '[data-testid="onboarding-welcome__scan"]',
   onboardingSignupScan: '[data-testid="onboarding-signup-scan"]',

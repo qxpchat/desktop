@@ -1,5 +1,6 @@
 <script lang="ts">
   import { onboarding, loginManually } from '../lib/state/onboarding.svelte';
+  import { rpc } from '../lib/rpc';
   import ProgressOverlay from './ProgressOverlay.svelte';
   import Button from '../lib/Button.svelte';
   import BackButton from '../lib/BackButton.svelte';
@@ -17,6 +18,36 @@
   let addr = $state('');
   let mailPw = $state('');
   let advancedOpen = $state(false);
+
+  // dc-core's offline provider DB. Status values follow the
+  // `DC_PROVIDER_STATUS_*` enum: 1 = OK, 2 = PREPARATION (extra steps
+  // needed e.g. enable IMAP / app password), 3 = BROKEN (login won't
+  // work as-is). The JSON-RPC binding takes an `account_id` arg but
+  // ignores it (`_account_id` in the impl) — pass 0 so we can look up a
+  // domain before any account exists.
+  type ProviderInfo = {
+    beforeLoginHint: string;
+    overviewPage: string;
+    status: number;
+  };
+  let providerInfo = $state<ProviderInfo | null>(null);
+
+  $effect(() => {
+    const email = addr.trim();
+    if (!email.includes('@')) {
+      providerInfo = null;
+      return;
+    }
+    const handle = setTimeout(async () => {
+      try {
+        const info = await rpc.call<ProviderInfo | null>('get_provider_info', [0, email]);
+        providerInfo = info ?? null;
+      } catch {
+        providerInfo = null;
+      }
+    }, 500);
+    return () => clearTimeout(handle);
+  });
 
   // Advanced overrides — passed as deltachat config keys when non-empty.
   let mail_server = $state('');
@@ -85,6 +116,25 @@
     autocomplete="current-password"
     data-testid="onboarding-manual__password"
   />
+
+  {#if providerInfo && providerInfo.beforeLoginHint}
+    <!-- `status=3` means dc-core's offline DB knows the provider cannot
+         be configured the normal way (e.g. closed, IMAP disabled). Show
+         it red; anything lower is a "heads up". -->
+    <div
+      class="provider-hint"
+      class:broken={providerInfo.status === 3}
+      data-testid="onboarding-manual__provider-hint"
+      data-provider-status={providerInfo.status}
+    >
+      <p>{providerInfo.beforeLoginHint}</p>
+      {#if providerInfo.overviewPage}
+        <a href={providerInfo.overviewPage} target="_blank" rel="noopener noreferrer">
+          {t('More info')}
+        </a>
+      {/if}
+    </div>
+  {/if}
 
   <Button class="advanced-toggle" variant="accent-text" size="sm" onclick={() => (advancedOpen = !advancedOpen)}>
     <Icon name={advancedOpen ? 'chevron-down' : 'chevron-right'} size={14} />
@@ -157,5 +207,28 @@
   }
   .submit-row {
     margin-top: var(--space-3);
+  }
+  .provider-hint {
+    padding: var(--space-3);
+    border-radius: var(--radius-md);
+    background: var(--color-bg-elevated);
+    border: 1px solid var(--color-border);
+    font-size: var(--text-sm);
+    color: var(--color-fg);
+  }
+  .provider-hint.broken {
+    border-color: var(--color-danger);
+    color: var(--color-danger);
+  }
+  .provider-hint p {
+    margin: 0 0 var(--space-2);
+  }
+  .provider-hint a {
+    color: var(--color-accent);
+    text-decoration: none;
+    font-weight: 500;
+  }
+  .provider-hint a:hover {
+    text-decoration: underline;
   }
 </style>
