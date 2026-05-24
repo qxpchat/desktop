@@ -30,7 +30,7 @@
   import BackButton from '../lib/BackButton.svelte';
   import SettingsRow from '../lib/SettingsRow.svelte';
   import ConfirmDialog from '../lib/ConfirmDialog.svelte';
-  import ImageCropperDialog from '../lib/ImageCropperDialog.svelte';
+  import AvatarEditor from '../lib/AvatarEditor.svelte';
   import TextInput from '../lib/TextInput.svelte';
   import SearchField from '../lib/SearchField.svelte';
   import Select from '../lib/Select.svelte';
@@ -64,9 +64,7 @@
   let addMemberBusy = $state(false);
 
   // ---- avatar / cover-image edit ----
-  let avatarFileInput: HTMLInputElement | undefined = $state();
   let avatarBusy = $state(false);
-  let cropSrc = $state<string | null>(null);
 
   // Latest peer stream point for this chat — comes from the shared
   // liveLocations store (one bulk `get_locations` query for the whole
@@ -225,41 +223,20 @@
     }
   }
 
-  /** Tap-to-edit on the group/channel avatar. Triggers the hidden file
-   *  input; the change handler uploads + sets the chat profile image. */
-  function pickAvatar() {
-    avatarFileInput?.click();
-  }
-
-  function onAvatarPicked(ev: Event) {
-    const target = ev.currentTarget as HTMLInputElement;
-    const file = target.files?.[0];
-    // Clear the input so picking the same file again re-fires `change`.
-    target.value = '';
-    if (!file) return;
-    cropSrc = URL.createObjectURL(file);
-  }
-
-  async function onAvatarCropped(blob: Blob) {
-    const src = cropSrc;
-    cropSrc = null;
-    if (src) URL.revokeObjectURL(src);
+  /** AvatarEditor `onChange`: `blob` set = picked + cropped a new image,
+   *  `null` = remove the current one. Uploads on set; dc-core treats an
+   *  empty path as "clear". */
+  async function onAvatarChange(blob: Blob | null) {
     if (!chat || accounts.selectedId == null) return;
     avatarBusy = true;
     try {
-      const path = await uploadBlob(blob, 'png');
+      const path = blob ? await uploadBlob(blob, 'png') : '';
       await setChatAvatar(accounts.selectedId, chat.id, path);
     } catch (err) {
       errorMsg = `${t('Could not set image')}: ${err instanceof Error ? err.message : String(err)}`;
     } finally {
       avatarBusy = false;
     }
-  }
-
-  function onCropCancel() {
-    const src = cropSrc;
-    cropSrc = null;
-    if (src) URL.revokeObjectURL(src);
   }
 
   // Debounced refresh on search-input changes while the dialog is open.
@@ -310,31 +287,15 @@
   {:else}
     <div class="header">
       {#if (isGroup && chat.selfInGroup) || isBroadcast}
-        <button
-          class="avatar-edit"
-          onclick={pickAvatar}
+        <AvatarEditor
+          name={chat.name || '?'}
+          color={chat.color}
+          imagePath={chat.profileImage}
+          size={96}
           disabled={avatarBusy}
-          aria-label={isBroadcast ? t('Change channel image') : t('Change group avatar')}
+          ariaLabel={isBroadcast ? t('Change channel image') : t('Change group avatar')}
+          onChange={onAvatarChange}
           data-testid="chat-info__avatar-edit"
-        >
-          <Avatar
-            name={chat.name || '?'}
-            color={chat.color}
-            imagePath={chat.profileImage}
-            size={96}
-            seenRecently={false}
-          />
-          <span class="avatar-edit-badge" aria-hidden="true">
-            <Icon name="upload" size={14} />
-          </span>
-        </button>
-        <input
-          type="file"
-          accept="image/*"
-          class="hidden-file"
-          bind:this={avatarFileInput}
-          onchange={onAvatarPicked}
-          data-testid="chat-info__avatar-file-input"
         />
       {:else}
         <Avatar
@@ -579,13 +540,6 @@
     title={errorMsg ?? ''}
     onClose={() => (errorMsg = null)}
   />
-
-  <ImageCropperDialog
-    open={cropSrc != null}
-    src={cropSrc}
-    onConfirm={(blob) => void onAvatarCropped(blob)}
-    onClose={onCropCancel}
-  />
 </section>
 
 <style>
@@ -794,45 +748,6 @@
     font-size: var(--text-sm);
     color: var(--color-fg-secondary);
   }
-  /* --- avatar edit --- */
-  .avatar-edit {
-    position: relative;
-    padding: 0;
-    border: 0;
-    background: transparent;
-    border-radius: 50%;
-    cursor: pointer;
-    transition: filter 0.1s ease;
-  }
-  .avatar-edit:hover:not(:disabled) {
-    filter: brightness(0.95);
-  }
-  .avatar-edit:disabled {
-    opacity: 0.6;
-    cursor: default;
-  }
-  .avatar-edit-badge {
-    position: absolute;
-    right: 0;
-    bottom: 0;
-    width: 28px;
-    height: 28px;
-    border-radius: 50%;
-    background: var(--color-accent);
-    color: var(--color-accent-fg);
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    border: 2px solid var(--color-bg);
-  }
-  .hidden-file {
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    opacity: 0;
-    pointer-events: none;
-  }
-
   /* --- add-member dialog --- */
   .add-member-dialog {
     padding: var(--space-5);

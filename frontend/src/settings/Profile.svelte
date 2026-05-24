@@ -4,12 +4,11 @@
   import { accounts } from '../lib/state/accounts.svelte';
   import { refreshProfiles, profiles } from '../lib/state/profiles.svelte';
   import { uploadBlob } from '../lib/files';
-  import Avatar from '../lib/Avatar.svelte';
+  import AvatarEditor from '../lib/AvatarEditor.svelte';
   import Button from '../lib/Button.svelte';
   import TextInput from '../lib/TextInput.svelte';
   import SettingsSection from '../lib/SettingsSection.svelte';
   import ConfirmDialog from '../lib/ConfirmDialog.svelte';
-  import ImageCropperDialog from '../lib/ImageCropperDialog.svelte';
   import { t } from '../lib/i18n/i18n.svelte';
 
   let displayName = $state('');
@@ -20,10 +19,7 @@
   let savedAt = $state(0);
   let loaded = $state(false);
   let avatarBusy = $state(false);
-  let fileInput: HTMLInputElement | undefined = $state();
-  let removeAvatarOpen = $state(false);
   let errorMsg = $state<string | null>(null);
-  let cropSrc = $state<string | null>(null);
 
   onMount(load);
 
@@ -67,50 +63,19 @@
     }
   }
 
-  function onAvatarPicked(e: Event) {
-    const input = e.currentTarget as HTMLInputElement;
-    const file = input.files?.[0];
-    input.value = '';
-    if (!file) return;
-    // Hand the file to the cropper; the actual upload happens on confirm.
-    // Object URL is revoked in the cropper's onClose/onConfirm path below.
-    cropSrc = URL.createObjectURL(file);
-  }
-
-  async function onAvatarCropped(blob: Blob) {
-    const src = cropSrc;
-    cropSrc = null;
-    if (src) URL.revokeObjectURL(src);
+  /** AvatarEditor `onChange`: `blob` set = picked + cropped a new image,
+   *  `null` = remove. Empty string clears the avatar in dc-core. */
+  async function onAvatarChange(blob: Blob | null) {
     if (accounts.selectedId == null) return;
     avatarBusy = true;
     try {
-      const path = await uploadBlob(blob, 'png');
+      const path = blob ? await uploadBlob(blob, 'png') : '';
       await rpc.call('set_config', [accounts.selectedId, 'selfavatar', path]);
-      avatarPath = path;
+      avatarPath = path || null;
       await refreshProfiles(accounts.configuredIds);
     } catch (err) {
-      errorMsg = `${t('Could not set avatar')}: ${err instanceof Error ? err.message : String(err)}`;
-    } finally {
-      avatarBusy = false;
-    }
-  }
-
-  function onCropCancel() {
-    const src = cropSrc;
-    cropSrc = null;
-    if (src) URL.revokeObjectURL(src);
-  }
-
-  async function doRemoveAvatar() {
-    if (accounts.selectedId == null || !avatarPath) return;
-    avatarBusy = true;
-    try {
-      // Empty string clears the avatar in deltachat-core.
-      await rpc.call('set_config', [accounts.selectedId, 'selfavatar', '']);
-      avatarPath = null;
-      await refreshProfiles(accounts.configuredIds);
-    } catch (err) {
-      errorMsg = `${t('Could not remove avatar')}: ${err instanceof Error ? err.message : String(err)}`;
+      const fallback = blob ? t('Could not set avatar') : t('Could not remove avatar');
+      errorMsg = `${fallback}: ${err instanceof Error ? err.message : String(err)}`;
     } finally {
       avatarBusy = false;
     }
@@ -126,38 +91,14 @@
 {:else}
   <SettingsSection title={t('Public profile')}>
     <div class="avatar-row">
-      <button
-        class="avatar-btn"
-        onclick={() => fileInput?.click()}
+      <AvatarEditor
+        name={displayName}
+        color={profiles.list.find((p) => p.id === accounts.selectedId)?.color ?? 'var(--color-accent)'}
+        imagePath={avatarPath}
+        size={96}
         disabled={avatarBusy}
-        aria-label={avatarPath ? t('Change profile picture') : t('Upload profile picture')}
-        title={avatarPath ? t('Change profile picture') : t('Upload profile picture')}
-      >
-        <Avatar
-          name={displayName}
-          color={profiles.list.find((p) => p.id === accounts.selectedId)?.color ?? 'var(--color-accent)'}
-          imagePath={avatarPath}
-          size={96}
-          alt={t('Profile avatar')}
-        />
-      </button>
-      <div class="avatar-actions">
-        <Button variant="accent-text" size="sm" onclick={() => fileInput?.click()} disabled={avatarBusy}>
-          {avatarPath ? t('Change photo') : t('Upload photo')}
-        </Button>
-        {#if avatarPath}
-          <Button variant="danger-text" size="sm" onclick={() => (removeAvatarOpen = true)} disabled={avatarBusy}>
-            {t('Remove photo')}
-          </Button>
-        {/if}
-      </div>
-      <input
-        bind:this={fileInput}
-        type="file"
-        accept="image/*"
-        hidden
-        onchange={onAvatarPicked}
-        data-testid="settings-profile__avatar-input"
+        onChange={onAvatarChange}
+        data-testid="settings-profile__avatar"
       />
     </div>
 
@@ -200,26 +141,10 @@
 {/if}
 
 <ConfirmDialog
-  open={removeAvatarOpen}
-  title={t('Remove profile picture?')}
-  confirmLabel={t('Remove photo')}
-  danger
-  onConfirm={() => void doRemoveAvatar()}
-  onClose={() => (removeAvatarOpen = false)}
-/>
-
-<ConfirmDialog
   open={errorMsg != null}
   mode="alert"
   title={errorMsg ?? ''}
   onClose={() => (errorMsg = null)}
-/>
-
-<ImageCropperDialog
-  open={cropSrc != null}
-  src={cropSrc}
-  onConfirm={(blob) => void onAvatarCropped(blob)}
-  onClose={onCropCancel}
 />
 
 <style>
@@ -236,27 +161,6 @@
     align-items: center;
     gap: var(--space-4);
     margin-bottom: var(--space-5);
-  }
-  .avatar-btn {
-    position: relative;
-    padding: 0;
-    background: transparent;
-    border-radius: 50%;
-    cursor: pointer;
-    flex: 0 0 auto;
-  }
-  .avatar-btn:hover:not(:disabled) {
-    filter: brightness(0.95);
-  }
-  .avatar-btn:disabled {
-    cursor: default;
-    opacity: 0.6;
-  }
-  .avatar-actions {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-    gap: var(--space-1);
   }
   .field {
     display: block;
