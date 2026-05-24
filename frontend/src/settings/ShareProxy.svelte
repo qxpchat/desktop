@@ -38,7 +38,7 @@
   }
 </script>
 
-<Modal open={true} {onClose} size="md" ariaLabel={t('Share Proxy')}>
+<Modal open={true} {onClose} size="md" ariaLabel={t('Share Proxy')} data-testid="share-proxy">
   <div class="dialog-body">
     <header class="head">
       <h3>{t('Share Proxy')}</h3>
@@ -47,7 +47,7 @@
 
     <div class="body">
       {#if svg}
-        <div class="qr">{@html svg}</div>
+        <div class="qr" data-testid="share-proxy__qr">{@html svg}</div>
       {:else if error}
         <p class="error">{error}</p>
       {:else}
@@ -56,9 +56,9 @@
 
       <p class="hint">{t('Your friends can add this proxy by scanning the QR code.')}</p>
 
-      <code class="url">{url}</code>
+      <code class="url" data-testid="share-proxy__url">{url}</code>
 
-      <Button variant="primary" onclick={copyLink}>
+      <Button variant="primary" onclick={copyLink} data-testid="share-proxy__copy">
         <Icon name="copy" size={14} />
         {t('Copy Link')}
       </Button>

@@ -259,6 +259,11 @@ export const TID = {
   settingsProxyRow: '[data-testid="settings-proxy__row"]',
   settingsProxyRowByHost: (host: string) =>
     `[data-testid="settings-proxy__row"][data-host="${host}"]`,
+  settingsProxyShare: '[data-testid="settings-proxy__share"]',
+  shareProxy: '[data-testid="share-proxy"]',
+  shareProxyQr: '[data-testid="share-proxy__qr"]',
+  shareProxyUrl: '[data-testid="share-proxy__url"]',
+  shareProxyCopy: '[data-testid="share-proxy__copy"]',
 
   // -- QR show --
   qrShow: '[data-testid="qr-show"]',
