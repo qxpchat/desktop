@@ -5,8 +5,8 @@
   import BackButton from '../lib/BackButton.svelte';
   import TextInput from '../lib/TextInput.svelte';
   import MenuItem from '../lib/MenuItem.svelte';
-  import ImageCropperDialog from '../lib/ImageCropperDialog.svelte';
-  import { uploadBlob, fileUrl } from '../lib/files';
+  import AvatarEditor from '../lib/AvatarEditor.svelte';
+  import { uploadBlob } from '../lib/files';
   import { t } from '../lib/i18n/i18n.svelte';
 
   type Props = {
@@ -19,11 +19,12 @@
   let displayName = $state('');
   let altMenuOpen = $state(false);
   // Path returned by `uploadBlob` after the user picks + crops an avatar.
-  // Threaded into `createInstantAccount` as `selfavatar`. Empty string =
-  // no avatar picked (skip the `set_config('selfavatar')` call).
+  // Threaded into `createInstantAccount` as `selfavatar`. `null` = no
+  // avatar picked (skip the `set_config('selfavatar')` call).
   let avatarPath = $state<string | null>(null);
-  let cropSrc = $state<string | null>(null);
-  let fileInput: HTMLInputElement | undefined = $state();
+  // Brand-default color for the initials fallback before any account
+  // exists. Same teal the rest of the app uses.
+  const DEFAULT_COLOR = '#22ccaa';
 
   // Step 2 ships the default chatmail relay only. Custom-provider QR scan
   // is wired up in step 4 alongside the backup-pair scanner.
@@ -31,7 +32,6 @@
 
   let trimmedName = $derived(displayName.trim());
   let canCreate = $derived(trimmedName.length > 0 && onboarding.phase.kind === 'idle');
-  let avatarLetter = $derived(trimmedName[0]?.toUpperCase() ?? '?');
 
   async function create() {
     try {
@@ -41,29 +41,17 @@
     }
   }
 
-  function onAvatarPicked(e: Event) {
-    const input = e.currentTarget as HTMLInputElement;
-    const file = input.files?.[0];
-    input.value = '';
-    if (!file) return;
-    cropSrc = URL.createObjectURL(file);
-  }
-
-  async function onAvatarCropped(blob: Blob) {
-    const src = cropSrc;
-    cropSrc = null;
-    if (src) URL.revokeObjectURL(src);
+  /** AvatarEditor `onChange`: `blob` = picked + cropped; `null` = remove. */
+  async function onAvatarChange(blob: Blob | null) {
+    if (!blob) {
+      avatarPath = null;
+      return;
+    }
     try {
       avatarPath = await uploadBlob(blob, 'png');
     } catch {
       /* keep current avatar — uploadBlob already logged */
     }
-  }
-
-  function onCropCancel() {
-    const src = cropSrc;
-    cropSrc = null;
-    if (src) URL.revokeObjectURL(src);
   }
 
   // Escape closes the alternate-server menu.
@@ -85,26 +73,13 @@
 </header>
 
 <main class="instant" data-testid="onboarding-instant">
-  <button
-    type="button"
-    class="avatar"
-    onclick={() => fileInput?.click()}
-    aria-label={avatarPath ? t('Change profile picture') : t('Upload profile picture')}
+  <AvatarEditor
+    name={trimmedName}
+    color={DEFAULT_COLOR}
+    imagePath={avatarPath}
+    size={100}
+    onChange={onAvatarChange}
     data-testid="onboarding-instant__avatar"
-  >
-    {#if avatarPath}
-      <img src={fileUrl(avatarPath)} alt="" />
-    {:else}
-      <span aria-hidden="true">{avatarLetter}</span>
-    {/if}
-  </button>
-  <input
-    bind:this={fileInput}
-    type="file"
-    accept="image/*"
-    hidden
-    onchange={onAvatarPicked}
-    data-testid="onboarding-instant__avatar-input"
   />
 
   <div class="name-field">
@@ -152,13 +127,6 @@
 
 <ProgressOverlay />
 
-<ImageCropperDialog
-  open={cropSrc != null}
-  src={cropSrc}
-  onConfirm={(blob) => void onAvatarCropped(blob)}
-  onClose={onCropCancel}
-/>
-
 <style>
   .topbar {
     padding: calc(var(--titlebar-gutter)) var(--space-3) 0;
@@ -177,37 +145,10 @@
     margin: 0 auto;
     gap: var(--space-3);
   }
-  .avatar {
-    width: 100px;
-    height: 100px;
-    border-radius: 50%;
-    background: var(--color-accent);
-    color: var(--color-accent-fg);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 44px;
-    font-weight: 600;
+  /* Match the previous bottom-spacing the inline avatar button used —
+     the rest of the form keeps its `gap: var(--space-3)` rhythm. */
+  main.instant > :global(button[data-testid="onboarding-instant__avatar"]) {
     margin-bottom: var(--space-3);
-    padding: 0;
-    border: 0;
-    cursor: pointer;
-    overflow: hidden;
-    /* Suppress WebKit's native drag/select on the avatar — picks should
-       open the file dialog cleanly, not start a drag of the placeholder
-       letter or any image inside. */
-    -webkit-user-drag: none;
-    user-select: none;
-    -webkit-user-select: none;
-  }
-  .avatar:hover {
-    filter: brightness(0.95);
-  }
-  .avatar img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    display: block;
   }
   .name-field {
     width: 100%;
