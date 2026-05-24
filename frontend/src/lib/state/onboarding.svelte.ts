@@ -31,6 +31,18 @@ export const onboarding = $state<OnboardingState>({
   phase: { kind: 'idle' },
 });
 
+/** Proxy URL the user wants the new account to register through. Set
+ *  pre-onboarding via `setPendingProxy` (from `ProxyDialog`); applied
+ *  inside `runOnboardingFlow` right after `add_account` so dc-core's
+ *  `configure` reaches the relay through the proxy. Kept as a separate
+ *  rune (not nested in `phase`) because it persists across flow
+ *  attempts — the user can retry signup without re-entering. */
+export const pendingProxy = $state<{ url: string | null }>({ url: null });
+
+export function setPendingProxy(url: string | null): void {
+  pendingProxy.url = url && url.trim() ? url.trim() : null;
+}
+
 let pendingAccountId: number | null = null;
 
 // Live event handlers. Idempotent — they only mutate state when the matching
@@ -92,6 +104,13 @@ async function runOnboardingFlow(
     accountId = await rpc.call<number>('add_account');
     pendingAccountId = accountId;
     await rpc.call('select_account', [accountId]);
+    // Apply the pending onboarding-time proxy before `configure` runs —
+    // the relay handshake then goes through it. `set_config_from_qr`
+    // parses the URL the same way the Settings → Proxy dialog does.
+    if (pendingProxy.url) {
+      await rpc.call('set_config_from_qr', [accountId, pendingProxy.url]);
+      await rpc.call('set_config', [accountId, 'proxy_enabled', '1']);
+    }
     await steps(accountId);
     await rpc.call('start_io', [accountId]);
     onboarding.phase = { kind: 'idle' };

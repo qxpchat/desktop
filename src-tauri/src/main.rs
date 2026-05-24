@@ -51,12 +51,21 @@ fn main() {
             // Per-OS app data dir — `~/.local/share/chat.qxp.desktop` on Linux,
             // `~/Library/Application Support/chat.qxp.desktop` on macOS,
             // `%APPDATA%\chat.qxp.desktop` on Windows. Accounts go inside.
-            let accounts_dir = app
-                .path()
-                .app_data_dir()
-                .map_err(|e| anyhow::anyhow!("could not resolve app data dir: {e}"))?
-                .join("accounts");
+            //
+            // `QXP_ACCOUNTS_DIR` overrides the resolved path verbatim — set
+            // it during dev to spin up an isolated profile without
+            // touching your real data (e.g. `make tauri-dev
+            // ACCOUNTS=/tmp/qxp-fresh`).
+            let accounts_dir = match std::env::var_os("QXP_ACCOUNTS_DIR") {
+                Some(p) => PathBuf::from(p),
+                None => app
+                    .path()
+                    .app_data_dir()
+                    .map_err(|e| anyhow::anyhow!("could not resolve app data dir: {e}"))?
+                    .join("accounts"),
+            };
 
+            tracing::info!("using accounts dir {}", accounts_dir.display());
             spawn_daemon(accounts_dir);
 
             // Wake-up nudge for IMAP IDLE — sleep / suspend breaks the
