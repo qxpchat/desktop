@@ -78,6 +78,24 @@
   let defaultAddr = $state('');
   let smtp = $state<ConnectivityLine | null>(null);
   let proxyEnabled = $state(false);
+  /** While true, the "Try now" button is disabled + relabelled.
+   *  Resets after a brief tick — `maybe_network` itself returns
+   *  immediately, but the user-perceived "I clicked, something
+   *  happened" feedback wants a beat of busy state. */
+  let tryBusy = $state(false);
+
+  async function tryNow() {
+    tryBusy = true;
+    try {
+      await rpc.call('maybe_network');
+    } catch (err) {
+      console.warn('maybe_network failed', err);
+    } finally {
+      // Hold busy briefly so the click isn't visually instant — feels
+      // unresponsive otherwise.
+      setTimeout(() => (tryBusy = false), 800);
+    }
+  }
   let loaded = $state(false);
   let busy = $state(false);
   let errorMsg = $state<string | null>(null);
@@ -258,7 +276,23 @@
 {#if view === 'proxy'}
   <Proxy onBack={() => (view = 'main')} bind:proxyEnabled />
 {:else}
-  <h2>{t('Connectivity')}</h2>
+  <div class="title-row">
+    <h2>{t('Connectivity')}</h2>
+    <!-- "Try now" forces dc-core to re-poll IMAP / re-attempt SMTP via
+         `maybe_network`. Useful when the connectivity icon is stuck on
+         yellow/red — e.g. after the laptop wakes from sleep or wifi
+         flips. Mirrors the reference's `ConnectivityToast` reconnect
+         button. -->
+    <Button
+      variant="accent-text"
+      size="sm"
+      onclick={() => void tryNow()}
+      disabled={tryBusy}
+      data-testid="settings-connectivity__try-now"
+    >
+      {tryBusy ? t('Reconnecting…') : t('Try now')}
+    </Button>
+  </div>
 
   <SettingsSection title={t('Relays')} footer={t('Messages are received on all relays.')}>
     {#each relays as r (r.addr)}
@@ -450,9 +484,16 @@
 
 <style>
   h2 {
-    margin: 0 0 var(--space-5) 0;
+    margin: 0;
     font-size: var(--text-xl);
     font-weight: 600;
+  }
+  .title-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-3);
+    margin: 0 0 var(--space-5);
   }
   .relay {
     display: flex;
