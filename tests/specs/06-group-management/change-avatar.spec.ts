@@ -1,8 +1,11 @@
 // Phase 6 — set / change a group avatar.
 //
-// Tap the avatar in chat-info → hidden file input fires → blob uploaded
-// → `set_chat_profile_image`. Verify both the UI img src updates AND
-// the daemon-side `profileImage` becomes non-null.
+// Tap the avatar in chat-info → AvatarEditor opens its file input →
+// picked file goes through ImageCropperDialog → blob uploaded →
+// `set_chat_profile_image`. We feed the hidden input directly with
+// `setInputFiles` (skips the native file-dialog Playwright can't drive
+// in headless Chromium), then confirm the crop preview to commit. The
+// daemon-side `profileImage` ends up non-null on a successful round-trip.
 
 import { test, expect } from '../../fixtures/app-paired.js';
 import { createGroupAndOpenInfo } from '../../helpers/setup.js';
@@ -29,9 +32,13 @@ test('change-avatar: upload an image becomes the group profile image', async ({ 
 
   // The hidden input lives next to the avatar-edit button. setInputFiles
   // skips the native file-dialog (which Playwright can't drive in headless
-  // Chromium) and feeds straight through the production change handler.
+  // Chromium) and feeds straight through `AvatarEditor.onPicked`, which
+  // opens the cropper. Confirm the default centred crop to commit.
   await expect(page.locator(TID.chatInfoAvatarEdit)).toBeVisible();
   await page.locator(TID.chatInfoAvatarFileInput).setInputFiles(mediaPath('test.png'));
+  await expect(page.locator(TID.imageCropperDialog)).toBeVisible({ timeout: 5_000 });
+  await page.locator(TID.imageCropperDialogSave).click();
+  await expect(page.locator(TID.imageCropperDialog)).toHaveCount(0);
 
   // After: profileImage is a daemon-side absolute path. Poll because the
   // upload + RPC + reload is async.
