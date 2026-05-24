@@ -5,6 +5,8 @@
   import BackButton from '../lib/BackButton.svelte';
   import TextInput from '../lib/TextInput.svelte';
   import MenuItem from '../lib/MenuItem.svelte';
+  import ImageCropperDialog from '../lib/ImageCropperDialog.svelte';
+  import { uploadBlob, fileUrl } from '../lib/files';
   import { t } from '../lib/i18n/i18n.svelte';
 
   type Props = {
@@ -16,6 +18,12 @@
 
   let displayName = $state('');
   let altMenuOpen = $state(false);
+  // Path returned by `uploadBlob` after the user picks + crops an avatar.
+  // Threaded into `createInstantAccount` as `selfavatar`. Empty string =
+  // no avatar picked (skip the `set_config('selfavatar')` call).
+  let avatarPath = $state<string | null>(null);
+  let cropSrc = $state<string | null>(null);
+  let fileInput: HTMLInputElement | undefined = $state();
 
   // Step 2 ships the default chatmail relay only. Custom-provider QR scan
   // is wired up in step 4 alongside the backup-pair scanner.
@@ -27,10 +35,35 @@
 
   async function create() {
     try {
-      await createInstantAccount(trimmedName);
+      await createInstantAccount(trimmedName, undefined, avatarPath);
     } catch {
       /* error already surfaced via onboarding.phase = failed */
     }
+  }
+
+  function onAvatarPicked(e: Event) {
+    const input = e.currentTarget as HTMLInputElement;
+    const file = input.files?.[0];
+    input.value = '';
+    if (!file) return;
+    cropSrc = URL.createObjectURL(file);
+  }
+
+  async function onAvatarCropped(blob: Blob) {
+    const src = cropSrc;
+    cropSrc = null;
+    if (src) URL.revokeObjectURL(src);
+    try {
+      avatarPath = await uploadBlob(blob, 'png');
+    } catch {
+      /* keep current avatar — uploadBlob already logged */
+    }
+  }
+
+  function onCropCancel() {
+    const src = cropSrc;
+    cropSrc = null;
+    if (src) URL.revokeObjectURL(src);
   }
 
   // Escape closes the alternate-server menu.
@@ -52,7 +85,27 @@
 </header>
 
 <main class="instant" data-testid="onboarding-instant">
-  <div class="avatar" aria-hidden="true">{avatarLetter}</div>
+  <button
+    type="button"
+    class="avatar"
+    onclick={() => fileInput?.click()}
+    aria-label={avatarPath ? t('Change profile picture') : t('Upload profile picture')}
+    data-testid="onboarding-instant__avatar"
+  >
+    {#if avatarPath}
+      <img src={fileUrl(avatarPath)} alt="" />
+    {:else}
+      <span aria-hidden="true">{avatarLetter}</span>
+    {/if}
+  </button>
+  <input
+    bind:this={fileInput}
+    type="file"
+    accept="image/*"
+    hidden
+    onchange={onAvatarPicked}
+    data-testid="onboarding-instant__avatar-input"
+  />
 
   <div class="name-field">
     <TextInput
@@ -99,6 +152,13 @@
 
 <ProgressOverlay />
 
+<ImageCropperDialog
+  open={cropSrc != null}
+  src={cropSrc}
+  onConfirm={(blob) => void onAvatarCropped(blob)}
+  onClose={onCropCancel}
+/>
+
 <style>
   .topbar {
     padding: calc(var(--titlebar-gutter)) var(--space-3) 0;
@@ -129,6 +189,25 @@
     font-size: 44px;
     font-weight: 600;
     margin-bottom: var(--space-3);
+    padding: 0;
+    border: 0;
+    cursor: pointer;
+    overflow: hidden;
+    /* Suppress WebKit's native drag/select on the avatar — picks should
+       open the file dialog cleanly, not start a drag of the placeholder
+       letter or any image inside. */
+    -webkit-user-drag: none;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+  .avatar:hover {
+    filter: brightness(0.95);
+  }
+  .avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
   }
   .name-field {
     width: 100%;

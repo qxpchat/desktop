@@ -118,9 +118,14 @@ async function runOnboardingFlow(
   }
 }
 
-export async function createInstantAccount(displayName: string, qr?: string): Promise<void> {
+export async function createInstantAccount(
+  displayName: string,
+  qr?: string,
+  avatarPath?: string | null,
+): Promise<void> {
   await runOnboardingFlow({ kind: 'configuring', progress: 0 }, async (accountId) => {
     await rpc.call('set_config', [accountId, 'displayname', displayName]);
+    if (avatarPath) await rpc.call('set_config', [accountId, 'selfavatar', avatarPath]);
     await rpc.call('set_config_from_qr', [accountId, qr ?? `dcaccount:${DEFAULT_RELAY}`]);
     await rpc.call('configure', [accountId]);
   });
