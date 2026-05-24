@@ -252,6 +252,7 @@ export const TID = {
   imageCropperDialogCancel: '[data-testid="image-cropper-dialog__cancel"]',
   navTabsQrShow: '[data-testid="nav-tabs__qr-show"]',
   navTabsProxy: '[data-testid="nav-tabs__proxy"]',
+  settingsConnectivityTryNow: '[data-testid="settings-connectivity__try-now"]',
   settingsProxyAddDialog: '[data-testid="settings-proxy__add-dialog"]',
   settingsProxyAddScan: '[data-testid="settings-proxy__add-scan"]',
   settingsProxyScanPaste: '[data-testid="settings-proxy__scan-paste"]',
