@@ -26,6 +26,10 @@ async function provisionSecondAccount(
   await rpc.call('set_config', [id, 'displayname', displayName]);
   await rpc.call('set_config_from_qr', [id, 'dcaccount:nine.testrun.org']);
   await rpc.call('configure', [id]);
+  // Start IO *only* on the new account. `start_io_for_all_accounts`
+  // would restart A's already-stable IDLE and create the cold-IDLE
+  // race the badge assertion is sensitive to.
+  await rpc.call('start_io', [id]);
   if (prevSelected != null) await rpc.call('select_account', [prevSelected]);
   return id;
 }
@@ -59,17 +63,62 @@ test('badge appears on inactive profile A when a message arrives for A while B i
   await expect(page.locator(TID.navTabsAccount)).toHaveCount(2, { timeout: 10_000 });
 
   await page.locator(TID.navTabsAccountById(secondId)).click();
+  // Confirm the click actually switched. Without this assertion, a
+  // silent click-eaten regression (e.g. accidental preventDefault in
+  // pointerdown) would surface much later as a "badge never appeared"
+  // timeout, masking the real cause.
+  await expect(page.locator(TID.navTabsAccountById(secondId)))
+    .toHaveAttribute('aria-pressed', 'true', { timeout: 5_000 });
 
   // B is now the selected tile — its own badge would never render. A is
   // inactive; its badge starts hidden because A has no fresh messages yet.
   await expect(page.locator(TID.navTabsAccountBadgeById(firstId))).toHaveCount(0);
 
+  // Wait for *both* main IMAP IDLE and peer SMTP to be CONNECTED
+  // (4000) before peer sends. dc-core's connectivity enum:
+  //   1000 NOT_CONNECTED · 2000 CONNECTING · 3000 WORKING · 4000 CONNECTED
+  // See `mark-all-read.spec.ts` for the full rationale — short
+  // version: WORKING (3000) means dc-core is still mid-fetch and
+  // hasn't entered IDLE yet, so `NOTIFY` for the new mail is lost;
+  // peer SMTP not being open queues the send entirely.
+  await expect.poll(
+    async () => await mainRpc.call<number>('get_connectivity', [firstId]),
+    { timeout: 60_000 },
+  ).toBeGreaterThanOrEqual(4000);
+  await expect.poll(
+    async () => await peer.rpc.call<number>('get_connectivity', [peer.accountId]),
+    { timeout: 60_000 },
+  ).toBeGreaterThanOrEqual(4000);
+
   // Peer sends to A while B is selected. The IncomingMsg event must drive
   // A's freshCount → badge, without any account switch on main.
-  await peer.sendTo('ping while A is inactive');
+  const msgId = await peer.sendTo('ping while A is inactive');
 
+  // Wait for peer's outbox to flush — `misc_send_text_message` returns
+  // synchronously, but SMTP submission is async. ≥26 (OutDelivered)
+  // means the relay accepted the mail, which is the precondition for
+  // A's IMAP IDLE NOTIFY to fire.
+  await expect.poll(
+    async () => {
+      const m = await peer.rpc.call<{ state: number }>('get_message', [peer.accountId, msgId]);
+      return m.state;
+    },
+    { timeout: 60_000 },
+  ).toBeGreaterThanOrEqual(26);
+
+  // Then poll the main side; defensively nudge IMAP each iteration.
+  const deadline = Date.now() + ARRIVAL_TIMEOUT_MS;
+  while (Date.now() < deadline) {
+    const count = await page.locator(TID.navTabsAccountBadgeById(firstId)).count();
+    if (count > 0) break;
+    await mainRpc.call('maybe_network');
+    await page.waitForTimeout(2_000);
+  }
+  // Sanity-check assert — the poll loop above already saw the badge,
+  // so this collapses to Playwright's default 5 s timeout for a clean
+  // failure message if the relay handshake exhausted the polled budget.
   await expect(page.locator(TID.navTabsAccountBadgeById(firstId)))
-    .toBeVisible({ timeout: ARRIVAL_TIMEOUT_MS });
+    .toBeVisible();
   await expect(page.locator(TID.navTabsAccountBadgeById(firstId)))
     .toHaveText('1');
 });

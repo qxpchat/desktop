@@ -69,12 +69,16 @@
   );
 
   function onTilePointerDown(e: PointerEvent, id: number) {
+    // Only the primary mouse button (or a touch / pen press) starts a
+    // drag; right-click is left alone so the context menu still works.
+    //
+    // **Do NOT call `e.preventDefault()` here.** Doing so cancels the
+    // synthetic `click` the browser fires after pointerup, which
+    // silently breaks tap-to-switch-account. WebKit's implicit
+    // image-drag is already neutralised by the `pointer-events: none`
+    // CSS on the avatar `<img>` below — preventDefault is redundant
+    // *and* harmful.
     if (e.button !== 0) return;
-    // Kill WebKit's implicit native drag on the avatar `<img>`. Without
-    // this `preventDefault`, mousedown on an image starts an OS-level
-    // drag-and-drop session that hijacks all subsequent pointer events —
-    // our window-level pointermove listener stops firing two frames in.
-    e.preventDefault();
     press = { id, x: e.clientX, y: e.clientY };
     window.addEventListener('pointermove', onWindowPointerMove);
     window.addEventListener('pointerup', onWindowPointerUp);
