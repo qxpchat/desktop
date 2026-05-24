@@ -12,9 +12,13 @@
   type Props = {
     onBack: () => void;
     onManual: () => void;
+    onScan: () => void;
+    /** When set (from `SignupScan`), the new account registers on this
+     *  relay/QR instead of the default chatmail one. */
+    prefilledQr?: string | null;
   };
 
-  let { onBack, onManual }: Props = $props();
+  let { onBack, onManual, onScan, prefilledQr = null }: Props = $props();
 
   let displayName = $state('');
   let altMenuOpen = $state(false);
@@ -26,16 +30,22 @@
   // exists. Same teal the rest of the app uses.
   const DEFAULT_COLOR = '#22ccaa';
 
-  // Step 2 ships the default chatmail relay only. Custom-provider QR scan
-  // is wired up in step 4 alongside the backup-pair scanner.
-  const provider = DEFAULT_RELAY;
+  // Default relay shown in the privacy line. When the user arrives here
+  // via SignupScan with a `dcaccount:` QR, parse the host out of the URL
+  // and show *that* relay's name instead — so the privacy link points at
+  // the right operator.
+  let provider = $derived.by(() => {
+    if (!prefilledQr) return DEFAULT_RELAY;
+    const m = /^dcaccount:(?:\/\/)?([^/?#]+)/i.exec(prefilledQr);
+    return m?.[1] ?? DEFAULT_RELAY;
+  });
 
   let trimmedName = $derived(displayName.trim());
   let canCreate = $derived(trimmedName.length > 0 && onboarding.phase.kind === 'idle');
 
   async function create() {
     try {
-      await createInstantAccount(trimmedName, undefined, avatarPath);
+      await createInstantAccount(trimmedName, prefilledQr ?? undefined, avatarPath);
     } catch {
       /* error already surfaced via onboarding.phase = failed */
     }
@@ -113,6 +123,14 @@
         <a class="alt-link" href="https://chatmail.at/relays" target="_blank" rel="noopener noreferrer" role="menuitem">
           {t('Other Servers (web ↗)')}
         </a>
+        <MenuItem
+          label={t('Scan Invitation Code')}
+          onclick={() => {
+            altMenuOpen = false;
+            onScan();
+          }}
+          data-testid="onboarding-instant__scan"
+        />
         <MenuItem
           label={t('Manual Setup')}
           onclick={() => {
