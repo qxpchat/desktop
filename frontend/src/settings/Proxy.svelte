@@ -241,7 +241,7 @@
           </div>
         </button>
         <div class="row-actions">
-          <Button variant="accent-text" size="sm" disabled={busy} onclick={() => (shareTarget = url)}>
+          <Button variant="accent-text" size="sm" disabled={busy} onclick={() => (shareTarget = url)} data-testid="settings-proxy__share">
             {t('Share')}
           </Button>
           <Button variant="danger-text" size="sm" disabled={busy} onclick={() => (removeTarget = url)}>
