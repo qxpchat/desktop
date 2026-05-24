@@ -242,6 +242,10 @@ export const TID = {
   navTabsConnectivity: '[data-testid="nav-tabs__connectivity"]',
   navTabsHoverCard: '[data-testid="nav-tabs__hover-card"]',
   settingsProfileTag: '[data-testid="settings-profile__tag"]',
+  settingsProfileAvatarInput: '[data-testid="settings-profile__avatar-input"]',
+  imageCropperDialog: '[data-testid="image-cropper-dialog"]',
+  imageCropperDialogSave: '[data-testid="image-cropper-dialog__save"]',
+  imageCropperDialogCancel: '[data-testid="image-cropper-dialog__cancel"]',
   navTabsQrShow: '[data-testid="nav-tabs__qr-show"]',
   navTabsProxy: '[data-testid="nav-tabs__proxy"]',
 
