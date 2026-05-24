@@ -56,6 +56,12 @@
   let send_server = $state('');
   let send_port = $state('');
   let send_security = $state('');
+  // Distinct SMTP creds. When blank, dc-core falls back to `addr` +
+  // `mail_pw` for SMTP auth (the common case). Set these when the
+  // outgoing server uses a different login than the incoming one — e.g.
+  // some self-hosted setups with separate IMAP / SMTP accounts.
+  let send_user = $state('');
+  let send_pw = $state('');
   let imap_certificate_checks = $state('');
 
   let canLogin = $derived(
@@ -70,6 +76,8 @@
     if (send_server) advanced.send_server = send_server;
     if (send_port) advanced.send_port = send_port;
     if (send_security) advanced.send_security = send_security;
+    if (send_user) advanced.send_user = send_user;
+    if (send_pw) advanced.send_pw = send_pw;
     if (imap_certificate_checks) advanced.imap_certificate_checks = imap_certificate_checks;
 
     try {
@@ -136,7 +144,7 @@
     </div>
   {/if}
 
-  <Button class="advanced-toggle" variant="accent-text" size="sm" onclick={() => (advancedOpen = !advancedOpen)}>
+  <Button class="advanced-toggle" variant="accent-text" size="sm" onclick={() => (advancedOpen = !advancedOpen)} data-testid="onboarding-manual__advanced-toggle">
     <Icon name={advancedOpen ? 'chevron-down' : 'chevron-right'} size={14} />
     {t('Advanced')}
   </Button>
@@ -155,6 +163,27 @@
       <TextInput label={t('Server')} bind:value={send_server} placeholder="smtp.example.com" autocapitalize="off" spellcheck="false" />
       <TextInput label={t('Port')} type="number" bind:value={send_port} placeholder="465" />
       <Select label={t('Security')} bind:value={send_security} options={securityOptions} />
+      <!-- Separate SMTP user / password — leave blank to reuse the main
+           email + password for outgoing auth (default behaviour). Set
+           them when the outgoing server uses a different login than the
+           incoming one. -->
+      <TextInput
+        label={t('SMTP login')}
+        bind:value={send_user}
+        autocomplete="username"
+        autocapitalize="off"
+        spellcheck="false"
+        placeholder={t('Defaults to email')}
+        data-testid="onboarding-manual__smtp-user"
+      />
+      <TextInput
+        label={t('SMTP password')}
+        type="password"
+        bind:value={send_pw}
+        autocomplete="new-password"
+        placeholder={t('Defaults to email password')}
+        data-testid="onboarding-manual__smtp-password"
+      />
     </fieldset>
   {/if}
 
