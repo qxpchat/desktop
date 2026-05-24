@@ -33,10 +33,13 @@ test('Settings → Proxy → Scan QR adds the scanned proxy', async ({ qxpPaired
   await page.locator(TID.settingsProxyAddScan).click();
   await expect(page.locator(TID.settingsProxyScanPaste)).toBeVisible();
 
-  // Seed clipboard with a `proxy:` URL and trigger paste — same code
-  // path as a real camera scan.
+  // Seed clipboard with a SOCKS5 proxy URL — dc-core's `check_qr`
+  // recognises raw `socks5://`/`http(s)://`/`ss://` URLs as
+  // `kind: 'proxy'` (there's no separate `proxy:` URI scheme; the
+  // header in the share-proxy QR is just bare URL). Same code path as
+  // a real camera scan.
   await page.evaluate(() =>
-    navigator.clipboard.writeText('proxy:socks5://1.2.3.4:1080'),
+    navigator.clipboard.writeText('socks5://1.2.3.4:1080'),
   );
   await page.locator(TID.settingsProxyScanPaste).click();
 

@@ -36,7 +36,7 @@
     }
   });
 
-  const ACCEPTED_PREFIXES = ['socks5:', 'ss:', 'http:', 'https:', 'proxy:'];
+  const ACCEPTED_PREFIXES = ['socks5://', 'ss://', 'http://', 'https://', 'tg://socks'];
 
   function save() {
     const url = value.trim();
@@ -47,7 +47,7 @@
     }
     const lower = url.toLowerCase();
     if (!ACCEPTED_PREFIXES.some((p) => lower.startsWith(p))) {
-      errorMsg = t('Use a `socks5:`, `ss:`, `http(s):`, or `proxy:` URL.');
+      errorMsg = t('Use a `socks5://`, `ss://`, `http(s)://`, or `tg://socks` URL.');
       return;
     }
     setPendingProxy(url);
