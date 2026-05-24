@@ -110,7 +110,8 @@ export const TID = {
   chatInfoAddMemberConfirm: '[data-testid="chat-info__add-member-confirm"]',
   chatInfoAddMemberCancel: '[data-testid="chat-info__add-member-cancel"]',
   chatInfoAvatarEdit: '[data-testid="chat-info__avatar-edit"]',
-  chatInfoAvatarFileInput: '[data-testid="chat-info__avatar-file-input"]',
+  chatInfoAvatarFileInput: '[data-testid="chat-info__avatar-edit__file-input"]',
+  chatInfoAvatarMenuRemove: '[data-testid="chat-info__avatar-edit__menu-remove"]',
 
   // -- Media browser --
   mediaBrowser: '[data-testid="media-browser"]',

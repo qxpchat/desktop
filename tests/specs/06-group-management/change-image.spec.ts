@@ -46,6 +46,10 @@ test('change-image: upload an image becomes the channel profile image', async ({
 
   await expect(page.locator(TID.chatInfoAvatarEdit)).toBeVisible();
   await page.locator(TID.chatInfoAvatarFileInput).setInputFiles(mediaPath('test.png'));
+  // Pick → AvatarEditor opens the cropper. Confirm default centred crop.
+  await expect(page.locator(TID.imageCropperDialog)).toBeVisible({ timeout: 5_000 });
+  await page.locator(TID.imageCropperDialogSave).click();
+  await expect(page.locator(TID.imageCropperDialog)).toHaveCount(0);
 
   await expect.poll(async () => {
     const c = await mainRpc.call<{ profileImage: string | null }>('get_full_chat_by_id', [accountId, chatId]);
