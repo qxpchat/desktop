@@ -1,5 +1,10 @@
 <script lang="ts">
-  import { onboarding, createInstantAccount, DEFAULT_RELAY } from '../lib/state/onboarding.svelte';
+  import {
+    onboarding,
+    createInstantAccount,
+    signupAndSecureJoin,
+    DEFAULT_RELAY,
+  } from '../lib/state/onboarding.svelte';
   import ProgressOverlay from './ProgressOverlay.svelte';
   import Button from '../lib/Button.svelte';
   import BackButton from '../lib/BackButton.svelte';
@@ -16,9 +21,19 @@
     /** When set (from `SignupScan`), the new account registers on this
      *  relay/QR instead of the default chatmail one. */
     prefilledQr?: string | null;
+    /** When set, submit signs up on the default relay *and* runs
+     *  `secure_join` against the invite QR — mutually exclusive with
+     *  `prefilledQr`. */
+    prefilledInvite?: string | null;
   };
 
-  let { onBack, onManual, onScan, prefilledQr = null }: Props = $props();
+  let {
+    onBack,
+    onManual,
+    onScan,
+    prefilledQr = null,
+    prefilledInvite = null,
+  }: Props = $props();
 
   let displayName = $state('');
   let altMenuOpen = $state(false);
@@ -45,7 +60,11 @@
 
   async function create() {
     try {
-      await createInstantAccount(trimmedName, prefilledQr ?? undefined, avatarPath);
+      if (prefilledInvite) {
+        await signupAndSecureJoin(trimmedName, prefilledInvite, avatarPath);
+      } else {
+        await createInstantAccount(trimmedName, prefilledQr ?? undefined, avatarPath);
+      }
     } catch {
       /* error already surfaced via onboarding.phase = failed */
     }
@@ -104,6 +123,12 @@
 
   <p class="hint">{t('Set a name so others recognize you.')}</p>
 
+  {#if prefilledInvite}
+    <p class="invite-banner" data-testid="onboarding-instant__invite-banner">
+      {t('You will be added as a verified contact after sign-up.')}
+    </p>
+  {/if}
+
   <p class="privacy">
     {t('By creating a profile, you agree to the')}
     <a href={`https://${provider}/privacy.html`} target="_blank" rel="noopener noreferrer">
@@ -111,7 +136,9 @@
     </a>.
   </p>
 
-  <Button variant="primary" size="lg" block disabled={!canCreate} onclick={create} data-testid="onboarding-instant__submit">{t('Create Profile')}</Button>
+  <Button variant="primary" size="lg" block disabled={!canCreate} onclick={create} data-testid="onboarding-instant__submit">
+    {prefilledInvite ? t('Sign Up & Join') : t('Create Profile')}
+  </Button>
 
   <div class="alt">
     <Button variant="accent-text" size="lg" block aria-haspopup="menu" aria-expanded={altMenuOpen} onclick={() => (altMenuOpen = !altMenuOpen)}>
@@ -182,6 +209,16 @@
     font-size: var(--text-sm);
     text-align: center;
     margin: var(--space-2) 0;
+  }
+  .invite-banner {
+    color: var(--color-accent);
+    background: var(--color-bg-elevated);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    padding: var(--space-3);
+    text-align: center;
+    font-size: var(--text-sm);
+    margin: 0;
   }
   .privacy a {
     color: var(--color-accent);

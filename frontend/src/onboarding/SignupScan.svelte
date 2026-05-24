@@ -1,23 +1,35 @@
 <script lang="ts">
-  // Scan a sign-up / login / invite code during onboarding. dispatches on
+  // Scan a sign-up / login / invite code during onboarding. Dispatches on
   // the URI scheme client-side because dc-core's `check_qr` is per-account
   // and we don't have one yet:
   //
-  //   - `dcaccount:<host>[?…]`   → custom-relay signup. Routes back to
-  //                                 the Instant form with the relay
-  //                                 prefilled; the user can still set
-  //                                 their displayname + avatar there.
-  //   - `dclogin:<…>`             → not yet wired (T018 / ONB-007 is the
-  //                                 dedicated task — we surface a guard
-  //                                 message that points the user to
-  //                                 Manual Setup for now).
-  //   - anything else            → "Not a sign-up code".
+  //   - `dcaccount:<host>[?…]`     → custom-relay signup. Routes back to
+  //                                   the Instant form with the relay
+  //                                   prefilled; the user can still set
+  //                                   their displayname + avatar there.
+  //   - `dclogin:<…>`               → existing-email login. Runs
+  //                                   `loginFromQr` inline; dc-core
+  //                                   parses every config key from the
+  //                                   URL and configures against the
+  //                                   real server. Progress shows in the
+  //                                   shared ProgressOverlay below.
+  //   - `openpgp4fpr:…&i=…&s=…`    → invite from another DC user.
+  //   - `https://i.delta.chat/#…`  → invite (https form). Both route to
+  //                                   Instant with `prefilledInvite` so
+  //                                   the user can pick a name first;
+  //                                   submit then runs
+  //                                   `signupAndSecureJoin` (creates
+  //                                   account on default relay + runs
+  //                                   secure_join against the invite).
+  //   - anything else              → "Not a sign-up code".
   //
   // The actual scanner + paste-from-clipboard + camera-permission error
   // surface is the shared `lib/QrScanArea.svelte` primitive.
 
   import QrScanArea from '../lib/QrScanArea.svelte';
+  import ProgressOverlay from './ProgressOverlay.svelte';
   import BackButton from '../lib/BackButton.svelte';
+  import { loginFromQr, onboarding } from '../lib/state/onboarding.svelte';
   import { t } from '../lib/i18n/i18n.svelte';
 
   type Props = {
@@ -25,15 +37,35 @@
     /** Caller routes to Instant with the scanned `dcaccount:` URL passed
      *  as the `qr` prop. Instant threads it into `createInstantAccount`. */
     onDcAccount: (qr: string) => void;
+    /** Caller routes to Instant with an invite QR — user picks a name,
+     *  submit triggers `signupAndSecureJoin`. */
+    onInvite: (qr: string) => void;
     /** Pre-supplied QR (deep link arriving at the welcome screen). */
     initialCode?: string | null;
   };
 
-  let { onBack, onDcAccount, initialCode = null }: Props = $props();
+  let { onBack, onDcAccount, onInvite, initialCode = null }: Props = $props();
 
   let errorMsg = $state<string | null>(null);
   // Re-arm key — bumped after a bad code so the user can scan another.
   let scannerKey = $state(0);
+  // While `loginFromQr` is in flight the scanner stays unmounted (the
+  // ProgressOverlay takes over). When the flow fails we re-arm.
+  let scanning = $derived(onboarding.phase.kind === 'idle');
+
+  function isInviteCode(lower: string, raw: string): boolean {
+    // Both `openpgp4fpr:` URIs and `i.delta.chat` HTTPS invite URLs
+    // carry the same invite params (`i=` invitenumber, `s=` authcode).
+    // A bare openpgp4fpr fingerprint (no params) is *not* an invite —
+    // it's just a contact verify code with no auth grant.
+    if (lower.startsWith('openpgp4fpr:')) {
+      return /[?&]i=/.test(raw);
+    }
+    if (lower.startsWith('https://i.delta.chat/')) {
+      return /[?&#]i=/.test(raw);
+    }
+    return false;
+  }
 
   function dispatch(raw: string) {
     const code = raw.trim();
@@ -45,10 +77,18 @@
       return;
     }
     if (lower.startsWith('dclogin:')) {
-      // T018 / ONB-007 isn't wired yet — guide the user to manual login
-      // instead of silently swallowing the scan.
-      errorMsg = t('That looks like a `dclogin:` code. Use Manual Setup to log in with email credentials.');
-      scannerKey += 1;
+      errorMsg = null;
+      void loginFromQr(code).catch(() => {
+        // Error already surfaced via `onboarding.phase = failed` →
+        // ProgressOverlay. Re-arm the scanner so the user can try
+        // another code.
+        scannerKey += 1;
+      });
+      return;
+    }
+    if (isInviteCode(lower, code)) {
+      errorMsg = null;
+      onInvite(code);
       return;
     }
     errorMsg = t('That is not a sign-up code.');
@@ -72,12 +112,15 @@
   {/if}
   {#key scannerKey}
     <QrScanArea
+      {scanning}
       onScanned={dispatch}
-      hint={t('Scan a `dcaccount:` invite to sign up on a different chatmail server.')}
+      hint={t('Scan a sign-up code: `dcaccount:` (custom relay), `dclogin:` (existing email), or `openpgp4fpr:` invite.')}
       pasteTestid="onboarding-signup-scan__paste-clipboard"
     />
   {/key}
 </main>
+
+<ProgressOverlay />
 
 <style>
   .topbar {
