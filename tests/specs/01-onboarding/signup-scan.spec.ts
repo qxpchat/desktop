@@ -61,25 +61,50 @@ test('dcaccount: scan from Welcome onboards on the scanned relay', async ({ qxp,
   }
 });
 
-test('dclogin: scan surfaces a guard pointing at Manual Setup', async ({ page, context }) => {
+test('dclogin: scan kicks the loginFromQr flow (configure fails on a fake URL)', async ({ page, context }) => {
   await context.grantPermissions(['clipboard-read', 'clipboard-write']);
 
   await page.locator(TID.onboardingWelcomeAltToggle).click();
   await page.locator(TID.onboardingWelcomeScan).click();
   await expect(page.locator(TID.onboardingSignupScan)).toBeVisible();
 
+  // Fake DCLOGIN URL — well-formed enough that `set_config_from_qr`
+  // parses it, but `configure` won't be able to reach example.com, so
+  // the flow lands in `phase=failed`. That's the contract this asserts:
+  // the dispatch *attempts* DCLOGIN onboarding (no more guard message).
   await page.evaluate(() =>
-    navigator.clipboard.writeText('dclogin://alice%40example.com?p=hunter2'),
+    navigator.clipboard.writeText('dclogin:alice@example.com?p=hunter2&v=1'),
   );
   await page.locator(TID.onboardingSignupScanPaste).click();
 
-  // Stays on the scanner with an actionable error message.
-  await expect(page.locator(TID.onboardingSignupScan)).toBeVisible();
-  await expect(page.locator(TID.onboardingSignupScanError))
-    .toContainText('Manual Setup');
+  // ProgressOverlay's failure modal appears.
+  await expect(page.locator(TID.onboardingProgressError)).toBeVisible({ timeout: 30_000 });
 });
 
-test('non-signup QR surfaces a "not a sign-up code" error', async ({ page, context }) => {
+test('invite QR routes to Instant with the invite banner', async ({ page, context }) => {
+  await context.grantPermissions(['clipboard-read', 'clipboard-write']);
+
+  await page.locator(TID.onboardingWelcomeAltToggle).click();
+  await page.locator(TID.onboardingWelcomeScan).click();
+  await expect(page.locator(TID.onboardingSignupScan)).toBeVisible();
+
+  // openpgp4fpr URL with invite params (`i=` invitenumber, `s=` authcode)
+  // — recognised as an invite without needing dc-core's check_qr (which
+  // requires an account context we don't have yet).
+  await page.evaluate(() =>
+    navigator.clipboard.writeText(
+      'openpgp4fpr:ABCD1234ABCD1234ABCD1234ABCD1234ABCD1234#a=alice%40example.com&i=invtoken&s=authcode&n=Alice',
+    ),
+  );
+  await page.locator(TID.onboardingSignupScanPaste).click();
+
+  // Dispatched to Instant with the invite banner + relabelled CTA.
+  await expect(page.locator(TID.onboardingInstant)).toBeVisible();
+  await expect(page.locator(TID.onboardingInviteBanner)).toBeVisible();
+  await expect(page.locator(TID.onboardingInstantSubmit)).toContainText(/Sign Up & Join/);
+});
+
+test('bare openpgp4fpr fingerprint (no invite params) is rejected', async ({ page, context }) => {
   await context.grantPermissions(['clipboard-read', 'clipboard-write']);
 
   await page.locator(TID.onboardingWelcomeAltToggle).click();

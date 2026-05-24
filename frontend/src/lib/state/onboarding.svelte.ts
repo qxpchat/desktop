@@ -155,6 +155,46 @@ export async function receiveBackup(qrText: string): Promise<void> {
   });
 }
 
+/** DCLOGIN onboarding — the scanned URL embeds addr + password + every
+ *  server config key. dc-core's `set_config_from_qr` parses and writes
+ *  them all, then `configure` validates against the real server. No
+ *  displayname requirement: dc-core derives it from `addr` when blank,
+ *  and the user can still set it later in Settings → Profile. */
+export async function loginFromQr(qr: string): Promise<void> {
+  await runOnboardingFlow({ kind: 'configuring', progress: 0 }, async (accountId) => {
+    await rpc.call('set_config_from_qr', [accountId, qr]);
+    await rpc.call('configure', [accountId]);
+  });
+}
+
+/** Invite-driven onboarding: signs up an instant account on the default
+ *  chatmail relay, then runs `secure_join` against the invite QR so the
+ *  inviter shows up as a verified contact (or the user joins the invited
+ *  group). The two RPCs are sequenced so the secure-join handshake has
+ *  a configured account to send from. `secure_join` errors are
+ *  surfaced via `onboarding.phase = failed` but the account itself is
+ *  left intact — the user can retry the invite later. */
+export async function signupAndSecureJoin(
+  displayName: string,
+  qr: string,
+  avatarPath?: string | null,
+): Promise<void> {
+  await createInstantAccount(displayName, undefined, avatarPath);
+  let accountId: number;
+  try {
+    accountId = (await rpc.call<number | null>('get_selected_account_id')) ?? 0;
+  } catch {
+    return;
+  }
+  if (accountId === 0) return;
+  try {
+    await rpc.call<number>('secure_join', [accountId, qr]);
+  } catch (err) {
+    onboarding.phase = { kind: 'failed', message: errorMessage(err) };
+    throw err;
+  }
+}
+
 export async function loginManually(
   addr: string,
   mailPw: string,

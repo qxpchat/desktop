@@ -51,11 +51,11 @@
   }
 </script>
 
-<Modal open={phase.kind !== 'idle'} {onClose} size="md" ariaLabel={label}>
-  <div class="content">
+<Modal open={phase.kind !== 'idle'} {onClose} size="md" ariaLabel={label} data-testid="onboarding-progress">
+  <div class="content" data-phase={phase.kind}>
     <h2>{label}</h2>
     {#if phase.kind === 'failed'}
-      <p class="error">{phase.message}</p>
+      <p class="error" data-testid="onboarding-progress__error">{phase.message}</p>
       <div class="actions">
         <Button variant="primary" onclick={resetOnboarding}>{t('OK')}</Button>
       </div>
