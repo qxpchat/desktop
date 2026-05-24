@@ -9,9 +9,10 @@
     onManualSetup: () => void;
     onRestoreBackup: () => void;
     onAddAsSecondDevice: () => void;
+    onScan: () => void;
   };
 
-  let { onSignUp, onManualSetup, onRestoreBackup, onAddAsSecondDevice }: Props = $props();
+  let { onSignUp, onManualSetup, onRestoreBackup, onAddAsSecondDevice, onScan }: Props = $props();
 
   let altMenuOpen = $state(false);
 
@@ -29,6 +30,10 @@
   function addAsSecondDevice() {
     altMenuOpen = false;
     onAddAsSecondDevice();
+  }
+  function scan() {
+    altMenuOpen = false;
+    onScan();
   }
 
   function toggleAlt() {
@@ -69,6 +74,7 @@
 
       {#if altMenuOpen}
         <div class="alt-menu" role="menu">
+          <MenuItem label={t('Scan Invitation Code')} onclick={scan} data-testid="onboarding-welcome__scan" />
           <MenuItem label={t('Manual Setup')} onclick={manualSetup} data-testid="onboarding-welcome__manual-setup" />
           <MenuItem label={t('Restore Backup')} onclick={restoreBackup} data-testid="onboarding-welcome__restore-backup" />
           <MenuItem label={t('Add as Second Device')} onclick={addAsSecondDevice} data-testid="onboarding-welcome__add-second-device" />
