@@ -5,6 +5,8 @@ help:
 	@echo "qxp desktop — make targets"
 	@echo
 	@echo "  make tauri-dev          Run the full Tauri app (daemon + Vite + native window)"
+	@echo "  make tauri-dev ACCOUNTS=/tmp/qxp-fresh"
+	@echo "                          Same, but isolate accounts/profile data in a custom dir"
 	@echo "  make tauri-build        Bundle a release build (single-binary desktop app)"
 	@echo
 	@echo "  make server             Run only the Rust daemon (server/)        [127.0.0.1:4041]"
@@ -35,7 +37,7 @@ ui: frontend/node_modules
 	cd frontend && npm run dev -- --host
 
 tauri-dev: frontend/node_modules
-	cd src-tauri && cargo tauri dev
+	cd src-tauri && QXP_ACCOUNTS_DIR=$(ACCOUNTS) cargo tauri dev
 
 tauri-build: frontend/node_modules
 	cd src-tauri && cargo tauri build

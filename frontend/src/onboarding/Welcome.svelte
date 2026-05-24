@@ -2,6 +2,9 @@
   import Logo from '../lib/Logo.svelte';
   import Button from '../lib/Button.svelte';
   import MenuItem from '../lib/MenuItem.svelte';
+  import Icon from '../lib/Icon.svelte';
+  import ProxyDialog from './ProxyDialog.svelte';
+  import { pendingProxy } from '../lib/state/onboarding.svelte';
   import { t } from '../lib/i18n/i18n.svelte';
 
   type Props = {
@@ -15,6 +18,15 @@
   let { onSignUp, onManualSetup, onRestoreBackup, onAddAsSecondDevice, onScan }: Props = $props();
 
   let altMenuOpen = $state(false);
+  let proxyOpen = $state(false);
+
+  // Extract host[:port] for the indicator chip — full URL is too long.
+  let proxyHost = $derived.by(() => {
+    const url = pendingProxy.url;
+    if (!url) return '';
+    const m = /^[a-z0-9+-.]+:(?:\/\/)?(?:[^@/]+@)?([^/?#]+)/i.exec(url);
+    return m?.[1] ?? url;
+  });
 
   function signUp() {
     onSignUp();
@@ -81,8 +93,24 @@
         </div>
       {/if}
     </div>
+
+    <button
+      type="button"
+      class="proxy-link"
+      onclick={() => (proxyOpen = true)}
+      data-testid="onboarding-welcome__proxy"
+    >
+      <Icon name={pendingProxy.url ? 'shield-fill' : 'shield'} size={14} />
+      {#if pendingProxy.url}
+        <span data-testid="onboarding-welcome__proxy-host">{t('Via proxy: {host}', { host: proxyHost })}</span>
+      {:else}
+        <span>{t('Connection settings')}</span>
+      {/if}
+    </button>
   </div>
 </main>
+
+<ProxyDialog open={proxyOpen} onClose={() => (proxyOpen = false)} />
 
 <style>
   .welcome {
@@ -140,5 +168,22 @@
     padding: 4px;
     display: flex;
     flex-direction: column;
+  }
+  .proxy-link {
+    background: transparent;
+    border: 0;
+    padding: var(--space-2);
+    margin: var(--space-2) auto 0;
+    color: var(--color-fg-secondary);
+    font-size: var(--text-xs);
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    border-radius: var(--radius-sm);
+  }
+  .proxy-link:hover {
+    color: var(--color-fg);
+    background: var(--color-bg-hover);
   }
 </style>
