@@ -252,6 +252,12 @@ export const TID = {
   imageCropperDialogCancel: '[data-testid="image-cropper-dialog__cancel"]',
   navTabsQrShow: '[data-testid="nav-tabs__qr-show"]',
   navTabsProxy: '[data-testid="nav-tabs__proxy"]',
+  settingsProxyAddDialog: '[data-testid="settings-proxy__add-dialog"]',
+  settingsProxyAddScan: '[data-testid="settings-proxy__add-scan"]',
+  settingsProxyScanPaste: '[data-testid="settings-proxy__scan-paste"]',
+  settingsProxyRow: '[data-testid="settings-proxy__row"]',
+  settingsProxyRowByHost: (host: string) =>
+    `[data-testid="settings-proxy__row"][data-host="${host}"]`,
 
   // -- QR show --
   qrShow: '[data-testid="qr-show"]',
@@ -404,6 +410,7 @@ export const TID = {
   onboardingInviteBanner: '[data-testid="onboarding-instant__invite-banner"]',
   onboardingProgress: '[data-testid="onboarding-progress"]',
   onboardingProgressError: '[data-testid="onboarding-progress__error"]',
+  onboardingProgressCancel: '[data-testid="onboarding-progress__cancel"]',
   onboardingManual: '[data-testid="onboarding-manual"]',
   onboardingManualAddr: '[data-testid="onboarding-manual__addr"]',
   onboardingManualPassword: '[data-testid="onboarding-manual__password"]',

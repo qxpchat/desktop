@@ -15,6 +15,7 @@
   import Modal from '../lib/Modal.svelte';
   import Button from '../lib/Button.svelte';
   import BackButton from '../lib/BackButton.svelte';
+  import QrScanArea from '../lib/QrScanArea.svelte';
   import TextInput from '../lib/TextInput.svelte';
   import ShareProxy from './ShareProxy.svelte';
   import { t } from '../lib/i18n/i18n.svelte';
@@ -34,6 +35,9 @@
 
   let addOpen = $state(false);
   let addValue = $state('');
+  /** Add-proxy dialog view: `url` (text input) or `scan` (camera + paste).
+   *  Defaults to `url`; user can toggle to `scan` via the inline link. */
+  let addMode = $state<'url' | 'scan'>('url');
   let removeTarget = $state<string | null>(null);
   let shareTarget = $state<string | null>(null);
 
@@ -126,7 +130,17 @@
   function openAdd() {
     addValue = '';
     errorMsg = null;
+    addMode = 'url';
     addOpen = true;
+  }
+
+  /** Camera / paste path — feeds the scanned URL through the same
+   *  `submitAdd` validator as the manual entry, so the
+   *  `check_qr` + `set_config_from_qr` round-trip is identical. */
+  function onProxyScanned(code: string) {
+    addValue = code.trim();
+    addMode = 'url';
+    void submitAdd();
   }
 
   async function submitAdd() {
@@ -211,7 +225,7 @@
   <SettingsSection title={t('Saved Proxies')}>
     {#each proxies as url, idx (url)}
       {@const isActive = idx === 0}
-      <div class="proxy">
+      <div class="proxy" data-testid="settings-proxy__row" data-host={hosts[url] ?? url}>
         <button class="proxy-main" disabled={busy} onclick={() => void select(url)}>
           <div class="head">
             <span class="host">{hosts[url] ?? url}</span>
@@ -247,27 +261,41 @@
   <p class="error">{errorMsg}</p>
 {/if}
 
-<Modal open={addOpen} onClose={() => (addOpen = false)} size="md">
+<Modal open={addOpen} onClose={() => (addOpen = false)} size="md" data-testid="settings-proxy__add-dialog">
   <div class="dialog-body">
     <h3>{t('Add Proxy')}</h3>
-    <p>{t('Supported proxy types: HTTP(S), SOCKS5 and Shadowsocks.')}</p>
-    <!-- svelte-ignore a11y_autofocus -->
-    <TextInput
-      class="add-field"
-      type="url"
-      bind:value={addValue}
-      placeholder="socks5://user:pass@host:1080"
-      autofocus
-      spellcheck="false"
-      autocapitalize="off"
-      autocorrect="off"
-    />
-    <div class="actions">
-      <Button variant="secondary" onclick={() => (addOpen = false)} disabled={busy}>{t('Cancel')}</Button>
-      <Button variant="primary" onclick={submitAdd} disabled={busy || !addValue.trim()}>
-        {busy ? t('Adding…') : t('Use Proxy')}
-      </Button>
-    </div>
+    {#if addMode === 'url'}
+      <p>{t('Supported proxy types: HTTP(S), SOCKS5 and Shadowsocks.')}</p>
+      <!-- svelte-ignore a11y_autofocus -->
+      <TextInput
+        class="add-field"
+        type="url"
+        bind:value={addValue}
+        placeholder="socks5://user:pass@host:1080"
+        autofocus
+        spellcheck="false"
+        autocapitalize="off"
+        autocorrect="off"
+      />
+      <div class="actions">
+        <Button variant="accent-text" onclick={() => (addMode = 'scan')} disabled={busy} data-testid="settings-proxy__add-scan">
+          {t('Scan QR')}
+        </Button>
+        <Button variant="secondary" onclick={() => (addOpen = false)} disabled={busy}>{t('Cancel')}</Button>
+        <Button variant="primary" onclick={submitAdd} disabled={busy || !addValue.trim()}>
+          {busy ? t('Adding…') : t('Use Proxy')}
+        </Button>
+      </div>
+    {:else}
+      <p>{t('Point the camera at a proxy QR code, or paste a `proxy:` URL.')}</p>
+      <QrScanArea
+        onScanned={(code) => onProxyScanned(code)}
+        pasteTestid="settings-proxy__scan-paste"
+      />
+      <div class="actions">
+        <Button variant="secondary" onclick={() => (addMode = 'url')} disabled={busy}>{t('Back to URL')}</Button>
+      </div>
+    {/if}
   </div>
 </Modal>
 
