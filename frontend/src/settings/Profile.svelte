@@ -9,6 +9,7 @@
   import TextInput from '../lib/TextInput.svelte';
   import SettingsSection from '../lib/SettingsSection.svelte';
   import ConfirmDialog from '../lib/ConfirmDialog.svelte';
+  import ImageCropperDialog from '../lib/ImageCropperDialog.svelte';
   import { t } from '../lib/i18n/i18n.svelte';
 
   let displayName = $state('');
@@ -22,6 +23,7 @@
   let fileInput: HTMLInputElement | undefined = $state();
   let removeAvatarOpen = $state(false);
   let errorMsg = $state<string | null>(null);
+  let cropSrc = $state<string | null>(null);
 
   onMount(load);
 
@@ -65,16 +67,24 @@
     }
   }
 
-  async function onAvatarPicked(e: Event) {
-    if (accounts.selectedId == null) return;
+  function onAvatarPicked(e: Event) {
     const input = e.currentTarget as HTMLInputElement;
     const file = input.files?.[0];
     input.value = '';
     if (!file) return;
+    // Hand the file to the cropper; the actual upload happens on confirm.
+    // Object URL is revoked in the cropper's onClose/onConfirm path below.
+    cropSrc = URL.createObjectURL(file);
+  }
+
+  async function onAvatarCropped(blob: Blob) {
+    const src = cropSrc;
+    cropSrc = null;
+    if (src) URL.revokeObjectURL(src);
+    if (accounts.selectedId == null) return;
     avatarBusy = true;
     try {
-      const ext = (file.name.split('.').pop() ?? 'jpg').toLowerCase();
-      const path = await uploadBlob(file, ext);
+      const path = await uploadBlob(blob, 'png');
       await rpc.call('set_config', [accounts.selectedId, 'selfavatar', path]);
       avatarPath = path;
       await refreshProfiles(accounts.configuredIds);
@@ -83,6 +93,12 @@
     } finally {
       avatarBusy = false;
     }
+  }
+
+  function onCropCancel() {
+    const src = cropSrc;
+    cropSrc = null;
+    if (src) URL.revokeObjectURL(src);
   }
 
   async function doRemoveAvatar() {
@@ -141,6 +157,7 @@
         accept="image/*"
         hidden
         onchange={onAvatarPicked}
+        data-testid="settings-profile__avatar-input"
       />
     </div>
 
@@ -196,6 +213,13 @@
   mode="alert"
   title={errorMsg ?? ''}
   onClose={() => (errorMsg = null)}
+/>
+
+<ImageCropperDialog
+  open={cropSrc != null}
+  src={cropSrc}
+  onConfirm={(blob) => void onAvatarCropped(blob)}
+  onClose={onCropCancel}
 />
 
 <style>
