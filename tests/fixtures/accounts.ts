@@ -153,8 +153,15 @@ async function loadManifestFile(): Promise<{ templates: ManifestEntry[]; trios: 
     templates: ManifestEntry[];
     trios?: TrioManifestEntry[];
   };
-  if (parsed?.version !== 1 || !Array.isArray(parsed.templates)) {
-    throw new Error(`Template manifest at ${MANIFEST_PATH} is malformed (version != 1).`);
+  // Keep in lockstep with `MANIFEST_VERSION` in
+  // `tests/scripts/ensure-pool.mjs`. Bump on either side without the other
+  // and one will refuse to read what the other just wrote.
+  const MANIFEST_VERSION = 2;
+  if (parsed?.version !== MANIFEST_VERSION || !Array.isArray(parsed.templates)) {
+    throw new Error(
+      `Template manifest at ${MANIFEST_PATH} is malformed (version != ${MANIFEST_VERSION}). ` +
+        `Run \`make test-accounts\` to rebuild.`,
+    );
   }
   return { templates: parsed.templates, trios: parsed.trios ?? [] };
 }

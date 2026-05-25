@@ -21,12 +21,14 @@ test('empty archive view shows an archive-specific hint, not the generic inbox o
 
   // Paired template ships with one chat with peer. Archive it via RPC
   // so the inbox loses it and the "Archived chats" entry surfaces in
-  // the chatlist for us to click. dc-core visibility: 0 = normal,
-  // 1 = archived, 2 = pinned.
+  // the chatlist for us to click. `JsonrpcChatVisibility` is a plain
+  // serde enum since deltachat-jsonrpc 2.50 — the variant goes on the
+  // wire as a bare string ("Normal" / "Archived" / "Pinned"), not the
+  // legacy integer code.
   const entries = await mainRpc.call<number[]>('get_chatlist_entries', [accountId, null, null, null]);
   expect(entries.length).toBeGreaterThan(0);
   for (const chatId of entries) {
-    await mainRpc.call('set_chat_visibility', [accountId, chatId, 1]);
+    await mainRpc.call('set_chat_visibility', [accountId, chatId, 'Archived']);
   }
 
   // Open the archive folder via the in-list link.
@@ -35,7 +37,7 @@ test('empty archive view shows an archive-specific hint, not the generic inbox o
 
   // Now unarchive everything so the archive is empty.
   for (const chatId of entries) {
-    await mainRpc.call('set_chat_visibility', [accountId, chatId, 0]);
+    await mainRpc.call('set_chat_visibility', [accountId, chatId, 'Normal']);
   }
 
   // The archive-specific copy should surface. Generic inbox copy

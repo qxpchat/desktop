@@ -217,15 +217,23 @@ async function registerSlot(rpc, n) {
 
 // ---- pair templates ----
 
+// Bump on any change to how templates are *built* (e.g. a new `set_config`
+// call in `configure()`, a different handshake order, a settled-state
+// threshold). Templates on disk that report an older version are treated
+// as missing and rebuilt — without this, `make test-accounts` would keep
+// stale snapshots and the new build path would never run.
+const MANIFEST_VERSION = 2;
+
 /** Read the templates manifest. Returns { version, templates: [...] } or
- *  a fresh empty manifest if the file is missing/unparseable. */
+ *  a fresh empty manifest if the file is missing, unparseable, or built
+ *  by an older version of this script. */
 async function readManifest() {
   try {
     const text = await readFile(MANIFEST_PATH, 'utf8');
     const parsed = JSON.parse(text);
-    if (parsed?.version === 1 && Array.isArray(parsed.templates)) return parsed;
+    if (parsed?.version === MANIFEST_VERSION && Array.isArray(parsed.templates)) return parsed;
   } catch { /* fall through */ }
-  return { version: 1, templates: [] };
+  return { version: MANIFEST_VERSION, templates: [] };
 }
 
 async function writeManifest(manifest) {
