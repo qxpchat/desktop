@@ -273,6 +273,7 @@ export const TID = {
   qrShowSvg: '[data-testid="qr-show__svg"]',
   qrShowUrl: '[data-testid="qr-show__url"]',
   qrShowCopy: '[data-testid="qr-show__copy"]',
+  qrShowCopyWebLink: '[data-testid="qr-show__copy-web-link"]',
   qrShowPaste: '[data-testid="qr-show__paste"]',
   qrShowWithdraw: '[data-testid="qr-show__withdraw"]',
 
