@@ -87,7 +87,21 @@
     void load();
   });
 
+  /** "Copy" sends the raw `openpgp4fpr:` (or `DCBACKUP:`, etc.) text
+   *  the daemon returned for this chat's QR. That's the universal form
+   *  every Delta-Chat-compatible client recognises when pasted into
+   *  its own "add via code" input — including non-qxp clients that
+   *  don't follow our custom invite-link host. */
   async function copy() {
+    if (!url) return;
+    await copyToClipboard(url, t('Code copied to clipboard'));
+  }
+
+  /** "Copy web-link" sends the human-friendly `https://qxp.chat/invite#…`
+   *  form — easier to share via email / chat bubble where a link
+   *  unfurls. qxp round-trips it on paste; other clients open it in a
+   *  browser, where qxp deep-links handle the install/open flow. */
+  async function copyWebLink() {
     if (!shareUrl) return;
     await copyToClipboard(shareUrl, t('Link copied to clipboard'));
   }
@@ -134,7 +148,10 @@
         {/if}
         <div class="actions">
           <Button variant="secondary" size="sm" onclick={copy} data-testid="qr-show__copy">
-            {t('Copy link')}
+            {t('Copy')}
+          </Button>
+          <Button variant="secondary" size="sm" onclick={copyWebLink} data-testid="qr-show__copy-web-link">
+            {t('Copy web-link')}
           </Button>
           <Button variant="secondary" size="sm" onclick={paste} data-testid="qr-show__paste">
             {t('Paste code')}
