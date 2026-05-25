@@ -10,14 +10,15 @@
   import Button from '../lib/Button.svelte';
   import { t } from '../lib/i18n/i18n.svelte';
 
-  // Subset of deltachat config keys this section manages.
+  // Subset of deltachat config keys this section manages. `delete_server_after`
+  // was removed in deltachat-core 2.50 — both `get_config` and the
+  // `estimate_auto_deletion_count(_, from_server=true, _)` helper now hard-
+  // error on it. The row + state were dropped accordingly.
   let mdnsEnabled = $state(false);
   let mediaQuality = $state('0'); // 0 = balanced, 1 = high
   let downloadLimit = $state('0'); // bytes; 0 = unlimited
   let deleteDeviceAfter = $state('0'); // seconds
-  let deleteServerAfter = $state('0'); // seconds
   let deviceCount = $state<number | null>(null);
-  let serverCount = $state<number | null>(null);
   let loaded = $state(false);
 
   onMount(load);
@@ -26,18 +27,16 @@
     if (accounts.selectedId == null) return;
     const id = accounts.selectedId;
     try {
-      const [mdns, mq, dl, dda, dsa] = await Promise.all([
+      const [mdns, mq, dl, dda] = await Promise.all([
         rpc.call<string | null>('get_config', [id, 'mdns_enabled']),
         rpc.call<string | null>('get_config', [id, 'media_quality']),
         rpc.call<string | null>('get_config', [id, 'download_limit']),
         rpc.call<string | null>('get_config', [id, 'delete_device_after']),
-        rpc.call<string | null>('get_config', [id, 'delete_server_after']),
       ]);
       mdnsEnabled = mdns === '1';
       mediaQuality = mq ?? '0';
       downloadLimit = dl ?? '0';
       deleteDeviceAfter = dda ?? '0';
-      deleteServerAfter = dsa ?? '0';
     } finally {
       loaded = true;
     }
@@ -61,16 +60,6 @@
         accounts.selectedId,
         false,
         Number(deleteDeviceAfter),
-      ])
-      .catch(() => 0);
-  }
-  async function previewDeleteServer() {
-    if (accounts.selectedId == null) return;
-    serverCount = await rpc
-      .call<number>('estimate_auto_deletion_count', [
-        accounts.selectedId,
-        true,
-        Number(deleteServerAfter),
       ])
       .catch(() => 0);
   }
@@ -130,13 +119,6 @@
         : t('Seconds; 0 = never.')}
       right={deviceDeleteRight}
     />
-    <SettingsRow
-      label={t('From server after')}
-      description={serverCount != null
-        ? t('Seconds; 0 = never. Would affect {count} messages.', { count: serverCount })
-        : t('Seconds; 0 = never.')}
-      right={serverDeleteRight}
-    />
   </SettingsSection>
 
   {#snippet deviceDeleteRight()}
@@ -149,18 +131,6 @@
       onchange={() => void setKey('delete_device_after', deleteDeviceAfter)}
     />
     <Button variant="secondary" size="sm" onclick={previewDeleteDevice}>{t('Preview')}</Button>
-  {/snippet}
-
-  {#snippet serverDeleteRight()}
-    <TextInput
-      class="cm-number"
-      type="number"
-      min="0"
-      align="right"
-      bind:value={deleteServerAfter}
-      onchange={() => void setKey('delete_server_after', deleteServerAfter)}
-    />
-    <Button variant="secondary" size="sm" onclick={previewDeleteServer}>{t('Preview')}</Button>
   {/snippet}
 {/if}
 
