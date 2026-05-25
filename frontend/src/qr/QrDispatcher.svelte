@@ -13,6 +13,7 @@
   import BackButton from '../lib/BackButton.svelte';
   import TextInput from '../lib/TextInput.svelte';
   import { copyToClipboard } from '../lib/clipboard';
+  import { fromQxpInviteUrl } from '../lib/inviteUrl';
   import { t } from '../lib/i18n/i18n.svelte';
 
   type Props = {
@@ -60,8 +61,12 @@
     errorMsg = null;
     busy = true;
     try {
-      const obj = await rpc.call<QrObject>('check_qr', [accounts.selectedId, raw]);
-      qr = { raw, obj };
+      // qxp-branded invite URLs (`https://qxp.chat/invite/#…`) must be
+      // rewritten to OPENPGP4FPR before dc-core's `check_qr` sees them;
+      // every other scheme it already recognises natively.
+      const code = fromQxpInviteUrl(raw);
+      const obj = await rpc.call<QrObject>('check_qr', [accounts.selectedId, code]);
+      qr = { raw: code, obj };
     } catch (err) {
       errorMsg = `Could not parse QR: ${err instanceof Error ? err.message : String(err)}`;
       scannerKey += 1;

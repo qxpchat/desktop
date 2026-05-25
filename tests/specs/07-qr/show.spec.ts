@@ -1,8 +1,9 @@
 // Phase 7 — show own QR.
 //
 // Click the QR footer button in nav-tabs. QrShow opens, renders an
-// SVG, and the URL line carries the qxp-hosted invite link
-// (https://qxp.chat/invite/#…), rewritten from the daemon QR.
+// SVG, and the URL line carries the qxp-branded invite landing link
+// (`https://qxp.chat/invite/#…`), derived client-side from the raw
+// OPENPGP4FPR URI returned by the daemon.
 
 import { test, expect } from '../../fixtures/app-paired.js';
 import { TID } from '../../helpers/selectors.js';

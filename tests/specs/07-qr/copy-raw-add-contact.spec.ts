@@ -1,11 +1,12 @@
 // Phase 7 — full round-trip from QrShow's "Copy" button into another
 // account's add-contact flow.
 //
-// QrShow has two copy actions:
-//   - "Copy" → raw `openpgp4fpr:…` URI (universal — every DC client
-//      can paste it into its own add-contact input).
-//   - "Copy web-link" → `https://qxp.chat/invite#…` (round-trippable
-//      back to OPENPGP4FPR by `fromInviteLink` on paste).
+// QrShow has two copy actions, both derived from the raw OPENPGP4FPR
+// URI the daemon returns:
+//   - "Copy" → bare `OPENPGP4FPR:…` URI (universal — every DC client
+//      accepts it in its add-contact input).
+//   - "Copy web-link" → canonical `https://i.delta.chat/#…` URL (same
+//      payload, link-friendly).
 //
 // This locks in the contract: copy → switch to a brand-new account →
 // open the QR scanner → paste from clipboard → dc-core's `check_qr`
@@ -40,7 +41,17 @@ test('Copy / Copy web-link round-trip into another account as askVerifyContact',
   const secondId = await provisionSecondAccount(mainRpc, 'Second');
 
   // ---- 1. On account A: open Show QR + grab both copy outputs. ----
+  // First expand the rail (tiles + QR-show button live there).
   await page.locator(TID.chatListBurger).click();
+  // dc-core's `add_account` auto-selects the new account (see
+  // `accounts.rs:new_account`). We restore the daemon's selected
+  // account in `provisionSecondAccount`, but that path doesn't fire an
+  // `AccountsItemChanged` event, so the SPA's mirror (`accounts.selectedId`)
+  // can still be stuck on `secondId`. Click the firstId tile to drive
+  // the resync through the same path real users take — otherwise the
+  // QR rendered below would belong to `secondId`, and `check_qr` would
+  // return `withdrawVerifyContact` (the QR is its own).
+  await page.locator(TID.navTabsAccountById(firstId)).click();
   await page.locator(TID.navTabsQrShow).click();
   // Bumped timeout — when this test follows a fresh `provisionSecondAccount`,
   // the daemon's `get_chat_securejoin_qr_code_svg` round-trip is slower
@@ -49,26 +60,26 @@ test('Copy / Copy web-link round-trip into another account as askVerifyContact',
 
   await page.locator(TID.qrShowCopy).click();
   const rawCode = (await page.evaluate(() => navigator.clipboard.readText())).trim();
-  // dc-core's `get_chat_securejoin_qr_code_svg` returns the invite URL
-  // in either of two universal forms — bare `openpgp4fpr:` or the
-  // `https://i.delta.chat/#…` mirror — both of which `check_qr`
-  // recognises directly. The "Copy" button just hands that through.
-  expect(rawCode).toMatch(/^(openpgp4fpr:|https:\/\/i\.delta\.chat\/)/i);
+  // "Copy" produces the raw OPENPGP4FPR URI — what dc-core emits and
+  // every DC-compatible client recognises directly in its add-contact
+  // paste box.
+  expect(rawCode).toMatch(/^OPENPGP4FPR:/i);
 
   await page.locator(TID.qrShowCopyWebLink).click();
   const webLink = (await page.evaluate(() => navigator.clipboard.readText())).trim();
-  expect(webLink).toMatch(/^https:\/\/qxp\.chat\/invite\/?#/);
+  // "Copy web-link" produces the qxp-branded landing URL, derived
+  // client-side from the raw URI.
+  expect(webLink).toMatch(/^https:\/\/qxp\.chat\/invite\/#/);
 
   // ---- 2. Drive both forms through the second account's check_qr. ----
-  // Raw form is universally accepted (openpgp4fpr or i.delta.chat —
-  // dc-core handles both as `askVerifyContact`). Web-link is
-  // qxp-specific: dc-core doesn't know about the `qxp.chat/invite#`
-  // host, so we mimic QrShow's `fromInviteLink` rewrite before
-  // calling check_qr.
+  // Raw URI parses directly; the qxp invite URL must first be rewritten
+  // back to OPENPGP4FPR (production does this via `fromQxpInviteUrl`).
   const parsedRaw = await mainRpc.call<{ kind: string }>('check_qr', [secondId, rawCode]);
   expect(parsedRaw.kind).toBe('askVerifyContact');
 
-  const rewritten = `OPENPGP4FPR:${webLink.replace(/^https:\/\/qxp\.chat\/invite\/?#/i, '').replace('&', '#')}`;
+  const rewritten = `OPENPGP4FPR:${webLink
+    .replace(/^https:\/\/qxp\.chat\/invite\/?#/i, '')
+    .replace('&', '#')}`;
   const parsedWeb = await mainRpc.call<{ kind: string }>('check_qr', [secondId, rewritten]);
   expect(parsedWeb.kind).toBe('askVerifyContact');
 });

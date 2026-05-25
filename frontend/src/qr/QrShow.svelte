@@ -7,6 +7,7 @@
   import BackButton from '../lib/BackButton.svelte';
   import ConfirmDialog from '../lib/ConfirmDialog.svelte';
   import { copyToClipboard } from '../lib/clipboard';
+  import { toQxpInviteUrl, fromQxpInviteUrl } from '../lib/inviteUrl';
   import { t } from '../lib/i18n/i18n.svelte';
 
   type Props = {
@@ -16,65 +17,31 @@
 
   let { chatId = null }: Props = $props();
 
-  /** qxp-hosted invite landing page (see relay www/src/invite.md). */
-  const INVITE_BASE = 'https://qxp.chat/invite/';
-
   let svg = $state<string | null>(null);
-  /** Raw QR string from the daemon — kept verbatim for set_config_from_qr. */
+  /** Raw QR string from the daemon — the canonical `OPENPGP4FPR:<fpr>#<params>`
+   *  URI. Universal: every Delta-Chat-compatible client recognises it
+   *  in its add-contact paste box. */
   let url = $state<string | null>(null);
   let error = $state<string | null>(null);
   let withdrawOpen = $state(false);
   let pasteResult = $state<string | null>(null);
 
-  /**
-   * Rewrite the daemon QR string into a qxp-hosted invite link. The daemon
-   * returns either `OPENPGP4FPR:<fpr>#<params>` or the Delta-Chat-operated
-   * `https://i.delta.chat/#<fpr>&<params>` mirror; both carry the same
-   * payload. The invite page parses `#<fpr>&<params>`, so:
-   *  - i.delta.chat mirror → swap origin, hash is already compatible.
-   *  - openpgp4fpr scheme  → drop the scheme, turn the `#` separator into `&`.
-   * Anything unrecognised is passed through untouched.
-   */
-  function toInviteLink(raw: string): string {
-    const mirror = /^https:\/\/i\.delta\.chat\/#?/i;
-    if (mirror.test(raw)) {
-      return raw.replace(mirror, `${INVITE_BASE}#`);
-    }
-    const fpr = /^openpgp4fpr:/i;
-    if (fpr.test(raw)) {
-      return `${INVITE_BASE}#${raw.replace(fpr, '').replace('#', '&')}`;
-    }
-    return raw;
-  }
-
-  /** What the user sees, copies and shares — always the qxp invite link. */
-  let shareUrl = $derived(url ? toInviteLink(url) : null);
-
-  /**
-   * Inverse of toInviteLink: turn a qxp invite link back into the
-   * `OPENPGP4FPR:` scheme that the daemon's check_qr understands. Used on
-   * paste so a link copied from another qxp install round-trips. Non-qxp
-   * input (raw openpgp4fpr, i.delta.chat, dclogin, …) passes straight to
-   * the daemon, which already recognises those.
-   */
-  function fromInviteLink(text: string): string {
-    const base = /^https:\/\/qxp\.chat\/invite\/?#/i;
-    if (base.test(text)) {
-      return `OPENPGP4FPR:${text.replace(base, '').replace('&', '#')}`;
-    }
-    return text;
-  }
+  /** qxp-branded invite landing URL, derived from the raw OPENPGP4FPR
+   *  URI. Shareable link that opens in any browser; round-trippable
+   *  back to OPENPGP4FPR via `fromQxpInviteUrl` for `check_qr`. */
+  let webLink = $derived(url ? toQxpInviteUrl(url) : null);
 
   async function load() {
     if (accounts.selectedId == null) return;
     error = null;
     try {
-      // Daemon returns (qr_url, svg_markup) — note the order is URL first.
-      const [qrUrl, qrSvg] = await rpc.call<[string, string]>(
-        'get_chat_securejoin_qr_code_svg',
-        [accounts.selectedId, chatId],
-      );
-      url = qrUrl;
+      // Raw QR text first (`OPENPGP4FPR:<fpr>#<params>` per the qxp
+      // dc-core fork), then a separately-rendered SVG of *that text*.
+      // Encoding the OPENPGP4FPR URI in the QR — not a wrapped URL —
+      // keeps every DC-compatible scanner / paste box happy.
+      const raw = await rpc.call<string>('get_chat_securejoin_qr_code', [accounts.selectedId, chatId]);
+      const qrSvg = await rpc.call<string>('create_qr_svg', [raw]);
+      url = raw;
       svg = qrSvg;
     } catch (err) {
       error = err instanceof Error ? err.message : String(err);
@@ -87,31 +54,32 @@
     void load();
   });
 
-  /** "Copy" sends the raw `openpgp4fpr:` (or `DCBACKUP:`, etc.) text
-   *  the daemon returned for this chat's QR. That's the universal form
-   *  every Delta-Chat-compatible client recognises when pasted into
-   *  its own "add via code" input — including non-qxp clients that
-   *  don't follow our custom invite-link host. */
+  /** "Copy" sends the raw `OPENPGP4FPR:` URI. Universal across every
+   *  Delta-Chat-compatible client's add-contact input. */
   async function copy() {
     if (!url) return;
     await copyToClipboard(url, t('Code copied to clipboard'));
   }
 
-  /** "Copy web-link" sends the human-friendly `https://qxp.chat/invite#…`
-   *  form — easier to share via email / chat bubble where a link
-   *  unfurls. qxp round-trips it on paste; other clients open it in a
-   *  browser, where qxp deep-links handle the install/open flow. */
+  /** "Copy web-link" sends the qxp-branded `https://qxp.chat/invite/#…`
+   *  URL — same payload, link-friendly, opens a qxp landing page in
+   *  any browser. */
   async function copyWebLink() {
-    if (!shareUrl) return;
-    await copyToClipboard(shareUrl, t('Link copied to clipboard'));
+    if (!webLink) return;
+    await copyToClipboard(webLink, t('Link copied to clipboard'));
   }
 
   async function paste() {
     try {
       const text = await navigator.clipboard.readText();
       if (text && accounts.selectedId != null) {
-        const qr = fromInviteLink(text.trim());
-        const obj = await rpc.call<{ kind: string }>('check_qr', [accounts.selectedId, qr]);
+        // dc-core's `check_qr` natively accepts OPENPGP4FPR,
+        // i.delta.chat, dclogin, dcaccount — but not our branded
+        // `qxp.chat/invite/#…` host. `fromQxpInviteUrl` rewrites
+        // qxp invite URLs back to OPENPGP4FPR before the round-trip;
+        // anything else passes through.
+        const code = fromQxpInviteUrl(text.trim());
+        const obj = await rpc.call<{ kind: string }>('check_qr', [accounts.selectedId, code]);
         pasteResult = `${t('Scanned')}: ${obj.kind}`;
       }
     } catch (err) {
@@ -143,8 +111,8 @@
       <div class="card" data-testid="qr-show__card">
         <!-- daemon-trusted SVG; safe to render -->
         <div class="svg-wrap" data-testid="qr-show__svg">{@html svg}</div>
-        {#if shareUrl}
-          <p class="url" title={shareUrl} data-testid="qr-show__url">{shareUrl}</p>
+        {#if webLink}
+          <p class="url" title={webLink} data-testid="qr-show__url">{webLink}</p>
         {/if}
         <div class="actions">
           <Button variant="secondary" size="sm" onclick={copy} data-testid="qr-show__copy">
