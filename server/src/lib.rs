@@ -69,13 +69,13 @@ pub async fn run(config: DaemonConfig) -> Result<()> {
             HeaderValue::from_static("tauri://localhost"),
             HeaderValue::from_static("http://tauri.localhost"),
         ])
-        .allow_methods([Method::GET, Method::POST])
+        .allow_methods([Method::GET, Method::POST, Method::DELETE])
         .allow_headers([CONTENT_TYPE]);
 
     let app = Router::new()
         .route("/ws", get(ws::handler))
         .route("/upload", post(upload::handler))
-        .route("/file", get(file::handler))
+        .route("/file", get(file::handler).delete(file::delete_handler))
         .layer(cors)
         .with_state(AppState {
             api,

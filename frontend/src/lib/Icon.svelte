@@ -49,6 +49,14 @@
       '<polyline points="15 17 20 12 15 7"/><path d="M4 18v-2a4 4 0 0 1 4-4h12"/>',
     'copy':
       '<rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/>',
+    // GIF picker. Drawn as a filled "chip" with the literal letters GIF —
+    // mirrors Signal/Discord/iMessage rather than reusing a generic play-
+    // arrow glyph that reads as "video". The rect uses `currentColor`; the
+    // text fill is wired to `--color-bg-elevated` via inline style so it
+    // stays legible on both light and dark themes (where the surrounding
+    // IconButton paints `currentColor` mid-gray either way).
+    'gif':
+      '<rect x="2" y="6" width="20" height="12" rx="2.5" fill="currentColor" stroke="none"/><text x="12" y="14.5" text-anchor="middle" font-size="7" font-weight="800" font-family="system-ui, -apple-system, sans-serif" stroke="none" style="fill: var(--color-bg-elevated)">GIF</text>',
     'smile-plus':
       '<path d="M22 11v1a10 10 0 1 1-9-10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" x2="9.01" y1="9" y2="9"/><line x1="15" x2="15.01" y1="9" y2="9"/><path d="M16 5h6"/><path d="M19 2v6"/>',
     'smile':

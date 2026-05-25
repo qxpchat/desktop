@@ -20,6 +20,7 @@ import { onEvent } from '../events';
 import { selectChat, selection } from '../state/selection.svelte';
 import { accounts } from '../state/accounts.svelte';
 import { isAccountMuted } from '../prefs.svelte';
+import { gifLabelOr } from '../gifs/giphy';
 import { QXP_LOGO_PATH_D, QXP_LOGO_VIEWBOX_SIZE } from '../qxpLogoPath';
 
 const PERM_ASKED_KEY = 'qxp.web.notifPermAsked';
@@ -189,12 +190,15 @@ export function startIncomingNotifications(): void {
       if (chat.isMuted || chat.isSelfTalk || chat.isDeviceChat) return;
 
       const title = chat.name || '(no name)';
+      // Giphy GIFs travel as plain-text messages whose body is the URL;
+      // `gifLabelOr` swaps the cdn URL for the localised "GIF" label so the
+      // banner mirrors core's "Image" / "Video" summary for real
+      // attachments instead of leaking the URL.
+      const summary = gifLabelOr(info.summaryText);
       // `summaryPrefix` is the sender name in groups — prepend it so the
       // body reads "Alice: hello"; in 1:1s it's null and the text stands
-      // alone. `summaryText` is the message preview (or a media label).
-      const body = info.summaryPrefix
-        ? `${info.summaryPrefix}: ${info.summaryText}`
-        : info.summaryText;
+      // alone.
+      const body = info.summaryPrefix ? `${info.summaryPrefix}: ${summary}` : summary;
       const tag = `${accountId}-${chatId}`;
 
       pushPending({ accountId, chatId, firedAt: Date.now() });

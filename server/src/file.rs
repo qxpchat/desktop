@@ -1,4 +1,7 @@
 //! `GET /file?path=<absolute-path>` — streams a file from disk.
+//! `DELETE /file?path=<absolute-path>` — removes a file from disk. Used by
+//! the GIF cache cleanup flow to drop a cached `.gif` when the user deletes
+//! it from the recents panel.
 //!
 //! Used by the frontend to display avatars / image attachments / files /
 //! voice notes whose paths come back as daemon-side filesystem paths from
@@ -70,6 +73,29 @@ pub async fn handler(
     );
 
     Ok(response)
+}
+
+pub async fn delete_handler(
+    State(state): State<AppState>,
+    Query(params): Query<FileParams>,
+) -> Result<StatusCode, (StatusCode, String)> {
+    let req_path = Path::new(&params.path);
+    let canonical_req = tokio::fs::canonicalize(req_path)
+        .await
+        .map_err(|e| (StatusCode::NOT_FOUND, e.to_string()))?;
+    let canonical_root = tokio::fs::canonicalize(state.accounts_dir.as_ref())
+        .await
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+    if !canonical_req.starts_with(&canonical_root) {
+        return Err((
+            StatusCode::FORBIDDEN,
+            "path outside accounts directory".into(),
+        ));
+    }
+    tokio::fs::remove_file(&canonical_req)
+        .await
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+    Ok(StatusCode::NO_CONTENT)
 }
 
 fn mime_for(path: &Path) -> &'static str {

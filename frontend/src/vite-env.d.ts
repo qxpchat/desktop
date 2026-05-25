@@ -9,4 +9,8 @@ interface ImportMetaEnv {
    *  Unset in production builds (falls back to `qxp.chat`); set by the
    *  E2E suite to register on a shared test relay instead. */
   readonly VITE_DEFAULT_RELAY?: string;
+  /** Giphy API key used by the GIF picker. Falls back to Giphy's public
+   *  beta key when unset — fine for development, heavily rate-limited in
+   *  production. */
+  readonly VITE_GIPHY_API_KEY?: string;
 }

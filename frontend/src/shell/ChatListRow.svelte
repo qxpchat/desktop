@@ -8,6 +8,7 @@
   import InlineMarkdown from '../lib/InlineMarkdown.svelte';
   import { liveLocations } from '../lib/state/liveLocations.svelte';
   import { windowFocus } from '../lib/state/windowFocus.svelte';
+  import { gifLabelOr } from '../lib/gifs/giphy';
   import { t } from '../lib/i18n/i18n.svelte';
 
   type Props = {
@@ -23,10 +24,12 @@
   let displayName = $derived(chat.name.length > 0 ? chat.name : t('(no name)'));
   let timestamp = $derived(formatRelativeTimestamp(chat.lastUpdated));
 
+  // Swap the raw giphy URL that lands in `summaryText2` for GIF messages
+  // (we send them as plain-text with the URL as body) for a media-style
+  // label, matching how core summarises real Image attachments.
+  let summaryBody = $derived(gifLabelOr(chat.summaryText2));
   let preview = $derived(
-    chat.summaryText1.length > 0
-      ? `${chat.summaryText1}: ${chat.summaryText2}`
-      : chat.summaryText2,
+    chat.summaryText1.length > 0 ? `${chat.summaryText1}: ${summaryBody}` : summaryBody,
   );
 
   let title = $derived(narrow ? `${displayName}${preview ? ' — ' + preview : ''}` : '');

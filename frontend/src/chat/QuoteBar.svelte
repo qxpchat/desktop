@@ -1,5 +1,6 @@
 <script lang="ts">
   import type { Message } from '../lib/state/chat.svelte';
+  import { gifLabelOr } from '../lib/gifs/giphy';
   import { t } from '../lib/i18n/i18n.svelte';
   import IconButton from '../lib/IconButton.svelte';
 
@@ -21,7 +22,10 @@
 
   let preview = $derived.by(() => {
     if (!target) return '';
-    if (target.text) return target.text;
+    // `gifLabelOr` swaps a bare giphy URL for the localised "🎬 GIF" label
+    // and passes everything else through unchanged — covers the Text+URL
+    // case without a separate branch here.
+    if (target.text) return gifLabelOr(target.text);
     switch (target.viewType) {
       case 'Image':
       case 'Gif':

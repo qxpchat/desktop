@@ -17,6 +17,14 @@
   import { openChatByEmail } from '../lib/chatActions';
   import { openFullMessage } from '../lib/state/fullMessage.svelte';
   import { detectYouTubeId } from '../lib/format/youtube';
+  import { fileUrl } from '../lib/files';
+  import { gifLabelOr, isGiphyUrl } from '../lib/gifs/giphy';
+  import { cacheGif } from '../lib/gifs/cache';
+  import {
+    getRecent,
+    markGifMessageSeen,
+    recordGifUse,
+  } from '../lib/gifs/recents.svelte';
   import { t } from '../lib/i18n/i18n.svelte';
 
   type Props = {
@@ -167,14 +175,26 @@
   }
 
 
+  // A Text message whose entire body is a giphy URL gets rendered inline as
+  // an animated image. It rides the same `.media` bubble chrome as real
+  // Image attachments so the styling reads identically — flush edges, meta
+  // floating over the bottom-right of the image.
+  let isGifMessage = $derived(
+    message.viewType === 'Text' && isGiphyUrl(message.text ?? ''),
+  );
+
   // Bubble width / shape for media-only.
   let mediaBubble = $derived(
-    message.viewType === 'Image' || message.viewType === 'Gif' || message.viewType === 'Video',
+    message.viewType === 'Image' ||
+      message.viewType === 'Gif' ||
+      message.viewType === 'Video' ||
+      isGifMessage,
   );
   /** True when the bubble is media (image/video) without a caption — the meta
    *  row floats over the bottom-right corner of the image instead of sitting
-   *  in its own padded section below. */
-  let mediaOnly = $derived(mediaBubble && !message.text);
+   *  in its own padded section below. Giphy GIFs always count as caption-less
+   *  (their `text` is the URL, not a user-authored caption). */
+  let mediaOnly = $derived(mediaBubble && (isGifMessage || !message.text));
   /** Cells that render their own inline caption (audio/voice/vcard/file/location).
    *  Image and video render flush in the bubble and let MessageBubble own the
    *  caption text below. */
@@ -217,9 +237,61 @@
     }
   });
 
+  // Inline GIF rendering state. `isGifMessage` is computed earlier so it can
+  // feed into `mediaBubble` / `mediaOnly`; here we just need the resolved
+  // local path (or load error) for the actual <img>.
+  let gifLocalPath = $state<string | null>(null);
+  let gifError = $state<string | null>(null);
+
+  $effect(() => {
+    if (!isGifMessage) {
+      gifLocalPath = null;
+      gifError = null;
+      return;
+    }
+    const url = (message.text ?? '').trim();
+    const accountId = chat.active?.accountId;
+    if (accountId == null) return;
+
+    // Reuse a previously-cached path from recents when available — both
+    // the picker and prior renders populate it, so common-case render is
+    // a single recents lookup.
+    const existing = getRecent(accountId, url);
+    if (existing?.localPath) {
+      gifLocalPath = existing.localPath;
+      if (markGifMessageSeen(accountId, message.id)) {
+        recordGifUse(accountId, {
+          url,
+          term: existing.term,
+          localPath: existing.localPath,
+        });
+      }
+      return;
+    }
+
+    let cancelled = false;
+    (async () => {
+      try {
+        const path = await cacheGif(url);
+        if (cancelled) return;
+        gifLocalPath = path;
+        if (markGifMessageSeen(accountId, message.id)) {
+          recordGifUse(accountId, { url, term: '', localPath: path });
+        }
+      } catch (e) {
+        if (cancelled) return;
+        gifError = e instanceof Error ? e.message : String(e);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  });
+
   // Surface an inline player for any YouTube link found in the body. We
   // only embed when the bubble isn't itself a media bubble — image/video
-  // attachments already dominate, and showing both would be noisy.
+  // attachments already dominate, and showing both would be noisy. (Giphy
+  // GIF messages already flip `mediaBubble` true, so this gate covers them.)
   let youtubeId = $derived(
     mediaBubble || jumbo ? null : detectYouTubeId(message.text ?? ''),
   );
@@ -316,7 +388,7 @@
                 {quote.authorDisplayName}
               </span>
             {/if}
-            <span class="quote-text">{quote.text}</span>
+            <span class="quote-text">{gifLabelOr(quote.text)}</span>
           </span>
         </button>
       {/if}
@@ -345,7 +417,25 @@
         <YouTubeEmbed videoId={youtubeId} />
       {/if}
 
-      {#if message.text && !cellOwnsText}
+      {#if isGifMessage}
+        {#if gifLocalPath}
+          <img
+            class="gif"
+            src={fileUrl(gifLocalPath)}
+            alt={t('GIF')}
+            data-testid="message-bubble__gif"
+          />
+        {:else if gifError}
+          <div class="gif-failed" data-testid="message-bubble__gif-failed">
+            <Icon name="alert-circle" size={16} />
+            <span>{t('GIF unavailable')}</span>
+          </div>
+        {:else}
+          <div class="gif-loading" data-testid="message-bubble__gif-loading">
+            <Icon name="loader" size={18} />
+          </div>
+        {/if}
+      {:else if message.text && !cellOwnsText}
         <div class="text" data-testid="message-bubble__text">
           {#each linkify(message.text) as seg, i (i)}
             {#if seg.kind === 'link'}
@@ -659,6 +749,31 @@
     opacity: 0.75;
     font-style: italic;
     margin-bottom: 2px;
+  }
+  /* Inline GIF — `isGifMessage` flips the bubble into `.media` chrome
+   * (padding 0, overflow hidden), so this <img> is allowed to bleed to the
+   * bubble edges. Matches `cells/ImageCell.svelte`'s rule shape so a real
+   * Image attachment and a giphy GIF look identical in the timeline. */
+  .gif {
+    display: block;
+    width: 100%;
+    max-height: 50vh;
+    object-fit: cover;
+    background: var(--color-bg-hover);
+    border-radius: 0;
+  }
+  .gif-loading,
+  .gif-failed {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: var(--space-3);
+    color: var(--color-fg-tertiary);
+    font-size: var(--text-sm);
+  }
+  .gif-loading :global(svg) {
+    animation: spin 1.2s linear infinite;
   }
   .text {
     white-space: pre-wrap;
