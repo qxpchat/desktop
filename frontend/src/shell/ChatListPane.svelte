@@ -231,8 +231,17 @@
       {/each}
 
       {#if !hasResults && !chatlist.loading}
-        <li class="empty">
-          {isFiltered ? t('No conversations match.') : t('No conversations yet.')}
+        <li class="empty" data-testid="chat-list-empty">
+          {#if isFiltered}
+            {t('No conversations match.')}
+          {:else if archive}
+            <!-- Empty-archive hint is distinct from empty-inbox: it
+                 tells the user nothing has been archived yet, and that
+                 archive is the place to find chats they actively hide. -->
+            {t('No archived conversations. Long-press or right-click a chat in the inbox to archive it.')}
+          {:else}
+            {t('No conversations yet.')}
+          {/if}
         </li>
       {/if}
 
