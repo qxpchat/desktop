@@ -36,6 +36,7 @@ export const TID = {
   chatListSearch: '[data-testid="chat-list-search"]',
   chatListArchiveLink: '[data-testid="chat-list-archive-link"]',
   chatListArchiveBack: '[data-testid="chat-list-archive-back"]',
+  chatListEmpty: '[data-testid="chat-list-empty"]',
   composeButton: '[data-testid="compose-button"]',
 
   // -- Compose pane (new conversation) --
