@@ -30,6 +30,7 @@
   import ProgressOverlay from './ProgressOverlay.svelte';
   import BackButton from '../lib/BackButton.svelte';
   import { loginFromQr, onboarding } from '../lib/state/onboarding.svelte';
+  import { fromQxpInviteUrl } from '../lib/inviteUrl';
   import { t } from '../lib/i18n/i18n.svelte';
 
   type Props = {
@@ -54,14 +55,19 @@
   let scanning = $derived(onboarding.phase.kind === 'idle');
 
   function isInviteCode(lower: string, raw: string): boolean {
-    // Both `openpgp4fpr:` URIs and `i.delta.chat` HTTPS invite URLs
-    // carry the same invite params (`i=` invitenumber, `s=` authcode).
+    // Invite codes carry both an `i=` invitenumber and an `s=` authcode.
     // A bare openpgp4fpr fingerprint (no params) is *not* an invite —
-    // it's just a contact verify code with no auth grant.
+    // it's just a contact verify code with no auth grant. Three host
+    // forms qxp may see in the wild: the OPENPGP4FPR URI, the upstream
+    // `i.delta.chat` URL (legacy QRs scanned in the wild), and qxp's
+    // own `qxp.chat/invite` landing URL.
     if (lower.startsWith('openpgp4fpr:')) {
       return /[?&]i=/.test(raw);
     }
-    if (lower.startsWith('https://i.delta.chat/')) {
+    if (
+      lower.startsWith('https://i.delta.chat/') ||
+      lower.startsWith('https://qxp.chat/invite')
+    ) {
       return /[?&#]i=/.test(raw);
     }
     return false;
@@ -88,7 +94,10 @@
     }
     if (isInviteCode(lower, code)) {
       errorMsg = null;
-      onInvite(code);
+      // dc-core's `check_qr` (and `secure_join` downstream) doesn't
+      // recognise the qxp.chat invite-URL host, so rewrite back to
+      // OPENPGP4FPR before forwarding. Non-qxp URLs pass through.
+      onInvite(fromQxpInviteUrl(code));
       return;
     }
     errorMsg = t('That is not a sign-up code.');
