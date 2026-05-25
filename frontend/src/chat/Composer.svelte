@@ -20,9 +20,12 @@
   import AttachmentBar from './AttachmentBar.svelte';
   import ContactPickerModal from './ContactPickerModal.svelte';
   import EmojiPicker from './EmojiPicker.svelte';
+  import GifPicker from './GifPicker.svelte';
+  import GifPendingPill from './GifPendingPill.svelte';
   import QuoteBar from './QuoteBar.svelte';
   import IconButton from '../lib/IconButton.svelte';
   import ConfirmDialog from '../lib/ConfirmDialog.svelte';
+  import { cacheGif } from '../lib/gifs/cache';
   import { t } from '../lib/i18n/i18n.svelte';
 
   let text = $state('');
@@ -30,6 +33,9 @@
   let textarea: HTMLTextAreaElement | undefined = $state();
   let attachOpen = $state(false);
   let emojiOpen = $state(false);
+  let gifPickerOpen = $state(false);
+  let gifCaching = $state(false);
+  let pendingGif = $state<{ url: string; term: string; localPath: string } | null>(null);
   let contactPickerOpen = $state(false);
   // Shared alert-dialog message — replaces native `alert()`.
   let notice = $state<string | null>(null);
@@ -104,16 +110,55 @@
   let canSend = $derived(
     !sending &&
       chat.active != null &&
-      (text.trim().length > 0 || pendingAttachments.length > 0),
+      (text.trim().length > 0 || pendingAttachments.length > 0 || pendingGif != null),
   );
+
+  // Switching chats while a GIF is staged would otherwise leak the
+  // selection across — clear it so the new chat starts clean.
+  $effect(() => {
+    void activeKey;
+    pendingGif = null;
+  });
+
+  // Drop a chosen GIF into the local cache and stage it as a pending pill.
+  // Cache + record happen here so the pill thumbnail is the same file the
+  // outgoing message will resolve to in the chat.
+  async function onPickGif(g: { url: string; term: string }) {
+    gifPickerOpen = false;
+    if (chat.active == null) return;
+    gifCaching = true;
+    try {
+      const localPath = await cacheGif(g.url);
+      pendingGif = { url: g.url, term: g.term, localPath };
+    } catch (err) {
+      notice = `${t('Could not fetch GIF')}: ${err instanceof Error ? err.message : String(err)}`;
+    } finally {
+      gifCaching = false;
+    }
+  }
 
   async function send() {
     if (!canSend) return;
     const atts = pendingAttachments;
+    const gif = pendingGif;
     const toSend = text;
     sending = true;
     try {
-      if (atts.length > 0) {
+      if (gif) {
+        // GIFs travel as plain-text messages — the body is the giphy URL,
+        // which the receiver's MessageBubble re-resolves to a cached file
+        // for inline animation. Caption and reply ride a separate text
+        // message after the GIF so the URL stays a single segment (the
+        // bubble's gif detector requires it).
+        pendingGif = null;
+        const trimmed = toSend.trim();
+        const replyToFirst = chat.replyToId ?? undefined;
+        await sendMessage({ viewtype: 'Text', text: gif.url, quotedMessageId: replyToFirst });
+        if (trimmed.length > 0) {
+          await sendMessage({ viewtype: 'Text', text: trimmed });
+        }
+        if (chat.replyToId != null) setReplyTo(null);
+      } else if (atts.length > 0) {
         const trimmed = toSend.trim();
         // deltachat is one-file-per-message: fan the staged files out into
         // N messages. The caption and the reply quote ride the first
@@ -392,6 +437,9 @@
   {#each pendingAttachments as att, i (i)}
     <AttachmentBar attachment={att} onClose={() => removePendingAttachment(i)} />
   {/each}
+  {#if pendingGif}
+    <GifPendingPill gif={pendingGif} onClose={() => (pendingGif = null)} />
+  {/if}
   <div class="composer" data-testid="composer">
   {#if recording}
     <IconButton
@@ -448,6 +496,18 @@
     data-testid="composer__textarea"
   ></textarea>
 
+  <IconButton
+    variant="subtle"
+    icon="gif"
+    iconSize={20}
+    label={t('Insert GIF')}
+    title={t('GIF')}
+    aria-expanded={gifPickerOpen}
+    active={gifPickerOpen}
+    onclick={() => (gifPickerOpen = true)}
+    disabled={chat.active == null || gifCaching}
+    data-testid="composer__gif"
+  />
   <div class="emoji-wrap">
     <IconButton
       variant="subtle"
@@ -468,7 +528,7 @@
     />
   </div>
 
-  {#if text.trim().length === 0 && pendingAttachments.length === 0}
+  {#if text.trim().length === 0 && pendingAttachments.length === 0 && pendingGif == null}
     {#if voiceSupported}
       <IconButton
         variant="subtle"
@@ -502,6 +562,13 @@
   open={contactPickerOpen}
   onPick={(id) => void shareContact(id)}
   onClose={() => (contactPickerOpen = false)}
+/>
+
+<GifPicker
+  open={gifPickerOpen}
+  accountId={chat.active?.accountId ?? null}
+  onPick={onPickGif}
+  onClose={() => (gifPickerOpen = false)}
 />
 
 <ConfirmDialog

@@ -72,6 +72,10 @@ jobs:
         uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # Baked into the Vite bundle at build time. Falls back to Giphy's
+          # rate-limited public beta key when unset, which is fine for PR
+          # previews but not for shipped releases.
+          VITE_GIPHY_API_KEY: ${{ secrets.VITE_GIPHY_API_KEY }}
         with:
           projectPath: src-tauri
           tagName: ${{ github.ref_name }}

@@ -12,6 +12,10 @@ src-tauri/gen/
 frontend/node_modules/
 frontend/dist/
 frontend/.vite/
+# Local-only env (API keys, personal overrides). Committed `.env`
+# defaults still ride along; only `.local` variants stay out of git.
+frontend/.env.local
+frontend/.env.*.local
 
 # Local accounts dir (created by `cargo run`)
 qxp-web-accounts/

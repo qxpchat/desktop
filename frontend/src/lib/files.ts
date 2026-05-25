@@ -28,6 +28,19 @@ export function formatBytes(n: number): string {
   return `${v.toFixed(v < 10 && i > 0 ? 1 : 0)} ${units[i]}`;
 }
 
+/** Remove a daemon-side file via `DELETE /file?path=…`. Used by the GIF
+ *  recents-panel cleanup flow. Resolves on 2xx; throws otherwise. A
+ *  404-as-success would be just as defensible (the post-delete state is the
+ *  same) — surfacing it instead lets the caller decide. */
+export async function deleteDaemonFile(daemonPath: string): Promise<void> {
+  const res = await fetch(`${daemonOrigin()}/file?path=${encodeURIComponent(daemonPath)}`, {
+    method: 'DELETE',
+  });
+  if (!res.ok) {
+    throw new Error(`delete failed: ${res.status} ${res.statusText}`);
+  }
+}
+
 /** Stream a Blob to `POST /upload?ext=…` and return the daemon-side path. */
 export async function uploadBlob(blob: Blob, ext: string): Promise<string> {
   const safeExt = ext.replace(/[^a-zA-Z0-9]/g, '').slice(0, 8) || 'bin';
