@@ -153,6 +153,13 @@
   />
 </SettingsSection>
 
+<SettingsSection>
+  <div class="preview" aria-hidden="true" data-testid="settings-appearance__preview">
+    <div class="bubble incoming">{t('Hello!')}</div>
+    <div class="bubble outgoing">{t('Hey, how are you?')}</div>
+  </div>
+</SettingsSection>
+
 <SettingsSection title={t('Accent color')}>
   <div class="swatches" role="radiogroup" aria-label={t('Accent color')} data-testid="settings-appearance__accent">
     {#each swatches as s (s.value + s.label)}
@@ -234,5 +241,30 @@
   .swatch.active {
     border-color: var(--color-fg);
     box-shadow: 0 0 0 2px var(--color-bg);
+  }
+  .preview {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 16px;
+    max-width: 420px;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg);
+  }
+  .bubble {
+    padding: 8px 14px;
+    border-radius: 16px;
+    font-size: var(--text-md);
+    max-width: 80%;
+  }
+  .incoming {
+    align-self: flex-start;
+    background: var(--color-bg-elevated);
+    color: var(--color-fg);
+  }
+  .outgoing {
+    align-self: flex-end;
+    background: var(--color-accent);
+    color: var(--color-accent-fg);
   }
 </style>
