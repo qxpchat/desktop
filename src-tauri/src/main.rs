@@ -56,9 +56,12 @@ fn main() {
             // it during dev to spin up an isolated profile without
             // touching your real data (e.g. `make tauri-dev
             // ACCOUNTS=/tmp/qxp-fresh`).
+            // `Makefile` always passes `QXP_ACCOUNTS_DIR=$(ACCOUNTS)`, so an
+            // unset `ACCOUNTS` reaches us as an *empty* string rather than an
+            // absent env var. Treat empty as unset so the default path wins.
             let accounts_dir = match std::env::var_os("QXP_ACCOUNTS_DIR") {
-                Some(p) => PathBuf::from(p),
-                None => app
+                Some(p) if !p.is_empty() => PathBuf::from(p),
+                _ => app
                     .path()
                     .app_data_dir()
                     .map_err(|e| anyhow::anyhow!("could not resolve app data dir: {e}"))?

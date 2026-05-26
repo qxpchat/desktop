@@ -569,6 +569,16 @@
   .bubble-row > .bubble {
     min-width: 0;
   }
+  /* Voice / audio cells have a hard `min-width` (waveform + play + speed
+   * pill don't reflow). Without this override, the bubble's `min-width: 0`
+   * lets it shrink past the cell, and the speed pill renders outside the
+   * bubble's right edge on narrow chat panes. The `.voice` class lives in
+   * VoiceCell.svelte (a different scoped stylesheet), so the `:global()`
+   * dance is required for the `:has()` to match. Use the cell's intrinsic
+   * min-content width as the floor instead. */
+  .bubble-row > .bubble:has(:global(.voice)) {
+    min-width: min-content;
+  }
   .hover-buttons {
     display: inline-flex;
     align-items: center;

@@ -19,6 +19,9 @@ frontend/.env.*.local
 
 # Local accounts dir (created by `cargo run`)
 qxp-web-accounts/
+# Account store the Tauri shell writes next to the binary during dev/build.
+src-tauri/accounts.lock
+src-tauri/accounts.toml
 references
 TODOs*
 

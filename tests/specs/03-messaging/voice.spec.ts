@@ -20,6 +20,32 @@ test.beforeAll(() => {
   ensureFixtures();
 });
 
+test('voice bubble keeps the speed toggle inside its right edge on a narrow chat pane', async ({
+  qxpPaired,
+  page,
+}) => {
+  const { peer } = qxpPaired;
+  // Narrow viewport — without the bubble's voice-specific `min-width`
+  // override the speed pill renders past the bubble's right edge here.
+  await page.setViewportSize({ width: 700, height: 720 });
+  await openChatByName(page, peer.displayName);
+  await peer.sendAttachment({
+    viewtype: 'Voice',
+    file: mediaPath('test.mp3'),
+    filename: 'voice.mp3',
+  });
+  const bubble = page
+    .locator('[data-testid="message-bubble"][data-view-type="Voice"]')
+    .first();
+  await bubble.waitFor({ timeout: ARRIVAL_TIMEOUT_MS });
+  const bb = await bubble.boundingBox();
+  const pill = await bubble.locator('.speed').boundingBox();
+  expect(bb).not.toBeNull();
+  expect(pill).not.toBeNull();
+  // The pill's right edge must sit inside the bubble's right edge.
+  expect((pill!.x + pill!.width) <= (bb!.x + bb!.width)).toBe(true);
+});
+
 test('voice message arrives as a Voice bubble; outgoing text walks state glyph', async ({ qxpPaired, page }) => {
   const { peer } = qxpPaired;
 
