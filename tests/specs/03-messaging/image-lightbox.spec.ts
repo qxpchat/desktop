@@ -95,3 +95,33 @@ test('image lightbox: shows the send time and the message caption', async ({
 
   await page.keyboard.press('Escape');
 });
+
+test('image lightbox: exposes a download anchor with the source filename', async ({
+  qxpPaired,
+  page,
+}) => {
+  const { peer } = qxpPaired;
+  const img = mediaPath('test.png');
+
+  await openChatByName(page, peer.displayName);
+
+  await peer.sendAttachment({ viewtype: 'Image', file: img, filename: 'sunset.png' });
+
+  const bubble = page
+    .locator('[data-testid="message-bubble"][data-direction="incoming"][data-view-type="Image"]')
+    .first();
+  await expect(bubble).toBeVisible({ timeout: ARRIVAL_TIMEOUT_MS });
+
+  await page.locator(TID.imageCell).first().click();
+  await expect(page.locator(TID.imageLightboxMedia)).toBeVisible();
+
+  // Anchor is the native <a download> — we don't actually trigger a save in
+  // the test, just verify the affordance carries the right url + filename.
+  const dl = page.locator(TID.imageLightboxDownload);
+  await expect(dl).toBeVisible();
+  await expect(dl).toHaveAttribute('download', 'sunset.png');
+  const href = await dl.getAttribute('href');
+  expect(href).toBeTruthy();
+
+  await page.keyboard.press('Escape');
+});

@@ -25,6 +25,7 @@
       caption: message.text,
       msgId: message.id,
       timestamp: message.timestamp,
+      fileName: message.fileName ?? undefined,
     });
   }
 </script>

@@ -18,6 +18,8 @@ export type LightboxItem = {
   msgId?: number;
   /** Send time, unix **seconds** — shown under the media. */
   timestamp?: number;
+  /** Original file name — used as the suggested download filename. */
+  fileName?: string;
 };
 
 export const lightbox = $state<{ items: LightboxItem[]; index: number }>({
@@ -67,6 +69,7 @@ export async function openLightbox(item: LightboxItem): Promise<void> {
         caption: m.text || undefined,
         msgId: m.id,
         timestamp: m.timestamp,
+        fileName: m.fileName ?? undefined,
       }));
 
     const idx = gallery.findIndex((g) => g.msgId === item.msgId);

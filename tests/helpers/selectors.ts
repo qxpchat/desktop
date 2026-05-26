@@ -141,6 +141,7 @@ export const TID = {
   imageLightboxNext: '[data-testid="image-lightbox__next"]',
   imageLightboxCaption: '[data-testid="image-lightbox__caption"]',
   imageLightboxTimestamp: '[data-testid="image-lightbox__timestamp"]',
+  imageLightboxDownload: '[data-testid="image-lightbox__download"]',
 
   // -- Profile-rail toggle (hosted by the chat list when the rail is
   //    collapsed, by the rail itself when it is open) --

@@ -78,6 +78,7 @@
       caption: m.text || undefined,
       msgId: m.id,
       timestamp: m.timestamp,
+      fileName: m.fileName ?? undefined,
     });
   }
   function tileContext(e: MouseEvent, m: Message) {

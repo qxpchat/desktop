@@ -4,6 +4,7 @@
   import { formatDateTime } from '../lib/format/timestamp';
   import { t } from '../lib/i18n/i18n.svelte';
   import IconButton from '../lib/IconButton.svelte';
+  import Icon from '../lib/Icon.svelte';
 
   let item = $derived(lightbox.items[lightbox.index] ?? null);
   let hasGallery = $derived(lightbox.items.length > 1);
@@ -86,6 +87,17 @@
       />
     {/if}
 
+    <a
+      class="lightbox-download"
+      href={item.url}
+      download={item.fileName ?? ''}
+      aria-label={t('Download')}
+      title={t('Download')}
+      data-testid="image-lightbox__download"
+    >
+      <Icon name="download" size={16} />
+    </a>
+
     <IconButton
       class="lightbox-close"
       icon="x"
@@ -143,6 +155,31 @@
     position: absolute;
     top: 16px;
     right: 16px;
+  }
+  /* Mirrors IconButton's `overlay` look so the download affordance sits
+     beside the close button without dragging in the full IconButton API
+     (we need an <a download> anchor, not a button). */
+  .lightbox-download {
+    position: absolute;
+    top: 16px;
+    right: 64px;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255, 255, 255, 0.18);
+    color: white;
+    text-decoration: none;
+    transition: background 0.1s ease;
+  }
+  .lightbox-download:hover {
+    background: rgba(255, 255, 255, 0.3);
+  }
+  .lightbox-download:focus-visible {
+    outline: 2px solid var(--color-accent);
+    outline-offset: 2px;
   }
   :global(.lightbox-nav) {
     position: absolute;
