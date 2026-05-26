@@ -92,6 +92,10 @@
   // When the user toggles edit mode on a message, seed the textarea with its
   // current text so they can revise. Escape (handled in onKeyDown) is what
   // resets `text` on exit; this effect only owns the seed-on-enter side.
+  // The `tick()` is load-bearing: the textarea's `scrollHeight` is only
+  // correct after Svelte flushes the new value to the DOM, so autosize must
+  // wait or it measures the *previous* (empty) content and leaves the field
+  // at min-height for a multi-line message.
   let lastEditingId: number | null = null;
   $effect(() => {
     const id = chat.editingId;
@@ -99,7 +103,13 @@
     lastEditingId = id;
     if (id != null) {
       const m = chat.messages.get(id);
-      if (m) text = m.text;
+      if (m) {
+        text = m.text;
+        void tick().then(() => {
+          autosize();
+          textarea?.focus();
+        });
+      }
     }
   });
 

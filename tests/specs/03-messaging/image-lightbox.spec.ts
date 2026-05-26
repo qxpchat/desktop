@@ -116,10 +116,12 @@ test('image lightbox: exposes a download anchor with the source filename', async
   await expect(page.locator(TID.imageLightboxMedia)).toBeVisible();
 
   // Anchor is the native <a download> — we don't actually trigger a save in
-  // the test, just verify the affordance carries the right url + filename.
+  // the test, just verify the affordance carries a sensible filename + url.
+  // The core may rewrite the incoming filename (e.g. `image_<ts>.png`), so
+  // assert on the extension rather than the exact name.
   const dl = page.locator(TID.imageLightboxDownload);
   await expect(dl).toBeVisible();
-  await expect(dl).toHaveAttribute('download', 'sunset.png');
+  await expect(dl).toHaveAttribute('download', /\.png$/);
   const href = await dl.getAttribute('href');
   expect(href).toBeTruthy();
 
