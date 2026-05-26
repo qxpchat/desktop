@@ -19,6 +19,11 @@
     onShowReactors: (messageId: number) => void;
     /** Read-only summary (gallery aggregate): every chip is inert. */
     readonly?: boolean;
+    /** True when the chips visually hang off a bubble's rounded corner —
+     *  the standard case. False for jumbomoji (no bubble chrome, no corner
+     *  to attach to), where the negative top margin would otherwise pull
+     *  the chips up into the timestamp band. */
+    attached?: boolean;
   };
 
   let {
@@ -28,6 +33,7 @@
     isGroup,
     onShowReactors,
     readonly = false,
+    attached = true,
   }: Props = $props();
 
   function onChipClick(r: ReactionEntry) {
@@ -41,7 +47,14 @@
 </script>
 
 {#if reactions.length > 0}
-  <div class="row" role="group" aria-label={t('Reactions')} data-testid="reactions-row" data-msg-id={messageId}>
+  <div
+    class="row"
+    class:detached={!attached}
+    role="group"
+    aria-label={t('Reactions')}
+    data-testid="reactions-row"
+    data-msg-id={messageId}
+  >
     {#each reactions as r (r.emoji)}
       {@const actionable = !readonly && (r.isFromSelf || isGroup)}
       <button
@@ -82,6 +95,12 @@
      * with the picture would be painted under it. */
     position: relative;
     z-index: 1;
+  }
+  /* Jumbomoji has no bubble chrome — there's no rounded corner to overlap,
+   * so the standard -6px pull would land the chip on top of the meta /
+   * timestamp row that sits directly below the emoji. Sit cleanly below. */
+  .row.detached {
+    margin-top: 4px;
   }
   .chip {
     display: inline-flex;

@@ -483,6 +483,7 @@
     messageId={message.id}
     showCount={showReactionCount}
     isGroup={showReactionCount}
+    attached={!jumbo}
     {onShowReactors}
   />
   {#if message.error && message.state === MSG_STATE.OutFailed}

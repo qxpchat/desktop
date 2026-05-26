@@ -114,3 +114,27 @@ test('reaction: picking a different emoji supplants the prior one', async ({ qxp
     page.locator(`${TID.reactionsRowForMsg(msgId)} [data-testid="reactions-row__chip"]`),
   ).toHaveCount(1);
 });
+
+test('reaction chip on a jumbomoji bubble does not overlap the timestamp', async ({
+  qxpPaired,
+  page,
+}) => {
+  const { mainRpc } = qxpPaired;
+  // A bare emoji message renders as jumbomoji (no bubble chrome).
+  const { msgId } = await seedIncomingBubble(qxpPaired, page, '🎉');
+  const accountId = (await mainRpc.call<number[]>('get_all_account_ids'))[0];
+  await mainRpc.call('send_reaction', [accountId, msgId, ['👍']]);
+
+  const chip = page.locator(TID.reactionsRowChipForMsg(msgId, '👍'));
+  await expect(chip).toBeVisible({ timeout: 10_000 });
+
+  const meta = page.locator(
+    `[data-testid="message-bubble"][data-msg-id="${msgId}"] [data-testid="message-bubble__meta"]`,
+  );
+  const metaBox = await meta.boundingBox();
+  const chipBox = await chip.boundingBox();
+  expect(metaBox).not.toBeNull();
+  expect(chipBox).not.toBeNull();
+  // Chip must sit fully below the meta band — no vertical overlap.
+  expect(chipBox!.y).toBeGreaterThanOrEqual(metaBox!.y + metaBox!.height);
+});
