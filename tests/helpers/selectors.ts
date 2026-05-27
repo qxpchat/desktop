@@ -34,6 +34,7 @@ export const TID = {
   chatListRowMute: '[data-testid="chat-list-row__mute"]',
   chatListRowAvatar: '[data-testid="chat-list-row__avatar"]',
   chatListSearch: '[data-testid="chat-list-search"]',
+  searchFieldClear: '[data-testid="search-field__clear"]',
   chatListArchiveLink: '[data-testid="chat-list-archive-link"]',
   chatListArchiveBack: '[data-testid="chat-list-archive-back"]',
   chatListEmpty: '[data-testid="chat-list-empty"]',

@@ -11,6 +11,7 @@
   // search icon. Replaces the verbatim-copied `<input type="search">`
   // blocks in the chat list, pickers and emoji picker.
   import Icon from './Icon.svelte';
+  import { t } from './i18n/i18n.svelte';
 
   let { value = $bindable(), class: extraClass = '', ...rest }: Props = $props();
 
@@ -21,11 +22,28 @@
     inputEl?.focus();
     inputEl?.select();
   }
+
+  function clear() {
+    value = '';
+    inputEl?.focus();
+  }
 </script>
 
 <div class="search {extraClass}">
   <span class="ico" aria-hidden="true"><Icon name="search" size={15} /></span>
   <input bind:this={inputEl} type="search" bind:value {...rest} />
+  {#if value.length > 0}
+    <button
+      type="button"
+      class="clear"
+      onclick={clear}
+      aria-label={t('Clear search')}
+      title={t('Clear search')}
+      data-testid="search-field__clear"
+    >
+      <Icon name="x" size={11} />
+    </button>
+  {/if}
 </div>
 
 <style>
@@ -69,5 +87,27 @@
   input::-webkit-search-cancel-button {
     -webkit-appearance: none;
     appearance: none;
+  }
+  .clear {
+    flex: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 16px;
+    height: 16px;
+    padding: 0;
+    border: 0;
+    border-radius: 50%;
+    background: var(--color-accent);
+    color: var(--color-fg);
+    cursor: pointer;
+    transition: filter 0.1s ease;
+  }
+  .clear:hover {
+    filter: brightness(1.05);
+  }
+  .clear:focus-visible {
+    outline: 2px solid var(--color-accent);
+    outline-offset: 2px;
   }
 </style>
