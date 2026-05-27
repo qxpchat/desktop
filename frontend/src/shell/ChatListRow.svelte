@@ -107,7 +107,12 @@
       <span class="row-bottom">
         <span class="preview"><InlineMarkdown text={preview} /></span>
         {#if stateGlyph}
-          <span class="state {stateGlyph.kind}" aria-label={stateGlyph.kind}>
+          <span
+            class="state {stateGlyph.kind}"
+            aria-label={stateGlyph.kind}
+            data-testid="chat-list-row__state"
+            data-state={stateGlyph.kind}
+          >
             <Icon name={stateGlyph.icon} size={12} stroke={2} />
           </span>
         {/if}
