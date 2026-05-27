@@ -254,6 +254,7 @@
       if (m.fromId !== CONTACT_ID_SELF) continue;
       if (m.isInfo) continue;
       if (m.viewType !== 'Text') continue; // core only edits text
+      if (m.isForwarded) continue; // forwarded messages are not editable
       return id;
     }
     return null;

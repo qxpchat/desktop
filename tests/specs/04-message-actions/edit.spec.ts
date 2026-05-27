@@ -2,6 +2,7 @@
 
 import { test, expect } from '../../fixtures/app-paired.js';
 import {
+  createGroupChat,
   openChatByName,
   sendComposerText,
   waitForChatRowByName,
@@ -39,6 +40,46 @@ test('edit replaces the bubble text and marks it edited', async ({ qxpPaired, pa
     { hasText: 'original (fixed)' },
   );
   await expect(edited).toBeVisible({ timeout: 15_000 });
+});
+
+test('forwarded outgoing messages omit the Edit context-menu action', async ({
+  qxpPaired,
+  page,
+}) => {
+  const { peer } = qxpPaired;
+  // Need a distinct chat to forward into so the bubble actually lands as
+  // forwarded (rather than just duplicated in the source chat).
+  const groupName = `No-edit forward ${Date.now()}`;
+  await createGroupChat(page, peer.displayName, groupName);
+
+  await openChatByName(page, peer.displayName);
+  const original = `forward-no-edit ${Date.now()}`;
+  await sendComposerText(page, original);
+  const outgoing = page.locator(
+    `[data-testid="message-bubble"][data-direction="outgoing"]`,
+    { hasText: original },
+  );
+  await expect(outgoing).toBeVisible({ timeout: 10_000 });
+
+  // Forward → pick the group → confirm.
+  await outgoing.click({ button: 'right' });
+  await page.locator(TID.msgContextMenuItem('forward')).click();
+  await page.locator(TID.chatPickerSearch).fill(groupName);
+  await page.locator(TID.chatPickerRowByName(groupName)).first().click();
+  await page.locator(TID.confirmDialogConfirm).click();
+
+  // Now in the group — the forwarded bubble is outgoing+forwarded.
+  const forwarded = page.locator(
+    `[data-testid="message-bubble"][data-direction="outgoing"][data-forwarded="true"]`,
+    { hasText: original },
+  );
+  await expect(forwarded).toBeVisible({ timeout: 15_000 });
+
+  await forwarded.click({ button: 'right' });
+  // Edit must not be in the context menu — core rejects edit on forwarded.
+  await expect(page.locator(TID.msgContextMenuItem('edit'))).toHaveCount(0);
+  // Forward (a non-forwarded-specific action) should still be available.
+  await expect(page.locator(TID.msgContextMenuItem('forward'))).toBeVisible();
 });
 
 test('editing a long message grows the composer textarea beyond min-height', async ({

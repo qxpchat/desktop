@@ -577,7 +577,10 @@
       action: 'forward',
       onSelect: () => startForward([m.id]),
     });
-    if (m.fromId === CONTACT_ID_SELF && m.viewType === 'Text') {
+    // Core rejects `send_edit_request` on forwarded messages (the edit
+    // would have to ripple back to the original author) — hide the option
+    // rather than surface an error after the fact.
+    if (m.fromId === CONTACT_ID_SELF && m.viewType === 'Text' && !m.isForwarded) {
       actions.push({
         label: t('Edit'),
         icon: 'pencil',
