@@ -12,7 +12,7 @@
   type Props = {
     mode: {
       kind: 'setGroupMetadata';
-      flow: 'group' | 'channel';
+      flow: 'group' | 'channel' | 'email';
       selected: number[];
     };
     onSelectChat: (chatId: number) => void;
@@ -34,7 +34,13 @@
 
   let canCreate = $derived(name.trim().length > 0 && !creating);
 
-  let title = $derived(mode.flow === 'group' ? t('New Group') : t('New Channel'));
+  let title = $derived(
+    mode.flow === 'group'
+      ? t('New Group')
+      : mode.flow === 'email'
+        ? t('New Email')
+        : t('New Channel'),
+  );
 
   async function create() {
     if (!canCreate || accounts.selectedId == null) return;
@@ -49,6 +55,12 @@
           name.trim(),
           verified && allSelectedAreVerified,
         ]);
+      } else if (mode.flow === 'email') {
+        // Plain-MIME (unencrypted) group — first outbound message ships as
+        // a regular email so non-Delta-Chat recipients can read it. Single
+        // recipient acts as a plain 1:1 email; multi-recipient acts as a
+        // group thread (To / CC of the first message).
+        chatId = await rpc.call<number>('create_group_chat_unencrypted', [accountId, name.trim()]);
       } else {
         chatId = await rpc.call<number>('create_broadcast', [accountId, name.trim()]);
       }
@@ -99,9 +111,13 @@
 
   <div class="body">
     <TextInput
-      label={t('Name')}
+      label={mode.flow === 'email' ? t('Subject') : t('Name')}
       bind:value={name}
-      placeholder={mode.flow === 'group' ? t('Project chat') : t('Updates')}
+      placeholder={mode.flow === 'group'
+        ? t('Project chat')
+        : mode.flow === 'email'
+          ? t('Subject of your email')
+          : t('Updates')}
       data-testid="group-metadata__name"
     />
 
@@ -140,6 +156,10 @@
     {#if mode.flow === 'group'}
       <p class="member-count">
         {t('{count} members will be added.', { count: mode.selected.length })}
+      </p>
+    {:else if mode.flow === 'email'}
+      <p class="member-count">
+        {t('{count} recipients will be addressed.', { count: mode.selected.length })}
       </p>
     {/if}
   </div>

@@ -13,6 +13,11 @@ export type AccountsState = {
   configuredIds: number[];
   /** Selected account id (only meaningful when present in `configuredIds`). */
   selectedId: number | null;
+  /** `is_chatmail` config of the selected account. `null` until resolved.
+   *  Chatmail accounts can't send plain (unencrypted) email — the relays
+   *  reject outbound non-E2EE traffic — so the "New Email" entry only
+   *  shows for classic email-based accounts. */
+  selectedIsChatmail: boolean | null;
 };
 
 export const accounts = $state<AccountsState>({
@@ -20,6 +25,7 @@ export const accounts = $state<AccountsState>({
   ids: [],
   configuredIds: [],
   selectedId: null,
+  selectedIsChatmail: null,
 });
 
 export async function refreshAccounts(): Promise<void> {
@@ -43,6 +49,16 @@ export async function refreshAccounts(): Promise<void> {
     accounts.ids = ids;
     accounts.configuredIds = configuredIds;
     accounts.selectedId = selectedId;
+    if (selectedId != null) {
+      try {
+        const v = await rpc.call<string | null>('get_config', [selectedId, 'is_chatmail']);
+        accounts.selectedIsChatmail = v === '1';
+      } catch {
+        accounts.selectedIsChatmail = null;
+      }
+    } else {
+      accounts.selectedIsChatmail = null;
+    }
   } catch (err) {
     // Leave the previously-rendered list in place on transient failure —
     // wiping it on every refresh hiccup turns a brief daemon stall into a

@@ -45,6 +45,7 @@ export const TID = {
   composePaneNewGroup: '[data-testid="compose-pane__new-group"]',
   composePaneNewChannel: '[data-testid="compose-pane__new-channel"]',
   composePaneNewContact: '[data-testid="compose-pane__new-contact"]',
+  composePaneNewEmail: '[data-testid="compose-pane__new-email"]',
   composePaneBack: '[data-testid="compose-pane__back"]',
 
   // -- Choose members (group/channel) --

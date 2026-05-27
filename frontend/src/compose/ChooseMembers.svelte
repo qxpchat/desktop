@@ -4,6 +4,7 @@
     contacts,
     setContactsScope,
     setContactsQuery,
+    GCL_ADDRESS,
   } from '../lib/state/contacts.svelte';
   import { backToInbox, setPaneMode } from '../lib/state/paneMode.svelte';
   import { accounts } from '../lib/state/accounts.svelte';
@@ -15,7 +16,7 @@
   import { t } from '../lib/i18n/i18n.svelte';
 
   type Props = {
-    mode: { kind: 'chooseMembers'; flow: 'group'; selected: number[] };
+    mode: { kind: 'chooseMembers'; flow: 'group' | 'email'; selected: number[] };
   };
 
   let { mode }: Props = $props();
@@ -28,16 +29,19 @@
   let selected = $state<number[]>([...mode.selected]);
   let search = $state('');
 
-  // Don't include self in member picker (DC adds self automatically).
+  // Don't include self in member picker (DC adds self automatically). The
+  // email flow also surfaces address-contacts the user has received mail
+  // from but never explicitly added, via DC_GCL_ADDRESS.
+  let listFlags = $derived(mode.flow === 'email' ? GCL_ADDRESS : 0);
   $effect(() => {
-    setContactsScope(accounts.selectedId, 0);
+    setContactsScope(accounts.selectedId, listFlags);
   });
   $effect(() => {
     setContactsQuery(search);
   });
 
   onMount(() => {
-    setContactsScope(accounts.selectedId, 0);
+    setContactsScope(accounts.selectedId, listFlags);
   });
 
   function toggle(id: number) {
@@ -62,7 +66,7 @@
 <div class="pane" data-testid="choose-members" data-flow={mode.flow}>
   <header class="header">
     <BackButton label={t('Cancel')} onclick={backToInbox} data-testid="choose-members__cancel" />
-    <h2>{t('New Group')}</h2>
+    <h2>{mode.flow === 'email' ? t('New Email') : t('New Group')}</h2>
     <div class="spacer"></div>
     <Button
       variant="primary"
@@ -75,15 +79,15 @@
 
   <div class="search-row">
     <SearchField
-      placeholder={t('Search contacts…')}
-      aria-label={t('Search contacts')}
+      placeholder={mode.flow === 'email' ? t('Search recipients…') : t('Search contacts…')}
+      aria-label={mode.flow === 'email' ? t('Search recipients') : t('Search contacts')}
       bind:value={search}
       data-testid="choose-members__search"
     />
   </div>
 
   {#if selectedContacts.length > 0}
-    <div class="pills" role="list" aria-label={t('Selected contacts')}>
+    <div class="pills" role="list" aria-label={mode.flow === 'email' ? t('Selected recipients') : t('Selected contacts')}>
       {#each selectedContacts as c (c.id)}
         <button class="pill" onclick={() => toggle(c.id)} aria-label={t('Remove {name}', { name: c.displayName })}>
           <Avatar name={c.displayName || '?'} color={c.color} imagePath={c.profileImage} size={20} />

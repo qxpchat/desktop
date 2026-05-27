@@ -83,6 +83,13 @@
     // from_handshake). Go straight to naming; invite via QR afterwards.
     setPaneMode({ kind: 'setGroupMetadata', flow: 'channel', selected: [] });
   }
+  function newEmail() {
+    // Classic email flow — pick recipients (including address-only contacts,
+    // surfaced via the GCL_ADDRESS flag in ChooseMembers), then set a thread
+    // name; create_group_chat_unencrypted lands the chat as a plain-MIME
+    // group whose first message ships as an unencrypted email.
+    setPaneMode({ kind: 'chooseMembers', flow: 'email', selected: [] });
+  }
 </script>
 
 <aside class="pane" aria-label={t('New conversation')} data-testid="compose-pane">
@@ -120,6 +127,15 @@
         <span class="label">{t('New Channel')}</span>
       </button>
     </li>
+    {#if accounts.selectedIsChatmail === false}
+      <li>
+        <button class="action" onclick={newEmail} data-testid="compose-pane__new-email">
+          <span class="icon" aria-hidden="true"><Icon name="mail" size={18} /></span>
+          <span class="label">{t('New Email')}</span>
+          <span class="hint">{t('Unencrypted')}</span>
+        </button>
+      </li>
+    {/if}
   </ul>
 
   <ul class="list">

@@ -52,6 +52,9 @@ let loadGen = 0;
 
 /** DC_GCL_ADD_SELF — `get_contacts` flag to include SELF in the list. */
 export const GCL_ADD_SELF = 0x02;
+/** DC_GCL_ADDRESS — return address-contacts (unencrypted-email recipients)
+ *  instead of key-contacts. Used by the "New Email" recipient picker. */
+export const GCL_ADDRESS = 0x04;
 
 /** Daemon contact id reserved for the logged-in user — `delete_contact`
  *  rejects it ("Can not delete special contact"). */

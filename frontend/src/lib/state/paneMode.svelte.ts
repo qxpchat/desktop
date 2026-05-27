@@ -13,12 +13,12 @@ export type PaneMode =
   | { kind: 'compose' }
   | {
       kind: 'chooseMembers';
-      flow: 'group';
+      flow: 'group' | 'email';
       selected: number[];
     }
   | {
       kind: 'setGroupMetadata';
-      flow: 'group' | 'channel';
+      flow: 'group' | 'channel' | 'email';
       selected: number[];
     }
   | { kind: 'archive' }
