@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { untrack } from 'svelte';
   import {
     chatlist,
     setSearchQuery,
@@ -98,70 +99,174 @@
     setPaneMode({ kind: 'compose' });
   }
 
-  // Context-menu state: one menu per pane, populated on row right-click.
-  // Actions hit the core directly and mutate the existing chatlist state
-  // via its event-driven refresh (deltachat-core emits ChatModified after
-  // each call, which the chatlist runes pick up).
-  let menu = $state<{ chat: ChatListItem; x: number; y: number } | null>(null);
+  // -- Multiselect ---------------------------------------------------------
+  // Desktop-style selection: Ctrl/Cmd+click toggles a row, Shift+click
+  // extends a range from the last anchor. A plain click collapses the
+  // selection and opens the chat. Batch actions act on the whole set via the
+  // same context menu (right-click a selected row) the single-row case uses.
+  let selected = $state<Set<number>>(new Set());
+  let anchorId: number | null = null;
 
-  async function togglePin(chat: ChatListItem) {
+  function clearSelection() {
+    if (selected.size > 0) selected = new Set();
+    anchorId = null;
+  }
+
+  // Reset the selection whenever the underlying list identity changes —
+  // account switch or entering/leaving search — so stale ids can't linger.
+  // `untrack` the clear: `clearSelection` reads `selected.size`, which would
+  // otherwise make this effect depend on `selected` and wipe the set on
+  // every Ctrl+click.
+  $effect(() => {
+    void accounts.selectedId;
+    void chatlist.query;
+    untrack(() => clearSelection());
+  });
+
+  function handleSelect(id: number, mods: { ctrl: boolean; shift: boolean }) {
+    // Beginning a multiselect from the currently-open chat: fold that chat
+    // into the set first, so it shows the same selected styling as the rows
+    // added next. Matches the reference, where the active chat is always part
+    // of the selection — without this the open row stays plain while the new
+    // picks get the accent bar.
+    if (
+      selected.size === 0 &&
+      (mods.ctrl || mods.shift) &&
+      selectedChatId != null &&
+      selectedChatId !== id
+    ) {
+      selected = new Set([selectedChatId]);
+      if (anchorId == null) anchorId = selectedChatId;
+    }
+    if (mods.shift && anchorId != null) {
+      const ids = chatlist.ids;
+      const a = ids.indexOf(anchorId);
+      const b = ids.indexOf(id);
+      if (a !== -1 && b !== -1) {
+        const [lo, hi] = a <= b ? [a, b] : [b, a];
+        const next = new Set(selected);
+        for (let i = lo; i <= hi; i++) next.add(ids[i]!);
+        selected = next;
+      }
+      return;
+    }
+    if (mods.ctrl) {
+      const next = new Set(selected);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      selected = next;
+      anchorId = id;
+      return;
+    }
+    // Plain click — collapse any selection and open the chat. Set the anchor
+    // to this row so a following Shift+click extends a range from here (a
+    // bare Shift+click with no prior Ctrl-click would otherwise have no
+    // anchor and just open the chat).
+    clearSelection();
+    anchorId = id;
+    onSelectChat(id);
+  }
+
+  // Context-menu state: one menu per pane, populated on row right-click.
+  // `targets` is the selection when the right-clicked row is part of it,
+  // else just that row. Actions hit the core directly and mutate the
+  // existing chatlist state via its event-driven refresh (deltachat-core
+  // emits ChatModified after each call, which the chatlist runes pick up).
+  let menu = $state<{ targets: ChatListItem[]; x: number; y: number } | null>(null);
+
+  function selectedItems(): ChatListItem[] {
+    return chatlist.ids
+      .filter((id) => selected.has(id))
+      .map((id) => chatlist.items.get(id))
+      .filter((c): c is ChatListItem => c != null);
+  }
+
+  function openMenu(chat: ChatListItem, x: number, y: number) {
+    const targets = selected.has(chat.id) && selected.size > 0 ? selectedItems() : [chat];
+    menu = { targets, x, y };
+  }
+
+  async function setVisibility(chats: ChatListItem[], vis: 'Normal' | 'Pinned' | 'Archived') {
     if (accounts.selectedId == null) return;
-    // ChatVisibility variants are PascalCase on the wire — the enum has no
-    // `rename_all`, so the tag passes through verbatim.
-    const vis = chat.isPinned ? 'Normal' : 'Pinned';
-    try {
-      await rpc.call('set_chat_visibility', [accounts.selectedId, chat.id, vis]);
-    } catch {
-      /* core surfaces failure via its own event/error path */
+    const accountId = accounts.selectedId;
+    for (const c of chats) {
+      try {
+        await rpc.call('set_chat_visibility', [accountId, c.id, vis]);
+      } catch {
+        /* core surfaces failure via its own event/error path */
+      }
     }
   }
-  async function setMute(chat: ChatListItem, dur: unknown) {
+  // ChatVisibility variants are PascalCase on the wire — the enum has no
+  // `rename_all`, so the tag passes through verbatim. "Toggle" is really
+  // "set the whole set to the opposite of the aggregate", matching the
+  // menu's label logic (un-X only when every target is already X).
+  const togglePin = (chats: ChatListItem[]) =>
+    setVisibility(chats, chats.every((c) => c.isPinned) ? 'Normal' : 'Pinned');
+  const toggleArchive = (chats: ChatListItem[]) =>
+    setVisibility(chats, chats.every((c) => c.isArchived) ? 'Normal' : 'Archived');
+
+  async function setMute(chats: ChatListItem[], dur: unknown) {
     if (accounts.selectedId == null) return;
-    try {
-      await rpc.call('set_chat_mute_duration', [accounts.selectedId, chat.id, dur]);
-    } catch (err) {
-      console.warn('set_chat_mute_duration failed', err);
+    const accountId = accounts.selectedId;
+    for (const c of chats) {
+      try {
+        await rpc.call('set_chat_mute_duration', [accountId, c.id, dur]);
+      } catch (err) {
+        console.warn('set_chat_mute_duration failed', err);
+      }
     }
   }
   // PascalCase variant tags — see ChatRowMenu's `MuteDuration` type.
-  const muteChat = (chat: ChatListItem, dur: { kind: 'Forever' } | { kind: 'Until'; duration: number }) =>
-    setMute(chat, dur);
-  const unmuteChat = (chat: ChatListItem) => setMute(chat, { kind: 'NotMuted' });
-  async function toggleArchive(chat: ChatListItem) {
-    if (accounts.selectedId == null) return;
-    const vis = chat.isArchived ? 'Normal' : 'Archived';
-    try {
-      await rpc.call('set_chat_visibility', [accounts.selectedId, chat.id, vis]);
-    } catch {
-      /* same */
+  const muteChats = (
+    chats: ChatListItem[],
+    dur: { kind: 'Forever' } | { kind: 'Until'; duration: number },
+  ) => setMute(chats, dur);
+  const unmuteChats = (chats: ChatListItem[]) => setMute(chats, { kind: 'NotMuted' });
+
+  function markReadAll(chats: ChatListItem[]) {
+    for (const c of chats) void markChatRead(c.id);
+  }
+  function markUnreadAll(chats: ChatListItem[]) {
+    // If a target chat is currently open, ChatView's `markNoticed` would undo
+    // the markfresh on next focus. Drop the selection first (unmounts
+    // ChatView). Same approach as the reference's ChatContextMenu.
+    if (selectedChatId != null && chats.some((c) => c.id === selectedChatId)) {
+      selectChat(null);
     }
+    for (const c of chats) void markChatUnread(c.id);
   }
 
   // Two-step delete: the context menu fires `requestDelete`, which stashes
-  // the target chat and unmounts the menu; the modal then renders against
+  // the target chats and unmounts the menu; the modal then renders against
   // that stash. Going through a confirmation modal (rather than native
   // `confirm()`) keeps the UX consistent inside the Tauri webview.
-  let pendingDelete = $state<ChatListItem | null>(null);
+  let pendingDelete = $state<ChatListItem[] | null>(null);
 
-  function requestDelete(chat: ChatListItem) {
-    pendingDelete = chat;
+  function requestDelete(chats: ChatListItem[]) {
+    pendingDelete = chats;
   }
 
-  async function confirmDelete(chat: ChatListItem) {
+  async function confirmDelete(chats: ChatListItem[]) {
     if (accounts.selectedId == null) return;
     const accountId = accounts.selectedId;
     // Drop the selection first — the chat view subscribes to messages on
     // the deleted id, so leaving it selected races with `delete_chat` and
     // flashes a "missing chat" error before chatlist refresh kicks in.
-    if (selectedChatId === chat.id) selectChat(null);
-    try {
-      if (canLeaveBeforeDelete(chat)) {
-        await rpc.call('leave_group', [accountId, chat.id]);
-      }
-      await rpc.call('delete_chat', [accountId, chat.id]);
-    } catch (err) {
-      console.warn('delete_chat failed', err);
+    if (selectedChatId != null && chats.some((c) => c.id === selectedChatId)) {
+      selectChat(null);
     }
+    for (const c of chats) {
+      try {
+        if (canLeaveBeforeDelete(c)) {
+          await rpc.call('leave_group', [accountId, c.id]);
+        }
+        await rpc.call('delete_chat', [accountId, c.id]);
+      } catch (err) {
+        console.warn('delete_chat failed', err);
+      }
+    }
+    clearSelection();
   }
 
   function openArchive() {
@@ -214,6 +319,20 @@
       {/if}
     </header>
 
+    {#if selected.size > 0 && !narrow}
+      <div class="selection-bar" data-testid="chat-list-selection-bar">
+        <span class="sel-count" data-testid="chat-list-selection-bar__count">{selected.size}</span>
+        <span class="sel-label">{t('selected')}</span>
+        <span class="sel-spacer"></span>
+        <span class="sel-hint">{t('Right-click for actions')}</span>
+        <button
+          class="sel-clear"
+          onclick={clearSelection}
+          data-testid="chat-list-selection-bar__clear"
+        >{t('Clear')}</button>
+      </div>
+    {/if}
+
     <ul class="list">
       {#each chatlist.ids as id (id)}
         {@const item = chatlist.items.get(id)}
@@ -224,8 +343,9 @@
               selected={id === selectedChatId}
               {narrow}
               archiveView={archive}
-              onSelect={onSelectChat}
-              onContextMenu={(c, x, y) => (menu = { chat: c, x, y })}
+              multiSelected={selected.has(id)}
+              onSelect={handleSelect}
+              onContextMenu={openMenu}
             />
           </li>
         {/if}
@@ -280,32 +400,31 @@
 
 {#if menu}
   <ChatRowMenu
-    chat={menu.chat}
+    chats={menu.targets}
     x={menu.x}
     y={menu.y}
     onClose={() => (menu = null)}
-    onTogglePin={() => void togglePin(menu!.chat)}
-    onMute={(dur) => void muteChat(menu!.chat, dur)}
-    onUnmute={() => void unmuteChat(menu!.chat)}
-    onToggleArchive={() => void toggleArchive(menu!.chat)}
+    onTogglePin={() => void togglePin(menu!.targets).then(clearSelection)}
+    onMute={(dur) => void muteChats(menu!.targets, dur).then(clearSelection)}
+    onUnmute={() => void unmuteChats(menu!.targets).then(clearSelection)}
+    onToggleArchive={() => void toggleArchive(menu!.targets).then(clearSelection)}
     onMarkUnread={() => {
-      // If the chat is currently open, ChatView's `markNoticed` would
-      // immediately undo the markfresh on the next window focus. Drop the
-      // selection first — that unmounts ChatView, whose cleanup clears
-      // `chat.active`, so no later event can re-notice the chat. Same
-      // approach as references/deltachat-desktop/.../ChatContextMenu.tsx.
-      if (selectedChatId === menu!.chat.id) selectChat(null);
-      void markChatUnread(menu!.chat.id);
+      markUnreadAll(menu!.targets);
+      clearSelection();
     }}
-    onMarkRead={() => void markChatRead(menu!.chat.id)}
-    onDelete={() => requestDelete(menu!.chat)}
+    onMarkRead={() => {
+      markReadAll(menu!.targets);
+      clearSelection();
+    }}
+    onDelete={() => requestDelete(menu!.targets)}
   />
 {/if}
 
 <DeleteChatDialog
   open={pendingDelete !== null}
-  chatName={pendingDelete?.name ?? ''}
-  leaveBeforeDelete={pendingDelete ? canLeaveBeforeDelete(pendingDelete) : false}
+  chatName={pendingDelete?.[0]?.name ?? ''}
+  count={pendingDelete?.length ?? 1}
+  leaveBeforeDelete={pendingDelete?.length === 1 ? canLeaveBeforeDelete(pendingDelete[0]!) : false}
   onConfirm={() => pendingDelete && void confirmDelete(pendingDelete)}
   onClose={() => (pendingDelete = null)}
 />
@@ -403,6 +522,40 @@
   .title {
     font-weight: 600;
     font-size: var(--text-md);
+  }
+  .selection-bar {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    padding: var(--space-2) var(--space-3);
+    background: var(--color-accent-soft);
+    border-bottom: 1px solid var(--color-border);
+    flex: 0 0 auto;
+    font-size: var(--text-sm);
+  }
+  .sel-count {
+    font-weight: 700;
+    color: var(--color-accent);
+    font-variant-numeric: tabular-nums;
+  }
+  .sel-label {
+    color: var(--color-fg-secondary);
+  }
+  .sel-spacer {
+    flex: 1;
+  }
+  .sel-hint {
+    color: var(--color-fg-tertiary);
+    font-size: var(--text-xs);
+  }
+  .sel-clear {
+    color: var(--color-accent);
+    font-weight: 600;
+    padding: 2px 6px;
+    border-radius: var(--radius-sm);
+  }
+  .sel-clear:hover {
+    background: var(--color-bg-hover);
   }
   .archive-row {
     display: flex;

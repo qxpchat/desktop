@@ -14,14 +14,23 @@
     /** When true, swap the confirm-button label and let the parent run
      *  `leave_group` before `delete_chat`. */
     leaveBeforeDelete: boolean;
+    /** Number of chats being deleted. >1 switches to a batch message and
+     *  ignores `chatName` / `leaveBeforeDelete` (leave is handled per-chat
+     *  by the parent loop). */
+    count?: number;
     onConfirm: () => void;
     onClose: () => void;
   };
 
-  let { open, chatName, leaveBeforeDelete, onConfirm, onClose }: Props = $props();
+  let { open, chatName, leaveBeforeDelete, count = 1, onConfirm, onClose }: Props = $props();
 
+  let multi = $derived(count > 1);
   let confirmLabel = $derived(
-    leaveBeforeDelete ? t('Leave & Delete for Me') : t('Delete for Me'),
+    multi
+      ? t('Delete {n} chats', { n: count })
+      : leaveBeforeDelete
+        ? t('Leave & Delete for Me')
+        : t('Delete for Me'),
   );
 
   function confirm() {
@@ -40,10 +49,12 @@
   data-testid="delete-chat-dialog"
 >
   <div class="content">
-    <h2 id="delete-chat-dialog-title">{t('Delete chat?')}</h2>
+    <h2 id="delete-chat-dialog-title">{multi ? t('Delete {n} chats?', { n: count }) : t('Delete chat?')}</h2>
     <p id="delete-chat-dialog-body">
-      {chatName || t('(no name)')}
-      <br />
+      {#if !multi}
+        {chatName || t('(no name)')}
+        <br />
+      {/if}
       <span class="hint">{t('All messages in this chat will be deleted locally.')}</span>
     </p>
     <div class="actions">

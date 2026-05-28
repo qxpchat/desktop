@@ -56,6 +56,7 @@
     <span
       class="presence"
       aria-label={t('Online recently')}
+      data-testid="avatar__presence"
       style:width="{dotPx}px"
       style:height="{dotPx}px"
     ></span>

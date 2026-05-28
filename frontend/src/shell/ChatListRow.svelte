@@ -19,11 +19,22 @@
      *  per-row "Archived" pill there (every row is archived, so it's noise;
      *  the pill earns its keep in the inbox/search listing). */
     archiveView?: boolean;
-    onSelect: (id: number) => void;
+    /** True when this row is part of an active multiselect set (distinct
+     *  from `selected`, which means "the open chat"). */
+    multiSelected?: boolean;
+    onSelect: (id: number, mods: { ctrl: boolean; shift: boolean }) => void;
     onContextMenu?: (chat: ChatListItem, x: number, y: number) => void;
   };
 
-  let { chat, selected, narrow, archiveView = false, onSelect, onContextMenu }: Props = $props();
+  let {
+    chat,
+    selected,
+    narrow,
+    archiveView = false,
+    multiSelected = false,
+    onSelect,
+    onContextMenu,
+  }: Props = $props();
 
   let displayName = $derived(chat.name.length > 0 ? chat.name : t('(no name)'));
   let timestamp = $derived(formatRelativeTimestamp(chat.lastUpdated));
@@ -64,8 +75,9 @@
   class="row"
   class:narrow
   class:selected
+  class:multi-selected={multiSelected}
   class:muted={chat.isMuted}
-  onclick={() => onSelect(chat.id)}
+  onclick={(e) => onSelect(chat.id, { ctrl: e.ctrlKey || e.metaKey, shift: e.shiftKey })}
   oncontextmenu={(e) => {
     if (!onContextMenu) return;
     e.preventDefault();
@@ -74,6 +86,7 @@
   {title}
   aria-label={displayName}
   aria-pressed={selected}
+  data-multi-selected={multiSelected}
   data-testid="chat-list-row"
   data-chat-id={chat.id}
   data-name={displayName}
@@ -169,6 +182,10 @@
   }
   .row.selected {
     background: var(--color-bg-selected);
+  }
+  .row.multi-selected {
+    background: var(--color-accent-soft);
+    box-shadow: inset 3px 0 0 var(--color-accent);
   }
   .row.muted .name {
     color: var(--color-fg-secondary);

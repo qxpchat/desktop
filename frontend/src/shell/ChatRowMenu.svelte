@@ -16,7 +16,9 @@
     | { kind: 'Until'; duration: number };
 
   type Props = {
-    chat: ChatListItem;
+    /** The chats the menu acts on. One for a normal row right-click, many
+     *  when a multiselect set is active — labels derive from the aggregate. */
+    chats: ChatListItem[];
     /** Page-coordinate anchor for the menu's top-left. */
     x: number;
     y: number;
@@ -31,7 +33,7 @@
   };
 
   let {
-    chat,
+    chats,
     x,
     y,
     onClose,
@@ -44,10 +46,22 @@
     onDelete,
   }: Props = $props();
 
+  // Aggregate state across the target set drives every label. With a single
+  // chat these collapse to that chat's own flags (so single-row behaviour is
+  // unchanged); with many, an action only offers "un-X" when *every* selected
+  // chat is already X — matching the reference's ChatContextMenu.
+  let multi = $derived(chats.length > 1);
+  let allPinned = $derived(chats.every((c) => c.isPinned));
+  let allArchived = $derived(chats.every((c) => c.isArchived));
+  let allMuted = $derived(chats.every((c) => c.isMuted));
+  let anyUnread = $derived(chats.some((c) => c.freshMessageCounter > 0));
+
   // For groups/channels you're still a member of, "delete" upstream is a
   // leave + delete combo — surface that intent in the label so the user
   // isn't surprised that other members get a "<name> left" service message.
   let deleteLabel = $derived.by(() => {
+    if (multi) return t('Delete {n} chats', { n: chats.length });
+    const chat = chats[0]!;
     if (!canLeaveBeforeDelete(chat)) return t('Delete chat');
     return chat.chatType === 'InBroadcast' ? t('Leave channel') : t('Leave group');
   });
@@ -87,7 +101,7 @@
 <Popover {x} {y} {onClose} {onEscape} data-testid="chat-row-menu">
   <div class="items">
   {#if view === 'main'}
-    {#if chat.freshMessageCounter > 0}
+    {#if anyUnread}
       <button role="menuitem" onclick={() => fire(onMarkRead)} data-testid="chat-row-menu-item" data-action="mark-read">
         <Icon name="check" size={14} />
         {t('Mark as Read')}
@@ -98,11 +112,11 @@
         {t('Mark as Unread')}
       </button>
     {/if}
-    <button role="menuitem" onclick={() => fire(onTogglePin)} data-testid="chat-row-menu-item" data-action={chat.isPinned ? 'unpin' : 'pin'}>
+    <button role="menuitem" onclick={() => fire(onTogglePin)} data-testid="chat-row-menu-item" data-action={allPinned ? 'unpin' : 'pin'}>
       <Icon name="pin" size={14} />
-      {chat.isPinned ? t('Unpin') : t('Pin')}
+      {allPinned ? t('Unpin') : t('Pin')}
     </button>
-    {#if chat.isMuted}
+    {#if allMuted}
       <button role="menuitem" onclick={() => fire(onUnmute)} data-testid="chat-row-menu-item" data-action="unmute">
         <Icon name="bell" size={14} />
         {t('Unmute')}
@@ -113,9 +127,9 @@
         {t('Mute…')}
       </button>
     {/if}
-    <button role="menuitem" onclick={() => fire(onToggleArchive)} data-testid="chat-row-menu-item" data-action={chat.isArchived ? 'unarchive' : 'archive'}>
+    <button role="menuitem" onclick={() => fire(onToggleArchive)} data-testid="chat-row-menu-item" data-action={allArchived ? 'unarchive' : 'archive'}>
       <Icon name="archive" size={14} />
-      {chat.isArchived ? t('Unarchive') : t('Archive')}
+      {allArchived ? t('Unarchive') : t('Archive')}
     </button>
     <div class="separator" role="separator"></div>
     <button class="danger" role="menuitem" onclick={() => fire(onDelete)} data-testid="chat-row-menu-item" data-action="delete">

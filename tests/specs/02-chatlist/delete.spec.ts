@@ -37,5 +37,8 @@ test('delete chat removes the row after confirmation; cancel keeps it', async ({
   await page.locator(TID.chatRowMenuItem('delete')).click();
   await page.locator(TID.deleteChatDialogConfirm).click();
   await expect(page.locator(TID.deleteChatDialog)).toHaveCount(0);
-  await expect(row).toHaveCount(0);
+  // Row vanishes only once delete_chat → ChatlistChanged → reload
+  // propagates; under suite load that round-trip can exceed the 5s
+  // default, so give it room.
+  await expect(row).toHaveCount(0, { timeout: 15_000 });
 });

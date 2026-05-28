@@ -37,11 +37,16 @@ export const TID = {
   chatListRowRequest: '[data-testid="chat-list-row__request"]',
   chatListRowArchived: '[data-testid="chat-list-row__archived"]',
   chatListRowAvatar: '[data-testid="chat-list-row__avatar"]',
+  avatarPresence: '[data-testid="avatar__presence"]',
   chatListSearch: '[data-testid="chat-list-search"]',
   searchFieldClear: '[data-testid="search-field__clear"]',
   chatListArchiveLink: '[data-testid="chat-list-archive-link"]',
   chatListArchiveBack: '[data-testid="chat-list-archive-back"]',
   chatListEmpty: '[data-testid="chat-list-empty"]',
+  chatListSelectionBar: '[data-testid="chat-list-selection-bar"]',
+  chatListSelectionBarCount: '[data-testid="chat-list-selection-bar__count"]',
+  chatListSelectionBarClear: '[data-testid="chat-list-selection-bar__clear"]',
+  chatListRowSelected: '[data-testid="chat-list-row"][data-multi-selected="true"]',
   composeButton: '[data-testid="compose-button"]',
 
   // -- Compose pane (new conversation) --
