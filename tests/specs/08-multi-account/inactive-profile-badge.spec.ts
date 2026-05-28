@@ -62,13 +62,24 @@ test('badge appears on inactive profile A when a message arrives for A while B i
   await page.locator(TID.chatListBurger).click();
   await expect(page.locator(TID.navTabsAccount)).toHaveCount(2, { timeout: 10_000 });
 
+  // Wait for selection to settle on A before switching. Provisioning B fires
+  // a burst of account events; if we click B while the UI optimistically
+  // still shows B selected (stale add_account auto-select), `selectAccount`
+  // early-returns without issuing `select_account(B)`, the daemon stays on A,
+  // and a later refresh reverts the tile back to A mid-test.
+  await expect(page.locator(TID.navTabsAccountById(firstId)))
+    .toHaveAttribute('aria-pressed', 'true', { timeout: 15_000 });
+
   await page.locator(TID.navTabsAccountById(secondId)).click();
-  // Confirm the click actually switched. Without this assertion, a
-  // silent click-eaten regression (e.g. accidental preventDefault in
-  // pointerdown) would surface much later as a "badge never appeared"
-  // timeout, masking the real cause.
+  // Confirm the click actually switched — both the UI tile and the daemon's
+  // selected account (the latter catches the early-return race above).
   await expect(page.locator(TID.navTabsAccountById(secondId)))
     .toHaveAttribute('aria-pressed', 'true', { timeout: 5_000 });
+  await expect
+    .poll(async () => await mainRpc.call<number>('get_selected_account_id'), {
+      timeout: 10_000,
+    })
+    .toBe(secondId);
 
   // B is now the selected tile — its own badge would never render. A is
   // inactive; its badge starts hidden because A has no fresh messages yet.

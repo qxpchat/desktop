@@ -2,18 +2,21 @@
 // dock-tile badge on macOS, and a tab-title prefix. Wired up by
 // `shell/App.svelte` once at least one account is configured.
 //
-// Tauri's plugin doesn't surface a "user tapped the banner" callback in v2 —
-// only action-button presses. We work around that with a pending-jump queue
-// that drains on `window.focus`: when macOS activates the app after a
-// banner tap, the most-recently-notified chat wins. The same path covers
-// dock-clicks shortly after a notification arrives, which is the standard
-// Electron-app pattern.
+// Navigation on tap is *explicit only*: clicking a notification jumps to its
+// account + chat. Plain window focus / foreground does NOT navigate — an
+// earlier `window.focus` heuristic guessed the "most-recently-notified" chat
+// and silently switched accounts whenever the app regained focus, which
+// yanked the user around on any incidental refocus. Each fired notification
+// records its `{accountId, chatId}` target keyed by notification id; the tap
+// callback (web `Notification.onclick`, Tauri `onAction`) looks it up and
+// jumps to that exact chat.
 
 import { invoke } from '@tauri-apps/api/core';
 import {
   isPermissionGranted,
   requestPermission,
   sendNotification,
+  onAction,
 } from '@tauri-apps/plugin-notification';
 import { rpc } from '../rpc';
 import { onEvent } from '../events';
@@ -101,46 +104,30 @@ export function ensureBaseTitleCaptured(): void {
   }
 }
 
-// Pending-jump queue: each notification we fire pushes a target. When the
-// window regains focus, the most-recent one wins. Entries expire so that
-// dock-clicks long after a notification don't surprise the user.
-type Pending = { accountId: number; chatId: number; firedAt: number };
-const pendingJumps: Pending[] = [];
-const PENDING_MAX_AGE_MS = 30_000;
-const PENDING_FOCUS_WINDOW_MS = 8_000;
+// Tap targets: each fired notification records its chat, keyed by the numeric
+// notification id (`tagToId(tag)`). A tap looks the target up and jumps to
+// exactly that chat — no "most recent" guessing, no focus heuristic. Keyed by
+// id so re-notifying the same chat overwrites rather than accumulates, which
+// also bounds the map to one entry per chat.
+type JumpTarget = { accountId: number; chatId: number };
+const notifTargets = new Map<number, JumpTarget>();
 
-function pushPending(p: Pending): void {
-  pendingJumps.push(p);
-}
-
-function drainPendingOnFocus(): void {
-  const now = Date.now();
-  // Drop expired entries first.
-  while (pendingJumps.length > 0 && now - pendingJumps[0]!.firedAt > PENDING_MAX_AGE_MS) {
-    pendingJumps.shift();
-  }
-  if (pendingJumps.length === 0) return;
-  const target = pendingJumps[pendingJumps.length - 1]!;
-  // Only jump if focus happened *shortly after* a notification — otherwise
-  // a stale entry could hijack a deliberate window switch.
-  if (now - target.firedAt > PENDING_FOCUS_WINDOW_MS) return;
-  pendingJumps.length = 0;
-  if (accounts.selectedId !== target.accountId) {
-    // Stash the chat target *before* flipping the account: setting
-    // `accounts.selectedId` triggers App.svelte's account-change effect,
-    // which would otherwise clear the open chat. The effect drains the
-    // pending target instead, landing the user in the right chat. Selecting
-    // the chat in this `.then` (the previous approach) raced that effect and
-    // got wiped — the account switched but the chat never opened.
-    requestChatInAccount(target.accountId, target.chatId);
+/** Switch to `accountId` (if needed) and open `chatId`. For a cross-account
+ *  jump the chat target is stashed *before* flipping `accounts.selectedId`,
+ *  because that flip triggers App.svelte's account-change effect; the effect
+ *  drains the pending target via `consumePendingChat` instead of clearing the
+ *  selection, so the chat survives the switch. */
+function performJump({ accountId, chatId }: JumpTarget): void {
+  if (accounts.selectedId !== accountId) {
+    requestChatInAccount(accountId, chatId);
     void rpc
-      .call('select_account', [target.accountId])
+      .call('select_account', [accountId])
       .then(() => {
-        accounts.selectedId = target.accountId;
+        accounts.selectedId = accountId;
       })
       .catch(() => undefined);
   } else {
-    selectChat(target.chatId);
+    selectChat(chatId);
   }
 }
 
@@ -167,8 +154,17 @@ export function startIncomingNotifications(): void {
   ensureBaseTitleCaptured();
   if (notifStarted) return;
   notifStarted = true;
-  if (typeof window !== 'undefined') {
-    window.addEventListener('focus', drainPendingOnFocus);
+  // Tauri delivers banner taps via `onAction` (web uses `Notification.onclick`
+  // below). Look the tapped notification's recorded target up by its id and
+  // jump there. Fire-and-forget the async listener registration — it's a
+  // no-op outside the Tauri shell.
+  if (inTauri()) {
+    void onAction((notification) => {
+      const id = (notification as { id?: number }).id;
+      if (id == null) return;
+      const target = notifTargets.get(id);
+      if (target) performJump(target);
+    }).catch(() => undefined);
   }
   onEvent('IncomingMsg', async (ev) => {
     const accountId = ev.contextId;
@@ -176,8 +172,8 @@ export function startIncomingNotifications(): void {
     const msgId = Number(ev.event.msgId);
     if (!Number.isFinite(chatId) || !Number.isFinite(msgId)) return;
 
-    // Account-level mute (qxp-local pref). Suppresses banner + pending-jump
-    // queue entry; chat-list badge still counts the msg.
+    // Account-level mute (qxp-local pref). Suppresses the banner; chat-list
+    // badge still counts the msg.
     if (isAccountMuted(accountId)) return;
 
     // Don't notify if the user is already looking at this chat.
@@ -206,16 +202,16 @@ export function startIncomingNotifications(): void {
       // alone.
       const body = info.summaryPrefix ? `${info.summaryPrefix}: ${summary}` : summary;
       const tag = `${accountId}-${chatId}`;
-
-      pushPending({ accountId, chatId, firedAt: Date.now() });
+      const notifId = tagToId(tag);
+      notifTargets.set(notifId, { accountId, chatId });
 
       if (inTauri()) {
-        await tauriNotify(title, body, tagToId(tag));
+        await tauriNotify(title, body, notifId);
       } else if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
         const n = new Notification(title, { body, tag });
         n.onclick = () => {
           window.focus();
-          drainPendingOnFocus();
+          performJump({ accountId, chatId });
           n.close();
         };
       }

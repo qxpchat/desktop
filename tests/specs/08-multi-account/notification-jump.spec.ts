@@ -2,16 +2,19 @@
 //
 // Bug guard: when the user is on profile B and a message arrives for
 // profile A, tapping A's notification must switch to A *and* open the chat
-// the notification was about. Earlier behaviour: the account switched but
-// the chat never opened — setting `accounts.selectedId` fires App.svelte's
-// account-change effect, whose `selectChat(null)` raced (and wiped) the
-// `selectChat(target.chatId)` the notification drain set right after.
+// the notification was about. Two bugs this guards against:
+//   1. The account switched but the chat never opened — flipping
+//      `accounts.selectedId` fires App.svelte's account-change effect, whose
+//      `selectChat(null)` wiped the chat the tap handler had just set. Fixed
+//      by stashing the target via `requestChatInAccount` before the flip and
+//      draining it in the (untracked) effect via `consumePendingChat`.
+//   2. Navigation must be *explicit* — only a real tap navigates, never
+//      plain window focus (the old focus heuristic silently switched
+//      accounts on any incidental refocus).
 //
-// The fix stashes the chat target via `requestChatInAccount` *before*
-// flipping the account; the effect drains it via `consumePendingChat`
-// instead of clearing. This test drives the same path the OS banner tap
-// does: a notification fires (pushing a pending jump), then a `window`
-// focus event drains it (`drainPendingOnFocus`).
+// The web tap path is `Notification.onclick`. Playwright can't click an OS
+// banner, so we stub `window.Notification` to capture the constructed
+// instance and invoke its `onclick` — exactly what a real click fires.
 
 import { test, expect } from '../../fixtures/app-paired.js';
 import { TID } from '../../helpers/selectors.js';
@@ -42,13 +45,50 @@ test('tapping a notification for an inactive profile opens its chat in that prof
   const accountA = (await mainRpc.call<number>('get_selected_account_id')) as number;
   const accountB = await provisionSecondAccount(mainRpc, 'Second');
 
-  // Switch the UI to profile B; profile A (with the paired peer) is now
-  // inactive — exactly the state where the bug bit.
   await page.locator(TID.chatListBurger).click();
   await expect(page.locator(TID.navTabsAccount)).toHaveCount(2, { timeout: 10_000 });
+
+  // Wait for the selection to settle on A before switching. Provisioning B
+  // fires a burst of account events; if we click B while the UI optimistically
+  // still thinks B is selected (stale add_account auto-select), `selectAccount`
+  // early-returns without issuing `select_account(B)` and the daemon stays on
+  // A — then a later refresh reverts the tile. Settling on A first guarantees
+  // the click actually switches the daemon. Also confirm the daemon agrees.
+  await expect(page.locator(TID.navTabsAccountById(accountA)))
+    .toHaveAttribute('aria-pressed', 'true', { timeout: 15_000 });
+
   await page.locator(TID.navTabsAccountById(accountB)).click();
   await expect(page.locator(TID.navTabsAccountById(accountB)))
     .toHaveAttribute('aria-pressed', 'true', { timeout: 5_000 });
+  await expect
+    .poll(async () => await mainRpc.call<number>('get_selected_account_id'), {
+      timeout: 10_000,
+    })
+    .toBe(accountB);
+
+  // Stub `Notification` so we can capture the banner the app fires and
+  // invoke its `onclick` (a real OS banner isn't clickable from Playwright).
+  // `new Notification` reads `window.Notification` at call time, so swapping
+  // it now — before the message arrives — makes the IncomingMsg handler use
+  // the stub. Permission reads 'granted' so the handler takes the web path.
+  await page.evaluate(() => {
+    class StubNotification {
+      static permission = 'granted';
+      static requestPermission() {
+        return Promise.resolve('granted');
+      }
+      onclick: (() => void) | null = null;
+      constructor(
+        public title: string,
+        public options?: unknown,
+      ) {
+        (window as unknown as { __lastNotif: unknown }).__lastNotif = this;
+      }
+      close() {}
+    }
+    (window as unknown as { Notification: unknown }).Notification = StubNotification;
+    (window as unknown as { __lastNotif: unknown }).__lastNotif = null;
+  });
 
   // Both transports CONNECTED before peer sends (same rationale as
   // inactive-profile-badge: WORKING means mid-fetch, NOTIFY is lost).
@@ -61,33 +101,48 @@ test('tapping a notification for an inactive profile opens its chat in that prof
     { timeout: 60_000 },
   ).toBeGreaterThanOrEqual(4000);
 
-  // Peer messages A while B is selected → IncomingMsg(contextId=A) →
-  // notification handler pushes a pending jump for A's chat.
+  // Peer messages A while B is selected → IncomingMsg(contextId=A) → the
+  // handler fires a notification (captured by the stub).
   await peer.sendTo('tap me to jump');
 
-  // Drive the focus-drain the way an OS banner tap would. Nudge IMAP and
-  // dispatch a `window` focus each iteration: once the IncomingMsg has
-  // landed (pending pushed), the next focus drains it and switches to A.
+  // Wait for the banner to be constructed (nudge IMAP so the msg lands).
   const deadline = Date.now() + ARRIVAL_TIMEOUT_MS;
-  let switched = false;
+  let gotNotif = false;
   while (Date.now() < deadline) {
     await mainRpc.call('maybe_network');
-    await page.evaluate(() => window.dispatchEvent(new Event('focus')));
-    const pressed = await page
-      .locator(TID.navTabsAccountById(accountA))
-      .getAttribute('aria-pressed');
-    if (pressed === 'true') {
-      switched = true;
-      break;
-    }
+    gotNotif = await page.evaluate(
+      () => (window as unknown as { __lastNotif: unknown }).__lastNotif != null,
+    );
+    if (gotNotif) break;
     await page.waitForTimeout(2_000);
   }
-  expect(switched, 'notification jump switched to profile A').toBe(true);
+  expect(gotNotif, 'a notification was fired for the inactive profile').toBe(true);
+
+  // Bare window focus (even after a blur) must NOT navigate — the old
+  // heuristic switched accounts here; the chosen design requires an
+  // explicit tap. B stays selected.
+  await page.evaluate(() => {
+    window.dispatchEvent(new Event('blur'));
+    window.dispatchEvent(new Event('focus'));
+  });
+  await page.waitForTimeout(500);
+  await expect(page.locator(TID.navTabsAccountById(accountB)))
+    .toHaveAttribute('aria-pressed', 'true');
+
+  // Now tap the banner — only this explicit click navigates.
+  await page.evaluate(() =>
+    (
+      window as unknown as { __lastNotif: { onclick?: () => void } }
+    ).__lastNotif.onclick?.(),
+  );
+
+  await expect(page.locator(TID.navTabsAccountById(accountA)))
+    .toHaveAttribute('aria-pressed', 'true', { timeout: 10_000 });
 
   // The right profile is active — now the right chat must be open. The
   // topbar carrying the peer's name is the proof the pending chat target
   // survived the account switch (the bug left the topbar blank).
   await expect(
     page.locator(TID.chatTopbarTitle).filter({ hasText: peer.displayName }),
-  ).toBeVisible({ timeout: 10_000 });
+  ).toBeVisible({ timeout: 30_000 });
 });

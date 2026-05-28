@@ -51,15 +51,26 @@ test('mark all account chats as read clears the rail badge', async ({ qxpPaired,
   await page.locator(TID.chatListBurger).click();
   await expect(page.locator(TID.navTabsAccount)).toHaveCount(2, { timeout: 10_000 });
 
+  // Wait for selection to settle on A before switching. Provisioning B fires
+  // a burst of account events; if we click B while the UI optimistically
+  // still shows B selected (stale add_account auto-select), `selectAccount`
+  // early-returns without issuing `select_account(B)`, the daemon stays on A,
+  // and a later refresh reverts the tile back to A mid-test.
+  await expect(page.locator(TID.navTabsAccountById(firstId)))
+    .toHaveAttribute('aria-pressed', 'true', { timeout: 15_000 });
+
   // Switch to the second account so the first one is inactive — its
   // freshCount will appear as a corner badge when the peer sends in.
-  // Assert aria-pressed flipped before continuing — without this, a
-  // silent click-eaten regression (e.g. accidental preventDefault in
-  // pointerdown) would otherwise surface much later as a "badge never
-  // appeared" timeout, masking the real cause.
+  // Assert both the tile and the daemon's selected account flipped (the
+  // daemon check catches the early-return race above).
   await page.locator(TID.navTabsAccountById(secondId)).click();
   await expect(page.locator(TID.navTabsAccountById(secondId)))
     .toHaveAttribute('aria-pressed', 'true', { timeout: 5_000 });
+  await expect
+    .poll(async () => await mainRpc.call<number>('get_selected_account_id'), {
+      timeout: 10_000,
+    })
+    .toBe(secondId);
   await expect(page.locator(TID.navTabsAccountBadgeById(firstId))).toHaveCount(0);
 
   // Wait for *both* sides to actually be CONNECTED (dc-core: 4000)
