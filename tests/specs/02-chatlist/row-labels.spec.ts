@@ -84,22 +84,29 @@ test('archived row shows an Archived pill in search but not in the archive view'
   qxpPaired,
   page,
 }) => {
-  const { peer: paired } = qxpPaired;
+  // Use a traffic-free local group rather than the live paired chat:
+  // dc-core auto-unarchives any archived non-muted chat the moment a new
+  // message lands in it, so a chat with a live peer + IMAP polling races
+  // the assertion (the chat silently un-archives → is_archived flips
+  // false → no pill). An empty self-group never receives mail, so its
+  // archived state is stable.
+  const accountId = (await qxpPaired.mainRpc.call<number[]>('get_all_account_ids'))[0];
+  const name = `Archive Probe ${Date.now()}`;
+  const groupId = await qxpPaired.mainRpc.call<number>('create_group_chat', [
+    accountId,
+    name,
+    false,
+  ]);
 
-  await paired.sendTo('archive me');
-  await waitForChatRowByName(page, paired.displayName, ARRIVAL_TIMEOUT_MS);
+  await waitForChatRowByName(page, name, ARRIVAL_TIMEOUT_MS);
+  const row = page.locator(`[data-testid="chat-list-row"][data-name="${name}"]`);
 
-  const row = page.locator(
-    `[data-testid="chat-list-row"][data-name="${paired.displayName}"]`,
-  );
-
-  // Archive via context menu.
-  await row.click({ button: 'right' });
-  await page.locator(TID.chatRowMenuItem('archive')).click();
+  // Archive it; it drops out of the inbox list.
+  await qxpPaired.mainRpc.call('set_chat_visibility', [accountId, groupId, 'Archived']);
   await expect(row).toHaveCount(0);
 
   // In the dedicated archive view the pill is suppressed (every row is
-  // archived there).
+  // archived there → noise).
   await page.locator(TID.chatListArchiveLink).click();
   await expect(row).toBeVisible();
   await expect(row.locator(TID.chatListRowArchived)).toHaveCount(0);
@@ -107,7 +114,7 @@ test('archived row shows an Archived pill in search but not in the archive view'
 
   // Search from the inbox surfaces the archived chat — here the pill
   // earns its keep, flagging that the hit is an archived conversation.
-  await page.locator(TID.chatListSearch).fill(paired.displayName);
+  await page.locator(TID.chatListSearch).fill(name);
   await expect(row).toBeVisible();
   await expect(row.locator(TID.chatListRowArchived)).toBeVisible();
 });

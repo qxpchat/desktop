@@ -17,7 +17,7 @@ import {
 } from '@tauri-apps/plugin-notification';
 import { rpc } from '../rpc';
 import { onEvent } from '../events';
-import { selectChat, selection } from '../state/selection.svelte';
+import { selectChat, selection, requestChatInAccount } from '../state/selection.svelte';
 import { accounts } from '../state/accounts.svelte';
 import { isAccountMuted } from '../prefs.svelte';
 import { gifLabelOr } from '../gifs/giphy';
@@ -126,11 +126,17 @@ function drainPendingOnFocus(): void {
   if (now - target.firedAt > PENDING_FOCUS_WINDOW_MS) return;
   pendingJumps.length = 0;
   if (accounts.selectedId !== target.accountId) {
+    // Stash the chat target *before* flipping the account: setting
+    // `accounts.selectedId` triggers App.svelte's account-change effect,
+    // which would otherwise clear the open chat. The effect drains the
+    // pending target instead, landing the user in the right chat. Selecting
+    // the chat in this `.then` (the previous approach) raced that effect and
+    // got wiped — the account switched but the chat never opened.
+    requestChatInAccount(target.accountId, target.chatId);
     void rpc
       .call('select_account', [target.accountId])
       .then(() => {
         accounts.selectedId = target.accountId;
-        selectChat(target.chatId);
       })
       .catch(() => undefined);
   } else {

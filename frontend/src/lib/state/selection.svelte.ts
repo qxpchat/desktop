@@ -8,6 +8,33 @@ import { pinChatItem } from './chatlist.svelte';
 
 export const selection = $state<{ chatId: number | null }>({ chatId: null });
 
+// A cross-account jump target. App.svelte's account-change effect clears the
+// open chat on every account switch (chat ids are per-account), so a
+// deliberate jump *into* a chat that lives in a not-yet-active account — a
+// notification tap, a deep link — would have its chat wiped the instant the
+// account flips. Stashing the target here lets that effect re-apply it after
+// the switch instead of clearing. Plain module state (not a rune): the effect
+// already re-runs on the `accounts.selectedId` change that accompanies it.
+let pendingAccountChat: { accountId: number; chatId: number } | null = null;
+
+/** Record the chat to open once `accountId` becomes active. Pair with a
+ *  write to `accounts.selectedId` (after `select_account`); the
+ *  account-change effect drains it via `consumePendingChat`. */
+export function requestChatInAccount(accountId: number, chatId: number): void {
+  pendingAccountChat = { accountId, chatId };
+}
+
+/** Pop the pending cross-account chat target if it's for `accountId`.
+ *  Returns the chat id to open, else null. */
+export function consumePendingChat(accountId: number): number | null {
+  if (pendingAccountChat?.accountId === accountId) {
+    const id = pendingAccountChat.chatId;
+    pendingAccountChat = null;
+    return id;
+  }
+  return null;
+}
+
 export function selectChat(id: number | null): void {
   selection.chatId = id;
   // Keep the open chat's payload in `chatlist.items` — the topbar / composer

@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { onMount } from 'svelte';
+  import { onMount, untrack } from 'svelte';
   import { prefs, savePrefs, accentForeground, getAccent } from '../lib/prefs.svelte';
   import { rpc, type ConnectionStatus } from '../lib/rpc';
   import { startEventLoop } from '../lib/events';
@@ -7,7 +7,7 @@
   import { accounts, refreshAccounts, purgeUnconfigured } from '../lib/state/accounts.svelte';
   import { setActiveAccount } from '../lib/state/chatlist.svelte';
   import { onboarding } from '../lib/state/onboarding.svelte';
-  import { selection, selectChat } from '../lib/state/selection.svelte';
+  import { selection, selectChat, consumePendingChat } from '../lib/state/selection.svelte';
   import { refreshProfiles, recomputeAllFreshCounts, profiles } from '../lib/state/profiles.svelte';
   import { setMainRoute, mainRoute } from '../lib/state/mainRoute.svelte';
   import { drainDeepLinks } from '../lib/state/deepLink.svelte';
@@ -87,9 +87,25 @@
   // `chatlist.accountId`) since `chatlist.accountId` is *only* ever
   // written by `setActiveAccount`, so reading it back was a feedback-loop
   // shaped indirection rather than independent state.
+  //
+  // Exception: a cross-account jump (notification tap, deep link) sets a
+  // pending target *before* flipping `accounts.selectedId`. We re-apply it
+  // here instead of clearing, so the intended chat survives the switch
+  // rather than being wiped by the `selectChat(null)` that the flip would
+  // otherwise trigger.
+  //
+  // `untrack` keeps this effect's only dependency `accounts.selectedId`.
+  // The body mutates `chatlist` (via `setActiveAccount`) and reads
+  // `chatlist.items` (via `selectChat → pinChatItem`); without `untrack`
+  // those become deps, so the effect re-fires mid-switch — and the second
+  // run, finding the pending chat already drained, would `selectChat(null)`
+  // and wipe the chat the jump just opened.
   $effect(() => {
-    setActiveAccount(accounts.selectedId);
-    selectChat(null);
+    const id = accounts.selectedId;
+    untrack(() => {
+      setActiveAccount(id);
+      selectChat(id != null ? consumePendingChat(id) : null);
+    });
   });
 
   // Re-fetch profile metadata whenever the configured-account set changes —
