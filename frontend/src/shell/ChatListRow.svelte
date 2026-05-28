@@ -15,11 +15,15 @@
     chat: ChatListItem;
     selected: boolean;
     narrow: boolean;
+    /** True when the list is the dedicated archive view — suppresses the
+     *  per-row "Archived" pill there (every row is archived, so it's noise;
+     *  the pill earns its keep in the inbox/search listing). */
+    archiveView?: boolean;
     onSelect: (id: number) => void;
     onContextMenu?: (chat: ChatListItem, x: number, y: number) => void;
   };
 
-  let { chat, selected, narrow, onSelect, onContextMenu }: Props = $props();
+  let { chat, selected, narrow, archiveView = false, onSelect, onContextMenu }: Props = $props();
 
   let displayName = $derived(chat.name.length > 0 ? chat.name : t('(no name)'));
   let timestamp = $derived(formatRelativeTimestamp(chat.lastUpdated));
@@ -44,9 +48,16 @@
     chat.freshMessageCounter > 0 && !(selected && windowFocus.focused),
   );
   let peerStreaming = $derived(liveLocations.chatIds.has(chat.id));
+  // A contact-request row swaps its trailing controls for a single
+  // "Request" pill: the fresh-counter and delivery glyph carry no useful
+  // signal for a chat the user hasn't accepted yet. Archived rows keep
+  // their counter but show an "Archived" pill (except in the dedicated
+  // archive view, where every row is archived).
+  let isRequest = $derived(chat.isContactRequest);
+  let showArchivedPill = $derived(chat.isArchived && !isRequest && !archiveView);
   // Only outgoing-state summaries get a glyph; the helper returns null for
   // incoming states (Undefined/InFresh/InNoticed/InSeen) by default.
-  let stateGlyph = $derived(messageStateGlyph(chat.summaryStatus));
+  let stateGlyph = $derived(isRequest ? null : messageStateGlyph(chat.summaryStatus));
 </script>
 
 <button
@@ -106,24 +117,31 @@
       </span>
       <span class="row-bottom">
         <span class="preview"><InlineMarkdown text={preview} /></span>
-        {#if stateGlyph}
-          <span
-            class="state {stateGlyph.kind}"
-            aria-label={stateGlyph.kind}
-            data-testid="chat-list-row__state"
-            data-state={stateGlyph.kind}
-          >
-            <Icon name={stateGlyph.icon} size={12} stroke={2} />
-          </span>
-        {/if}
-        {#if showUnread}
-          <Badge
-            count={chat.freshMessageCounter}
-            aria-label={t('{n} unread', { n: chat.freshMessageCounter })}
-            data-testid="chat-list-row__unread"
-          />
-        {:else if chat.isPinned}
-          <span class="pin" aria-label={t('pinned')} title={t('Pinned')} data-testid="chat-list-row__pin"><Icon name="pin" size={12} /></span>
+        {#if isRequest}
+          <span class="pill request" data-testid="chat-list-row__request">{t('Request')}</span>
+        {:else}
+          {#if showArchivedPill}
+            <span class="pill archived" data-testid="chat-list-row__archived">{t('Archived')}</span>
+          {/if}
+          {#if stateGlyph}
+            <span
+              class="state {stateGlyph.kind}"
+              aria-label={stateGlyph.kind}
+              data-testid="chat-list-row__state"
+              data-state={stateGlyph.kind}
+            >
+              <Icon name={stateGlyph.icon} size={12} stroke={2} />
+            </span>
+          {/if}
+          {#if showUnread}
+            <Badge
+              count={chat.freshMessageCounter}
+              aria-label={t('{n} unread', { n: chat.freshMessageCounter })}
+              data-testid="chat-list-row__unread"
+            />
+          {:else if chat.isPinned}
+            <span class="pin" aria-label={t('pinned')} title={t('Pinned')} data-testid="chat-list-row__pin"><Icon name="pin" size={12} /></span>
+          {/if}
         {/if}
       </span>
     </span>
@@ -224,6 +242,23 @@
   .pin {
     font-size: 12px;
     opacity: 0.7;
+  }
+  .pill {
+    flex: 0 0 auto;
+    font-size: var(--text-xs);
+    font-weight: 600;
+    line-height: 1;
+    padding: 2px 6px;
+    border-radius: 999px;
+    white-space: nowrap;
+  }
+  .pill.request {
+    color: var(--color-accent-fg);
+    background: var(--color-accent);
+  }
+  .pill.archived {
+    color: var(--color-fg-secondary);
+    background: var(--color-bg-hover);
   }
   .state {
     display: inline-flex;

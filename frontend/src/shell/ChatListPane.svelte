@@ -223,6 +223,7 @@
               chat={item}
               selected={id === selectedChatId}
               {narrow}
+              archiveView={archive}
               onSelect={onSelectChat}
               onContextMenu={(c, x, y) => (menu = { chat: c, x, y })}
             />

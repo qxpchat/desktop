@@ -1,6 +1,6 @@
 [package]
 name = "qxp-desktop"
-version = "0.44.1"
+version = "0.45.0"
 edition = "2021"
 description = "qxp Tauri desktop shell — wraps the qxp-web daemon + Svelte SPA in a native window."
 license = "MPL-2.0"
