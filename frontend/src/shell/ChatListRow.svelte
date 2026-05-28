@@ -66,6 +66,11 @@
   // archive view, where every row is archived).
   let isRequest = $derived(chat.isContactRequest);
   let showArchivedPill = $derived(chat.isArchived && !isRequest && !archiveView);
+  // System chats — the self "Saved Messages" chat and the core "Device
+  // Messages" chat — are marked distinctly so they read as non-peer chats.
+  let chatKind = $derived(
+    chat.isSelfTalk ? 'self' : chat.isDeviceTalk ? 'device' : 'regular',
+  );
   // Only outgoing-state summaries get a glyph; the helper returns null for
   // incoming states (Undefined/InFresh/InNoticed/InSeen) by default.
   let stateGlyph = $derived(isRequest ? null : messageStateGlyph(chat.summaryStatus));
@@ -89,6 +94,7 @@
   data-multi-selected={multiSelected}
   data-testid="chat-list-row"
   data-chat-id={chat.id}
+  data-chat-kind={chatKind}
   data-name={displayName}
 >
   <div class="avatar-wrap">
@@ -115,6 +121,9 @@
       <span class="row-top">
         <span class="name">
           {displayName}
+          {#if chat.isDeviceTalk}
+            <span class="device" aria-label={t('Device messages')} title={t('Device messages')} data-testid="chat-list-row__device"><Icon name="info" size={12} /></span>
+          {/if}
           {#if chat.isMuted}
             <span class="mute" aria-label={t('muted')} title={t('Muted')} data-testid="chat-list-row__mute"><Icon name="bell-off" size={12} /></span>
           {/if}
@@ -233,6 +242,13 @@
     align-items: center;
     line-height: 1;
     color: var(--color-success, #34c759);
+    flex: 0 0 auto;
+  }
+  .device {
+    display: inline-flex;
+    align-items: center;
+    line-height: 1;
+    color: var(--color-accent);
     flex: 0 0 auto;
   }
   .ts {

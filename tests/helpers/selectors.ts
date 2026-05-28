@@ -34,6 +34,9 @@ export const TID = {
   chatListRowMute: '[data-testid="chat-list-row__mute"]',
   chatListRowState: '[data-testid="chat-list-row__state"]',
   chatListRowLive: '[data-testid="chat-list-row__live"]',
+  chatListRowDevice: '[data-testid="chat-list-row__device"]',
+  chatListRowByKind: (kind: 'self' | 'device' | 'regular') =>
+    `[data-testid="chat-list-row"][data-chat-kind="${kind}"]`,
   chatListRowRequest: '[data-testid="chat-list-row__request"]',
   chatListRowArchived: '[data-testid="chat-list-row__archived"]',
   chatListRowAvatar: '[data-testid="chat-list-row__avatar"]',
