@@ -229,6 +229,8 @@ export const TID = {
   // -- Chat-list search (doubles as global message search) --
   chatListSearchMessagesHeader: '[data-testid="chat-list-search__messages-header"]',
   chatListSearchHit: '[data-testid="chat-list-search__hit"]',
+  chatListSearchNewEmail: '[data-testid="chat-list-search__new-email"]',
+  chatListSearchJoinInvite: '[data-testid="chat-list-search__join-invite"]',
 
   // -- In-chat search bar (Ctrl+F) --
   inChatSearch: '[data-testid="in-chat-search"]',

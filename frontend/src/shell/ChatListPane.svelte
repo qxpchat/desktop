@@ -14,6 +14,7 @@
     setMessageSearchQuery,
   } from '../lib/state/messageSearch.svelte';
   import { selectChat } from '../lib/state/selection.svelte';
+  import { setMainRoute } from '../lib/state/mainRoute.svelte';
   import { jumpToMessage } from '../lib/state/jump';
   import { accounts } from '../lib/state/accounts.svelte';
   import { profiles } from '../lib/state/profiles.svelte';
@@ -23,7 +24,7 @@
   import RailToggle from './RailToggle.svelte';
   import { rpc } from '../lib/rpc';
   import type { ChatListItem } from '../lib/state/chatlist.svelte';
-  import { canLeaveBeforeDelete } from '../lib/chatActions';
+  import { canLeaveBeforeDelete, openChatByEmail } from '../lib/chatActions';
   import Icon from '../lib/Icon.svelte';
   import SearchField from '../lib/SearchField.svelte';
   import { t } from '../lib/i18n/i18n.svelte';
@@ -91,6 +92,26 @@
 
   let hasResults = $derived(chatlist.ids.length > 0);
   let isFiltered = $derived(chatlist.query.trim().length > 0);
+
+  // Synthetic search results — act on what the user typed when it isn't an
+  // existing chat. An email → start a 1:1; an invite link/QR → secure-join.
+  // Mirrors the reference's `addContactOnClick`.
+  const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  const INVITE_RE = /^(openpgp4fpr:|https?:\/\/i\.delta\.chat\/)/i;
+  let trimmedQuery = $derived(chatlist.query.trim());
+  let syntheticEmail = $derived(EMAIL_RE.test(trimmedQuery) ? trimmedQuery : null);
+  let syntheticInvite = $derived(INVITE_RE.test(trimmedQuery) ? trimmedQuery : null);
+
+  function startEmailChat(email: string) {
+    search = '';
+    void openChatByEmail(email);
+  }
+  function joinInvite(code: string) {
+    search = '';
+    // Reuse the QR dispatcher's check_qr → secure-join pipeline (same path
+    // OS deep links take), rather than re-implementing invite handling here.
+    setMainRoute({ kind: 'qrScan', purpose: 'general', code });
+  }
 
   function openCompose() {
     // Starting a new conversation needs the contact picker, which is
@@ -334,6 +355,23 @@
     {/if}
 
     <ul class="list">
+      {#if isFiltered && syntheticInvite}
+        <li>
+          <button class="synthetic" onclick={() => joinInvite(syntheticInvite!)} data-testid="chat-list-search__join-invite">
+            <span class="synthetic-icon" aria-hidden="true"><Icon name="user-plus" size={20} /></span>
+            <span class="synthetic-label">{t('Join via invite link')}</span>
+          </button>
+        </li>
+      {/if}
+      {#if isFiltered && syntheticEmail}
+        <li>
+          <button class="synthetic" onclick={() => startEmailChat(syntheticEmail!)} data-testid="chat-list-search__new-email">
+            <span class="synthetic-icon" aria-hidden="true"><Icon name="mail" size={20} /></span>
+            <span class="synthetic-label">{t('New chat with {addr}', { addr: syntheticEmail })}</span>
+          </button>
+        </li>
+      {/if}
+
       {#each chatlist.ids as id (id)}
         {@const item = chatlist.items.get(id)}
         {#if item}
@@ -351,7 +389,7 @@
         {/if}
       {/each}
 
-      {#if !hasResults && !chatlist.loading}
+      {#if !hasResults && !chatlist.loading && !syntheticEmail && !syntheticInvite}
         <li class="empty" data-testid="chat-list-empty">
           {#if isFiltered}
             {t('No conversations match.')}
@@ -557,7 +595,8 @@
   .sel-clear:hover {
     background: var(--color-bg-hover);
   }
-  .archive-row {
+  .archive-row,
+  .synthetic {
     display: flex;
     align-items: center;
     justify-content: flex-start;
@@ -568,8 +607,25 @@
     background: transparent;
     color: var(--color-fg);
   }
-  .archive-row:hover {
+  .archive-row:hover,
+  .synthetic:hover {
     background: var(--color-bg-hover);
+  }
+  .synthetic-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: var(--color-accent-soft);
+    color: var(--color-accent);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 auto;
+  }
+  .synthetic-label {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
   .archive-icon {
     width: 40px;
