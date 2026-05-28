@@ -106,7 +106,7 @@
             <span class="mute" aria-label={t('muted')} title={t('Muted')} data-testid="chat-list-row__mute"><Icon name="bell-off" size={12} /></span>
           {/if}
           {#if peerStreaming}
-            <span class="live" aria-label={t('Live location')} title={t('Sharing live location')}>
+            <span class="live" aria-label={t('Live location')} title={t('Sharing live location')} data-testid="chat-list-row__live">
               <Icon name="map-pin" size={12} stroke={2.5} />
             </span>
           {/if}

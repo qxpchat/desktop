@@ -33,6 +33,7 @@ export const TID = {
   chatListRowUnread: '[data-testid="chat-list-row__unread"]',
   chatListRowMute: '[data-testid="chat-list-row__mute"]',
   chatListRowState: '[data-testid="chat-list-row__state"]',
+  chatListRowLive: '[data-testid="chat-list-row__live"]',
   chatListRowRequest: '[data-testid="chat-list-row__request"]',
   chatListRowArchived: '[data-testid="chat-list-row__archived"]',
   chatListRowAvatar: '[data-testid="chat-list-row__avatar"]',
