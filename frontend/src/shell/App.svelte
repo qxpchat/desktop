@@ -173,6 +173,7 @@
     rpc.connect();
     const unbindShortcuts = bindGlobalShortcuts();
     const unsubNew = onShortcut('new-chat', () => setPaneMode({ kind: 'compose' }));
+    const unsubSettings = onShortcut('open-settings', () => setMainRoute({ kind: 'settings' }));
     const unsubEsc = onShortcut('escape', () => {
       backToInbox();
       backToChat();
@@ -219,6 +220,7 @@
       unsub();
       unbindShortcuts();
       unsubNew();
+      unsubSettings();
       unsubEsc();
       window.removeEventListener('online', nudgeNetwork);
       window.removeEventListener('offline', nudgeNetwork);

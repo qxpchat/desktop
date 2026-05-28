@@ -44,6 +44,7 @@
   import IconButton from '../lib/IconButton.svelte';
   import ConfirmDialog from '../lib/ConfirmDialog.svelte';
   import { onShortcut } from '../lib/shortcuts';
+  import { setMainRoute } from '../lib/state/mainRoute.svelte';
 
   type Props = {
     accountId: number;
@@ -517,9 +518,22 @@
     const offEsc = onShortcut('escape', () => {
       if (findOpen) findOpen = false;
     });
+    // Open the current chat's media gallery (newest first) without the mouse.
+    const offGallery = onShortcut('open-gallery', () => {
+      const chatId = chat.active?.chatId;
+      if (chatId != null) setMainRoute({ kind: 'mediaBrowser', chatId });
+    });
+    // Drop focus into the composer to start typing.
+    const offCompose = onShortcut('focus-composer', () => {
+      document
+        .querySelector<HTMLTextAreaElement>('[data-testid="composer__textarea"]')
+        ?.focus();
+    });
     return () => {
       offFind();
       offEsc();
+      offGallery();
+      offCompose();
     };
   });
 
@@ -732,7 +746,7 @@
           itemFirstMsg(item),
         )}
         {#if marker}
-          <div class="daymarker"><span>{marker}</span></div>
+          <div class="daymarker" data-testid="chat-daymarker"><span>{marker}</span></div>
         {/if}
         {#if item.kind === 'gallery' && !expandedGalleries.has(item.key)}
           <div

@@ -3,6 +3,7 @@
   import { rpc } from '../lib/rpc';
   import SettingsSection from '../lib/SettingsSection.svelte';
   import SettingsRow from '../lib/SettingsRow.svelte';
+  import { SHORTCUTS, shortcutKeys } from '../lib/shortcuts';
   import { t } from '../lib/i18n/i18n.svelte';
 
   type SystemInfo = Record<string, unknown>;
@@ -60,6 +61,19 @@
   </p>
 </SettingsSection>
 
+<SettingsSection title={t('Keyboard shortcuts')}>
+  <table class="shortcuts" data-testid="settings-about__shortcuts">
+    <tbody>
+      {#each SHORTCUTS as s (s.name)}
+        <tr data-shortcut={s.name}>
+          <td class="sc-label">{t(s.label)}</td>
+          <td class="sc-keys"><kbd>{shortcutKeys(s)}</kbd></td>
+        </tr>
+      {/each}
+    </tbody>
+  </table>
+</SettingsSection>
+
 <SettingsSection title={t('App')}>
   <SettingsRow label={t('Version')} right={versionRight} />
   <SettingsRow label={t('Delta Chat core')} right={coreRight} />
@@ -87,5 +101,30 @@
     font-family: var(--font-mono);
     font-size: var(--text-sm);
     color: var(--color-fg-secondary);
+  }
+  .shortcuts {
+    width: 100%;
+    border-collapse: collapse;
+  }
+  .shortcuts td {
+    padding: var(--space-2) 0;
+    border-bottom: 1px solid var(--color-border);
+    font-size: var(--text-sm);
+  }
+  .sc-label {
+    color: var(--color-fg);
+  }
+  .sc-keys {
+    text-align: right;
+    white-space: nowrap;
+  }
+  kbd {
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    background: var(--color-bg-hover);
+    color: var(--color-fg-secondary);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    padding: 2px 6px;
   }
 </style>

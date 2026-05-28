@@ -188,6 +188,7 @@ export const TID = {
   settingsAboutCoreVersion: '[data-testid="settings-about__core-version"]',
   settingsAboutSqliteVersion: '[data-testid="settings-about__sqlite-version"]',
   settingsAboutArch: '[data-testid="settings-about__arch"]',
+  settingsAboutShortcuts: '[data-testid="settings-about__shortcuts"]',
 
   // -- Settings: Chats & Media --
   settingsChatsMdns: '[data-testid="settings-chats__mdns"]',
@@ -308,6 +309,7 @@ export const TID = {
 
   // -- Chat view (drop target) --
   chatView: '[data-testid="chat-view"]',
+  chatDayMarker: '[data-testid="chat-daymarker"]',
 
   // -- Composer --
   composer: '[data-testid="composer"]',

@@ -78,6 +78,23 @@
   $effect(() => onShortcut('focus-search', () => {
     searchField?.focus();
   }));
+  // Alt+↓ / Alt+↑ (and Ctrl+PageDn/Up) move to the next / previous chat in
+  // the visible list order, wrapping at the ends. Only while the inbox or
+  // archive list is showing — not in compose / member-picker panes.
+  $effect(() => onShortcut('next-chat', () => navChat(1)));
+  $effect(() => onShortcut('prev-chat', () => navChat(-1)));
+  function navChat(delta: 1 | -1) {
+    const kind = paneMode.mode.kind;
+    if (kind !== 'inbox' && kind !== 'archive') return;
+    const ids = chatlist.ids;
+    if (ids.length === 0) return;
+    const cur = selectedChatId != null ? ids.indexOf(selectedChatId) : -1;
+    const next =
+      cur === -1
+        ? (delta === 1 ? ids[0]! : ids[ids.length - 1]!)
+        : ids[(cur + delta + ids.length) % ids.length]!;
+    onSelectChat(next);
+  }
   $effect(() => {
     setSearchQuery(search);
     setMessageSearchQuery(search);
